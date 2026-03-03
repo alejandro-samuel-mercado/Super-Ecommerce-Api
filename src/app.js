@@ -25,7 +25,7 @@ app.use(helmet());
 
 // 2. CORS: Permite peticiones de otros dominios (frontend)
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'],
+  origin: ['https://superx-ecommerce.unixxtech.online','https://superx-ecommerce-admin.unixxtech.online',"https://super-ecommerce-administrador.vercel.app",'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-branch-id', 'x-idempotency-key', 'x-silence-toast']
 }));

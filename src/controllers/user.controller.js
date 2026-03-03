@@ -19,7 +19,7 @@ class UserController {
       const updatedUser = await UserService.updateProfile(req.user.id, req.body);
       
       const { password, ...safeUser } = updatedUser;
-      res.status(200).json({ success: true, message: 'Profile updated', data: safeUser });
+      res.status(200).json({ success: true, message: 'Perfil actualizado', data: safeUser });
     } catch (error) {
       next(error);
     }
@@ -166,7 +166,7 @@ class UserController {
                phone
            });
            
-           res.status(200).json({ success: true, message: 'Address updated' });
+           res.status(200).json({ success: true, message: 'Dirección actualizada' });
       } catch (error) {
           next(error);
       }
@@ -182,7 +182,7 @@ class UserController {
                zipCode: null,
                phone: null
            });
-           res.status(200).json({ success: true, message: 'Address deleted' });
+           res.status(200).json({ success: true, message: 'Dirección eliminada' });
       } catch (error) {
            next(error);
       }
@@ -201,10 +201,10 @@ class UserController {
   async addFavorite(req, res, next) {
       try {
           const { productId } = req.params;
-          if (!productId) return res.status(400).json({ success: false, message: 'Product ID required' });
+          if (!productId) return res.status(400).json({ success: false, message: 'ID de producto requerido' });
           
           await UserService.addFavorite(req.user.id, productId);
-          res.status(200).json({ success: true, message: 'Added to favorites' });
+          res.status(200).json({ success: true, message: 'Añadido a favoritos' });
       } catch (error) {
        
           next(error);
@@ -214,10 +214,10 @@ class UserController {
   async removeFavorite(req, res, next) {
       try {
           const { productId } = req.params;
-          if (!productId) return res.status(400).json({ success: false, message: 'Product ID required' });
+          if (!productId) return res.status(400).json({ success: false, message: 'ID de producto requerido' });
           
           await UserService.removeFavorite(req.user.id, productId);
-          res.status(200).json({ success: true, message: 'Removed from favorites' });
+          res.status(200).json({ success: true, message: 'Eliminado de favoritos' });
       } catch (error) {
           next(error);
       }

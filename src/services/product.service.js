@@ -192,6 +192,7 @@ async createProduct(data) {
       inStock,
       isTrending,
       isNew,
+      freeShipping,
       branchId,
       currency,
       ...attributes
@@ -285,8 +286,16 @@ async createProduct(data) {
       where.isNew = isNew === 'true' || isNew === true;
     }
 
+    if (freeShipping === 'true' || freeShipping === true) {
+      const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+      if (config && config.freeShippingThreshold > 0) {
+        if (!where.basePrice) where.basePrice = {};
+        where.basePrice.gte = parseFloat(config.freeShippingThreshold.toString());
+      }
+    }
+
     if (minPrice || maxPrice) {
-      where.basePrice = {};
+      if (!where.basePrice) where.basePrice = {};
       if (minPrice && !isNaN(Number(minPrice))) where.basePrice.gte = Number(minPrice);
       if (maxPrice && !isNaN(Number(maxPrice))) where.basePrice.lte = Number(maxPrice);
     }
@@ -362,7 +371,7 @@ async createProduct(data) {
     // 8. Ejecutar Query (Secuencial para evitar timeout de conexión y mejor debug)
     
     try {
-        // Ejecutar conteo primero para fallar rápido si la query es inválida
+     
         const total = await prisma.product.count({ where });
         
         let products = [];

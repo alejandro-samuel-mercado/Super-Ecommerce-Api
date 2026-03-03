@@ -45,60 +45,45 @@ const initSocket = (server) => {
     // Cliente inicia chat o envía mensaje
     socket.on('client_message', async ({ text }) => {
       try {
-        // 1. Obtener o Crear Conversación
         const conversation = await chatService.getOrCreateConversation(userId, socket.id);
         const roomId = `conversation_${conversation.id}`;
         socket.join(roomId);
 
-        // 2. Guardar Mensaje de Usuario
         await chatService.addMessage(conversation.id, 'USER', text);
 
-        // 3. Lógica: Verificar si Admins están online
         const adminsOnline = adminSockets.size > 0;
-        
-        // Notificar Admins
+
         io.to('admins').emit('admin_notification', {
            type: 'new_message',
            conversationId: conversation.id,
            text,
            user: userId ? { id: userId } : { name: 'Invitado', email: 'Sin registrar' }
         });
-        
-        // Reenviar a la sala de conversación específica (para que admins observando la vean)
+
         socket.to(roomId).emit('message_received', {
             sender: 'USER',
             text,
             createdAt: new Date()
         });
 
-        if (adminsOnline) {
-          // Admin online: Quizás enviar mensaje "Espere un agente" si es conversación nueva?
-          // Por ahora, directo: Admin lo ve en dashboard.
-        } else {
-          // No Admin online: Probar Auto-Respuesta
-          const autoReply = await chatService.getAutoResponse(text);
-          if (autoReply) {
-             // Guardar Mensaje Bot
-             await chatService.addMessage(conversation.id, 'BOT', autoReply);
-             
-             // Enviar a Cliente
-             io.to(socket.id).emit('message_received', {
-               conversationId: conversation.id, 
-               sender: 'BOT',
-               text: autoReply,
-               createdAt: new Date()
-             });
-          } else {
-             // Mensaje Bot de Respaldo
-             const fallback = "Por el momento no hay agentes disponibles y no tengo una respuesta para eso. Dejanos tu email o intenta más tarde.";
-             await chatService.addMessage(conversation.id, 'BOT', fallback);
-             io.to(socket.id).emit('message_received', {
-                conversationId: conversation.id,
-                sender: 'BOT',
-                text: fallback,
-                 createdAt: new Date()
-             });
-          }
+        const autoReply = await chatService.getAutoResponse(text);
+        if (autoReply) {
+           await chatService.addMessage(conversation.id, 'BOT', autoReply);
+           io.to(socket.id).emit('message_received', {
+             conversationId: conversation.id,
+             sender: 'BOT',
+             text: autoReply,
+             createdAt: new Date()
+           });
+        } else if (!adminsOnline) {
+           const fallback = "Te pondremos en contacto con un agente lo antes posible. Por favor, dejanos tu consulta y te responderemos a la brevedad.";
+           await chatService.addMessage(conversation.id, 'BOT', fallback);
+           io.to(socket.id).emit('message_received', {
+              conversationId: conversation.id,
+              sender: 'BOT',
+              text: fallback,
+              createdAt: new Date()
+           });
         }
 
       } catch (error) {
