@@ -75,8 +75,10 @@ const initSocket = (server) => {
              text: autoReply,
              createdAt: new Date()
            });
-        } else if (!adminsOnline) {
-           const fallback = "Te pondremos en contacto con un agente lo antes posible. Por favor, dejanos tu consulta y te responderemos a la brevedad.";
+        } else {
+           const fallback = adminsOnline
+             ? "Disculpa, no tengo una respuesta para eso, pero un agente está en línea y te atenderá en breve."
+             : "Te pondremos en contacto con un agente lo antes posible. Por favor, dejanos tu consulta y te responderemos a la brevedad.";
            await chatService.addMessage(conversation.id, 'BOT', fallback);
            io.to(socket.id).emit('message_received', {
               conversationId: conversation.id,
