@@ -1,0 +1,42 @@
+[
+  {
+    "id": "a9feea87-2938-45ab-8800-e96b765b99e1",
+    "hashedToken": "0f3f82240c8701802bd875902b07dee3413cb93565dc9c126e812b8d06a54069",
+    "userId": 1,
+    "revoked": false,
+    "createdAt": "2026-02-21T17:02:36.275Z",
+    "expiresAt": "2026-02-28T17:02:36.264Z"
+  },
+  {
+    "id": "3c7835cf-3d00-4909-bbb8-4e33889dee1c",
+    "hashedToken": "eb56efaa4cb53252981c9506c117367aa7deaf2b00e06db88cfbde0a8a68ab11",
+    "userId": 1,
+    "revoked": false,
+    "createdAt": "2026-02-21T17:05:46.079Z",
+    "expiresAt": "2026-02-28T17:05:46.073Z"
+  },
+  {
+    "id": "afd15f9a-c56f-44f2-a41d-4360244f5e29",
+    "hashedToken": "10f7c799c5b083d2e06974482af629237b9b42272db807a35f0cf35e274133ba",
+    "userId": 1,
+    "revoked": false,
+    "createdAt": "2026-02-21T17:07:12.495Z",
+    "expiresAt": "2026-02-28T17:07:12.494Z"
+  },
+  {
+    "id": "73ea6c4e-91ad-4116-a226-63fbfac230fb",
+    "hashedToken": "6465746c0c719154c0ada5d0a093b143cc367a4b5c6efa22e702877a2a781f2d",
+    "userId": 1,
+    "revoked": false,
+    "createdAt": "2026-02-21T19:38:53.662Z",
+    "expiresAt": "2026-02-28T19:38:53.646Z"
+  },
+  {
+    "id": "4839d148-4fc0-441b-a7fa-7419835846e3",
+    "hashedToken": "46836fbb46cda17c592e0105cae6f91ab75e316c0252b1ac280983de98b7e8d9",
+    "userId": 1,
+    "revoked": false,
+    "createdAt": "2026-02-21T23:00:48.696Z",
+    "expiresAt": "2026-02-28T23:00:48.695Z"
+  }
+]

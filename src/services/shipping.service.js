@@ -1,0 +1,182 @@
+const prisma = require('../config/prisma');
+
+class ShippingService {
+  
+  /**
+   * Calcula el costo de envío basado en la dirección.
+   * Soporta objeto { city, province, country } o string simple.
+   */
+  async calculateShippingCost(addressData, deliveryType, currencyCode) {
+    if (deliveryType === 'LOCAL') return 0;
+    
+    // Normalizar entrada
+    let city = null;
+    let province = null;
+    let country = null;
+    let addressString = "";
+
+    if (typeof addressData === 'object' && addressData !== null) {
+        city = addressData.city?.trim();
+        province = addressData.state?.trim() || addressData.province?.trim();
+        country = addressData.country?.trim();
+        addressString = [city, province, country].filter(Boolean).join(", ").toLowerCase();
+    } else if (addressData) {
+        addressString = String(addressData).toLowerCase();
+    }
+
+    if (!addressString && !city && !province) throw new Error('Se requiere dirección para envío a domicilio');
+
+    // Obtener zonas activas
+    const defaultCost = await this.getDefaultCost();
+    const zones = await prisma.shippingZone.findMany({ where: { active: true } });
+
+    // Prioridad 1: Coincidencia exacta de Ciudad (si se provee ciudad)
+    if (city) {
+        const cityMatch = zones.find(z => z.city && z.city.toLowerCase() === city.toLowerCase());
+        if (cityMatch) return parseFloat(cityMatch.cost);
+    }
+
+    // Prioridad 2: Coincidencia exacta de Provincia (si se provee provincia)
+    if (province) {
+        const provMatch = zones.find(z => z.province && z.province.toLowerCase() === province.toLowerCase() && !z.city);
+        if (provMatch) return parseFloat(provMatch.cost);
+    }
+
+    // Prioridad 3: Coincidencia de cadena (Fallback para string de dirección)
+    // Ordenar zonas por especificidad (Ciudad > Provincia > País) para coincidir primero con la más específica
+    const sortedZones = zones.sort((a, b) => {
+        const scoreA = (a.city ? 3 : 0) + (a.province ? 2 : 0) + (a.country ? 1 : 0);
+        const scoreB = (b.city ? 3 : 0) + (b.province ? 2 : 0) + (b.country ? 1 : 0);
+        return scoreB - scoreA;
+    });
+
+    const stringMatch = sortedZones.find(z => {
+        if (z.city && addressString.includes(z.city.toLowerCase())) return true;
+        if (z.province && addressString.includes(z.province.toLowerCase())) return true;
+        return false;
+    });
+
+    let cost = defaultCost;
+
+    if (stringMatch) {
+       cost = parseFloat(stringMatch.cost);
+    }
+    
+    // Convertir moneda si es necesario
+    if (currencyCode) {
+         try {
+             const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+             const baseCurrency = config?.baseCurrency || 'USD';
+             
+             if (currencyCode !== baseCurrency) {
+                 const currency = await prisma.currency.findUnique({ where: { code: currencyCode } });
+                 if (currency && currency.isActive) {
+                     cost = cost * parseFloat(currency.exchangeRateToBase.toString());
+                 }
+             }
+         } catch(e) {
+             console.error("Error converting shipping currency", e);
+            
+         }
+    }
+
+    return cost;
+  }
+
+  async getDefaultCost() {
+      // Fallback por defecto si no hay reglas configuradas: costo base
+      // Verificar si hay una zona 'General' o nula
+      const defaultZone = await prisma.shippingZone.findFirst({
+          where: {
+              active: true,
+              city: null,
+              province: null,
+              OR: [
+                  { country: null },
+                  { country: 'Argentina' }
+              ]
+          }
+      });
+      return defaultZone ? parseFloat(defaultZone.cost) : 1000;
+  }
+
+  // --- CRUD ---
+
+  async getAllZones() {
+      return await prisma.shippingZone.findMany({
+          orderBy: [{ country: 'asc' }, { province: 'asc' }, { city: 'asc' }]
+      });
+  }
+
+  async createZone(data) {
+      // Validar duplicados
+      // Tratar strings vacíos como null para consistencia
+      const city = data.city ? data.city.trim() : null;
+      const province = data.province ? data.province.trim() : null;
+      const country = data.country ? data.country.trim() : null;
+
+      const existing = await prisma.shippingZone.findFirst({
+        where: {
+            city: city === null ? null : { equals: city, mode: 'insensitive' },
+            province: province === null ? null : { equals: province, mode: 'insensitive' },
+            country: country === null ? null : { equals: country, mode: 'insensitive' }
+        }
+      });
+
+      if (existing) {
+          throw new Error(`Ya existe una zona de envío para ${city || province || country || 'General'}`);
+      }
+
+      return await prisma.shippingZone.create({
+          data: {
+              city,
+              province,
+              country,
+              cost: data.cost,
+              active: data.active !== undefined ? data.active : true
+          }
+      });
+  }
+
+  async updateZone(id, data) {
+      const city = data.city ? data.city.trim() : null;
+      const province = data.province ? data.province.trim() : null;
+      const country = data.country ? data.country.trim() : null;
+      
+
+      // Verificar si la NUEVA combinación existe en otro lado (excluyendo la misma)
+      const combinationExists = await prisma.shippingZone.findFirst({
+        where: {
+            
+            city: city === null ? null : { equals: city, mode: 'insensitive' },
+            province: province === null ? null : { equals: province, mode: 'insensitive' },
+            country: country === null ? null : { equals: country, mode: 'insensitive' },
+            id: { not: parseInt(id) }
+        }
+      });
+
+      if (combinationExists) {
+          console.error("Duplicado encontrado:", combinationExists);
+          throw new Error(`Ya existe una zona de envío para ${city || province || country || 'General'}`);
+      }
+
+      return await prisma.shippingZone.update({
+          where: { id: parseInt(id) },
+          data: {
+              city,
+              province,
+              country,
+              cost: data.cost,
+              active: data.active
+          }
+      });
+  }
+
+  async deleteZone(id) {
+      return await prisma.shippingZone.delete({
+          where: { id: parseInt(id) }
+      });
+  }
+}
+
+module.exports = new ShippingService();

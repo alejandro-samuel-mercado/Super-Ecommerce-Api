@@ -1,0 +1,62 @@
+[
+  {
+    "id": 1,
+    "saleId": 1,
+    "branchId": 1,
+    "ticketNumber": "HQ01-001",
+    "subtotal": "550000",
+    "discount": "10000",
+    "total": "540000",
+    "currencyCode": "ARS",
+    "paymentType": "MERCADO_PAGO",
+    "status": "ISSUED",
+    "issuedBy": null,
+    "createdAt": "2026-02-21T16:59:17.677Z",
+    "updatedAt": "2026-02-21T16:59:17.677Z"
+  },
+  {
+    "id": 2,
+    "saleId": 2,
+    "branchId": 1,
+    "ticketNumber": "HQ01-00000001",
+    "subtotal": "150000",
+    "discount": "75000",
+    "total": "77250",
+    "currencyCode": "ARS",
+    "paymentType": "CASH",
+    "status": "ISSUED",
+    "issuedBy": 1,
+    "createdAt": "2026-02-21T23:09:59.306Z",
+    "updatedAt": "2026-02-21T23:09:59.306Z"
+  },
+  {
+    "id": 3,
+    "saleId": 3,
+    "branchId": 1,
+    "ticketNumber": "HQ01-00000002",
+    "subtotal": "150000",
+    "discount": "75000",
+    "total": "77250",
+    "currencyCode": "ARS",
+    "paymentType": "TRANSFER",
+    "status": "ISSUED",
+    "issuedBy": 1,
+    "createdAt": "2026-02-21T23:14:34.079Z",
+    "updatedAt": "2026-02-21T23:14:34.079Z"
+  },
+  {
+    "id": 4,
+    "saleId": 4,
+    "branchId": 1,
+    "ticketNumber": "HQ01-00000003",
+    "subtotal": "550000",
+    "discount": "0",
+    "total": "566500",
+    "currencyCode": "ARS",
+    "paymentType": "MERCADO_PAGO",
+    "status": "ISSUED",
+    "issuedBy": 1,
+    "createdAt": "2026-02-21T23:25:50.360Z",
+    "updatedAt": "2026-02-21T23:25:50.360Z"
+  }
+]

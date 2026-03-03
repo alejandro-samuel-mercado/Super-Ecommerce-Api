@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "name": "Color",
+    "value": "Rojo",
+    "skuId": 2
+  },
+  {
+    "id": 2,
+    "name": "Talle",
+    "value": "M",
+    "skuId": 2
+  },
+  {
+    "id": 3,
+    "name": "Color",
+    "value": "Azul",
+    "skuId": 3
+  },
+  {
+    "id": 4,
+    "name": "Talle",
+    "value": "L",
+    "skuId": 3
+  },
+  {
+    "id": 5,
+    "name": "Color",
+    "value": "Rojo",
+    "skuId": 5
+  }
+]

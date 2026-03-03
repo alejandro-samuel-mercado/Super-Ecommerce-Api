@@ -1,0 +1,90 @@
+[
+  {
+    "id": 2,
+    "name": "knkbhjefrygha efriu",
+    "type": "PERCENTAGE",
+    "value": "50",
+    "priority": 0,
+    "scope": "PRODUCT",
+    "targetIds": [
+      2,
+      3,
+      1
+    ],
+    "rules": {
+      "action": {
+        "type": "PERCENTAGE",
+        "value": 50,
+        "applyPerUnit": false
+      },
+      "targets": [
+        {
+          "type": "PRODUCT",
+          "value": [
+            2,
+            3,
+            1
+          ]
+        }
+      ],
+      "validFrom": "2026-02-25T15:00:00.000Z",
+      "conditions": [
+        {
+          "type": "MIN_QTY",
+          "unit": "UNIDAD",
+          "value": 1
+        },
+        {
+          "type": "MIN_AMOUNT",
+          "value": 0.1
+        }
+      ],
+      "validUntil": "2026-02-26T15:00:00.000Z"
+    },
+    "mode": "AUTOMATIC",
+    "stackable": true,
+    "active": true,
+    "eventId": null,
+    "validFrom": "2026-02-25T15:00:00.000Z",
+    "validUntil": "2026-02-26T15:00:00.000Z"
+  },
+  {
+    "id": 1,
+    "name": "Descuento CyberWeek",
+    "type": "PERCENTAGE",
+    "value": "70",
+    "priority": 1,
+    "scope": "GLOBAL",
+    "targetIds": [],
+    "rules": {
+      "action": {
+        "type": "PERCENTAGE",
+        "value": 70
+      },
+      "targets": [
+        {
+          "type": "GLOBAL"
+        }
+      ],
+      "validFrom": "2026-02-21T16:59:14.467Z",
+      "conditions": [
+        {
+          "type": "MIN_QTY",
+          "unit": "UNIDAD",
+          "value": 30
+        },
+        {
+          "type": "MIN_AMOUNT",
+          "value": 634635654
+        }
+      ],
+      "validUntil": "2026-02-25T15:00:00.000Z"
+    },
+    "mode": "AUTOMATIC",
+    "stackable": false,
+    "active": false,
+    "eventId": 1,
+    "validFrom": "2026-02-21T16:59:14.467Z",
+    "validUntil": "2026-02-25T15:00:00.000Z"
+  }
+]

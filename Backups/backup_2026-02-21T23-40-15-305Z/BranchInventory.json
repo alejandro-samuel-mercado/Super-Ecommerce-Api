@@ -1,0 +1,72 @@
+[
+  {
+    "id": 2,
+    "skuId": 1,
+    "branchId": 2,
+    "stock": "5",
+    "price": "550000",
+    "soldQuantity": "0",
+    "isActive": true,
+    "costPrice": null,
+    "minStock": "0",
+    "maxStock": null,
+    "createdAt": "2026-02-21T16:59:09.564Z",
+    "updatedAt": "2026-02-21T16:59:09.564Z"
+  },
+  {
+    "id": 4,
+    "skuId": 3,
+    "branchId": 2,
+    "stock": "10",
+    "price": "15000",
+    "soldQuantity": "0",
+    "isActive": true,
+    "costPrice": null,
+    "minStock": "0",
+    "maxStock": null,
+    "createdAt": "2026-02-21T16:59:12.510Z",
+    "updatedAt": "2026-02-21T16:59:12.510Z"
+  },
+  {
+    "id": 5,
+    "skuId": 4,
+    "branchId": 1,
+    "stock": "2000",
+    "price": "3500",
+    "soldQuantity": "0",
+    "isActive": true,
+    "costPrice": null,
+    "minStock": "0",
+    "maxStock": null,
+    "createdAt": "2026-02-21T16:59:13.457Z",
+    "updatedAt": "2026-02-21T18:37:38.368Z"
+  },
+  {
+    "id": 3,
+    "skuId": 2,
+    "branchId": 1,
+    "stock": "0",
+    "price": "15000",
+    "soldQuantity": "20",
+    "isActive": true,
+    "costPrice": null,
+    "minStock": "0",
+    "maxStock": null,
+    "createdAt": "2026-02-21T16:59:11.231Z",
+    "updatedAt": "2026-02-21T23:14:21.813Z"
+  },
+  {
+    "id": 1,
+    "skuId": 1,
+    "branchId": 1,
+    "stock": "9",
+    "price": "550000",
+    "soldQuantity": "1",
+    "isActive": true,
+    "costPrice": null,
+    "minStock": "0",
+    "maxStock": null,
+    "createdAt": "2026-02-21T16:59:08.726Z",
+    "updatedAt": "2026-02-21T23:25:40.120Z"
+  }
+]

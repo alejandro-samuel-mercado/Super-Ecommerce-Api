@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1,
+    "userId": 1,
+    "branchId": 1,
+    "assignedAt": "2026-02-21T16:59:02.608Z",
+    "assignedBy": null
+  },
+  {
+    "id": 2,
+    "userId": 1,
+    "branchId": 2,
+    "assignedAt": "2026-02-21T16:59:02.608Z",
+    "assignedBy": null
+  },
+  {
+    "id": 3,
+    "userId": 2,
+    "branchId": 2,
+    "assignedAt": "2026-02-21T16:59:04.144Z",
+    "assignedBy": null
+  }
+]

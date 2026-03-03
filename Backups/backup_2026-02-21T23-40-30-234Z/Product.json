@@ -1,0 +1,83 @@
+[
+  {
+    "id": 1,
+    "name": "Smartphone X Pro 128GB",
+    "type": "ELECTRONICA",
+    "brand": "GenericBrand",
+    "model": "X Pro",
+    "description": "El mejor rendimiento de este año. Pantalla OLED 6.5 pulgadas.",
+    "basePrice": "500000",
+    "pointsValue": 0,
+    "pointsReward": 1500,
+    "images": [
+      "https://placehold.co/400x400/000000/FFFFFF/png?text=Smartphone"
+    ],
+    "createdAt": "2026-02-21T16:59:07.825Z",
+    "condition": "NEW",
+    "qr": null,
+    "isTrending": true,
+    "isRecommended": false,
+    "isNew": false,
+    "isActive": true,
+    "visibleFrom": null,
+    "visibleTo": null,
+    "measurementUnit": "UNIDAD",
+    "allowFractional": false,
+    "categoryId": 1,
+    "updatedAt": "2026-02-21T16:59:07.825Z"
+  },
+  {
+    "id": 2,
+    "name": "Remera Básica Algodón",
+    "type": "ROPA",
+    "brand": "UrbanStyle",
+    "model": null,
+    "description": "100% algodón peinado. Ideal para el verano.",
+    "basePrice": "15000",
+    "pointsValue": 200,
+    "pointsReward": 50,
+    "images": [
+      "https://placehold.co/400x400/2980b9/ffffff/png?text=Remera+Azul"
+    ],
+    "createdAt": "2026-02-21T16:59:09.871Z",
+    "condition": "NEW",
+    "qr": null,
+    "isTrending": false,
+    "isRecommended": false,
+    "isNew": false,
+    "isActive": true,
+    "visibleFrom": null,
+    "visibleTo": null,
+    "measurementUnit": "UNIDAD",
+    "allowFractional": false,
+    "categoryId": 3,
+    "updatedAt": "2026-02-21T16:59:09.871Z"
+  },
+  {
+    "id": 3,
+    "name": "Cable Coaxial RF",
+    "type": "Servicio",
+    "brand": "Genérico",
+    "model": "yeryery",
+    "description": "Bobina de alta velocidad para antenas y redes.",
+    "basePrice": "3500",
+    "pointsValue": 0,
+    "pointsReward": 0,
+    "images": [
+      "https://res.cloudinary.com/dxmc1sufd/image/upload/v1771696396/productos/hg2biwokjyx0au2baxwv.png"
+    ],
+    "createdAt": "2026-02-21T16:59:12.808Z",
+    "condition": "NEW",
+    "qr": null,
+    "isTrending": true,
+    "isRecommended": true,
+    "isNew": true,
+    "isActive": true,
+    "visibleFrom": null,
+    "visibleTo": null,
+    "measurementUnit": "METRO",
+    "allowFractional": true,
+    "categoryId": 3,
+    "updatedAt": "2026-02-21T17:53:23.621Z"
+  }
+]

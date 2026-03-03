@@ -1,0 +1,24 @@
+ACUERDO DE LICENCIA COMERCIAL
+
+Versión 1.0.0
+
+IMPORTANTE: POR FAVOR LEA ESTE ACUERDO CUIDADOSAMENTE.
+
+1. CONCESIÓN DE LICENCIA
+Este software se licencia, no se vende. El titular de los derechos de autor le otorga una licencia no exclusiva e intransferible para utilizar este software con fines comerciales o personales propios.
+
+2. RESTRICCIONES
+- Redistribución: NO puede redistribuir, revender, alquilar, licenciar o sublicenciar este software, en su totalidad o en parte, a ningún tercero.
+- Modificación: Puede modificar el código fuente para su propio uso interno, pero no puede distribuir el software modificado.
+- Ingeniería Inversa: No puede realizar ingeniería inversa, descompilar o desensamblar las partes compiladas del software.
+
+3. PROPIEDAD
+Todos los títulos, derechos de propiedad y derechos de propiedad intelectual sobre el software permanecen con el autor original/titular de los derechos de autor.
+
+4. RENUNCIA DE GARANTÍA
+EL SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O IMPLÍCITA, INCLUYENDO PERO NO LIMITADO A LAS GARANTÍAS DE COMERCIABILIDAD, IDONEIDAD PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN.
+
+5. LIMITACIÓN DE RESPONSABILIDAD
+EN NINGÚN CASO LOS AUTORES O TITULARES DE LOS DERECHOS DE AUTOR SERÁN RESPONSABLES POR CUALQUIER RECLAMO, DAÑOS U OTRA RESPONSABILIDAD, YA SEA EN UNA ACCIÓN DE CONTRATO, AGRAVIO O CUALQUIER OTRA FORMA, QUE SURJA DE, FUERA DE O EN CONEXIÓN CON EL SOFTWARE O EL USO U OTROS TRATOS EN EL SOFTWARE.
+
+© 2026. Todos los Derechos Reservados.

@@ -1,0 +1,29 @@
+[
+  {
+    "id": 1,
+    "code": "ARS",
+    "symbol": "$",
+    "exchangeRateToBase": "1",
+    "isActive": true,
+    "createdAt": "2026-02-21T16:59:00.715Z",
+    "updatedAt": "2026-02-21T16:59:00.715Z"
+  },
+  {
+    "id": 2,
+    "code": "USD",
+    "symbol": "U$D",
+    "exchangeRateToBase": "1200",
+    "isActive": true,
+    "createdAt": "2026-02-21T16:59:01.037Z",
+    "updatedAt": "2026-02-21T16:59:01.037Z"
+  },
+  {
+    "id": 3,
+    "code": "EUR",
+    "symbol": "€",
+    "exchangeRateToBase": "0.0011",
+    "isActive": true,
+    "createdAt": "2026-02-21T22:25:41.470Z",
+    "updatedAt": "2026-02-21T22:25:41.470Z"
+  }
+]

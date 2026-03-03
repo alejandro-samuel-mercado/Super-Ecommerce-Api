@@ -1,0 +1,377 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum CondicionUso {
+  NUEVO
+  USADO
+  REACONDICIONADO
+  EXHIBICION
+}
+
+// --------------------------------------------------------------------------
+// CATEGORIA
+// --------------------------------------------------------------------------
+model Category {
+  id          Int       @id @default(autoincrement())
+  name      String    @unique
+  descripcion String?
+  
+  products    Product[]
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// --------------------------------------------------------------------------
+// PRODUCTO BASE
+// Representa el concepto general. NO tiene stock directo.
+// --------------------------------------------------------------------------
+model Product {
+  idProducto      Int           @id @default(autoincrement())
+  name          String
+  tipo            String        // Ej: Ropa, Tecnología
+  marca           String
+  modelo          String?       // Opcional
+  descripcion     String
+  precioBase      Decimal       @db.Decimal(10, 2) // Precio Referencial
+  valorEnPuntos   Int           @default(0)        // Costo en puntos para canje
+  puntosQueOtorga Int           @default(0)        // Puntos ganados por compra
+  images        String[]      // Array de URLs de Cloudinary
+  fechaCreacion   DateTime      @default(now())
+  esTendencia     Boolean       @default(false)
+  condicionUso    CondicionUso  @default(NUEVO)
+  qr              String?       @unique            // Código único para acceso rápido/QR
+
+  // Relaciones
+  categoria       Category      @relation(fields: [categoryId], references: [id])
+  categoryId      Int
+
+  skus            SKU[]
+  comentarios     Comment[]
+  
+  updatedAt       DateTime      @updatedAt
+}
+
+// --------------------------------------------------------------------------
+// SKU (Stock Keeping Unit) - VARIANTE
+// Es la unidad real que se vende. Maneja el stock y el precio final.
+// Si un producto no tiene variantes, tendrá 1 SKU por defecto.
+// --------------------------------------------------------------------------
+model SKU {
+  idSKU           Int           @id @default(autoincrement())
+  skuCodigo       String        @unique // Identificador único (Ej: PROD1-ROJ-M)
+  precio          Decimal       @db.Decimal(10, 2) // Precio REAL de venta
+  stock           Int           @default(0)
+  cantidadVendida Int           @default(0)
+  estado          Boolean       @default(true) // Activo / Pausado
+
+  // Relaciones
+  producto        Product       @relation(fields: [productoId], references: [idProducto], onDelete: Cascade)
+  productoId      Int
+
+  valoresDeVariantes VariantOption[] // Atributos: Color: Rojo, Talle: M
+  saleItems          SaleItem[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([productoId])
+}
+
+// --------------------------------------------------------------------------
+// OPCIONES DE VARIANTE (Dynamic Attributes)
+// Permite definir flexibilidad: Color, RAM, Talle, etc. sin alterar la tabla.
+// --------------------------------------------------------------------------
+model VariantOption {
+  id              Int       @id @default(autoincrement())
+  nameAtributo  String    // Ej: "Color", "Almacenamiento", "Talle"
+  valor           String    // Ej: "Rojo", "64GB", "XL"
+  
+  sku             SKU       @relation(fields: [skuId], references: [idSKU], onDelete: Cascade)
+  skuId           Int
+
+  @@unique([skuId, nameAtributo]) // Un mismo SKU no puede tener 2 colores
+}
+
+// --------------------------------------------------------------------------
+// COMENTARIOS
+// --------------------------------------------------------------------------
+// --------------------------------------------------------------------------
+// USUARIOS Y ROLES (RBAC)
+// --------------------------------------------------------------------------
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  EMPLEADO
+  CLIENTE
+}
+
+enum UserStatus {
+  ACTIVO
+  SUSPENDIDO
+  ELIMINADO
+}
+
+model Role {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique // 'SUPER_ADMIN', 'ADMIN', etc.
+  description String?
+  
+  users       User[]
+  permissions Permission[] @relation("RolePermissions")
+}
+
+model Permission {
+  id          Int     @id @default(autoincrement())
+  slug        String  @unique // 'create_product', 'delete_user'
+  description String?
+
+  roles       Role[]  @relation("RolePermissions")
+  users       User[]  @relation("UserPermissions") // Permisos específicos por usuario
+}
+
+model User {
+  id              Int        @id @default(autoincrement())
+  name          String
+  email           String     @unique
+  password        String     // Hashed
+  imagePerfil    String?
+  estado          UserStatus @default(ACTIVO)
+  
+  // Role
+  role            Role       @relation(fields: [roleId], references: [id])
+  roleId          Int
+
+  // Datos personales
+  dni             String?
+  telefono        String?
+  direccion       String?
+  ciudad          String?
+  provincia       String?
+  pais            String?
+  codigoPostal    String?
+
+  // Puntos
+  puntosAcumulados Int             @default(0)
+  historialPuntos  PointsHistory[]
+
+  // Seguridad
+  ultimoLogin     DateTime?
+  refreshTokens   RefreshToken[]
+  
+  // Relaciones
+  comentarios     Comment[]
+  permissions     Permission[]    @relation("UserPermissions") 
+  sales           Sale[]          @relation("CustomerSales")
+  managedSales    Sale[]          @relation("EmployeeSales") 
+
+  fechaRegistro   DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model RefreshToken {
+  id          String   @id @default(uuid())
+  hashedToken String
+  userId      Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revoked     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime // Rotación periódica
+}
+
+enum PointType {
+  GANADOS
+  USADOS
+  EXPIRADOS
+}
+
+model PointsHistory {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipo            PointType
+  cantidad        Int
+  motivo          String    // "Compra #123", "Bono Bienvenida"
+  fecha           DateTime  @default(now())
+  fechaExpiracion DateTime?
+}
+
+// --------------------------------------------------------------------------
+// COMENTARIOS
+// --------------------------------------------------------------------------
+model Comment {
+  id          Int      @id @default(autoincrement())
+  userId      Int      // Relación real con User
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  contenido   String
+  rating      Int?     // 1 al 5
+  fecha       DateTime @default(now())
+  aprobado    Boolean  @default(false) // Moderación
+
+  product     Product  @relation(fields: [productId], references: [idProducto], onDelete: Cascade)
+  productId   Int
+}
+
+// --------------------------------------------------------------------------
+// VENTAS Y CUPONES
+// --------------------------------------------------------------------------
+
+enum PaymentStatus {
+  PENDIENTE
+  PAGADO
+}
+
+enum PaymentType {
+  EFECTIVO
+  TARJETA
+  PUNTOS
+}
+
+enum DeliveryType {
+  LOCAL
+  DOMICILIO
+}
+
+enum DeliveryStatus {
+  PENDIENTE_ENTREGA
+  EN_CAMINO
+  ENTREGADO
+}
+
+model Sale {
+  id              Int            @id @default(autoincrement())
+  uuid            String         @unique @default(uuid()) // Public Invoice ID
+  
+  userId          Int
+  user            User           @relation("CustomerSales", fields: [userId], references: [id])
+  
+  employeeId      Int?
+  employee        User?          @relation("EmployeeSales", fields: [employeeId], references: [id])
+
+  couponId        Int?
+  coupon          Coupon?        @relation(fields: [couponId], references: [id])
+
+  total           Decimal        @db.Decimal(10, 2)
+  subtotal        Decimal        @db.Decimal(10, 2)
+  discount        Decimal        @default(0) @db.Decimal(10, 2)
+
+  // Stage 3: Snapshot fields
+  shippingCost     Decimal       @default(0) @db.Decimal(10, 2)
+  appliedDiscounts Json?         // Snapshot inmutable de las promos aplicadas
+
+  paymentStatus   PaymentStatus  @default(PENDIENTE)
+  paymentType     PaymentType    @default(EFECTIVO)
+  
+  deliveryType    DeliveryType   @default(LOCAL)
+  deliveryStatus  DeliveryStatus @default(PENDIENTE_ENTREGA)
+  deliveryAddress String?        // Si es envío
+
+  items           SaleItem[]
+  
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+}
+
+model SaleItem {
+  id              Int     @id @default(autoincrement())
+  saleId          Int
+  sale            Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  
+  // Snapshot data (Inmutable)
+  productName     String
+  skuCode         String
+  unitPrice       Decimal @db.Decimal(10, 2)
+  
+  quantity        Int
+  subtotal        Decimal @db.Decimal(10, 2)
+  
+  // Reference for tracking (Optional, can be null if SKU deleted)
+  skuId           Int?
+  sku             SKU?    @relation(fields: [skuId], references: [idSKU])
+}
+
+model Coupon {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  type        String // 'PERCENTAGE', 'FIXED'
+  value       Decimal   @db.Decimal(10, 2)
+  
+  minPurchase Decimal?  @db.Decimal(10, 2)
+  maxDiscount Decimal?  @db.Decimal(10, 2) // Tope de reintegro
+
+  validFrom   DateTime  @default(now())
+  validUntil  DateTime?
+  
+  maxUses     Int?      // Null = infinito
+  usedCount   Int       @default(0)
+  
+  active      Boolean   @default(true)
+  sales       Sale[]
+}
+
+// --------------------------------------------------------------------------
+// STAGE 3: DESCUENTOS Y ENVIOS
+// --------------------------------------------------------------------------
+
+enum DiscountScope {
+  PRODUCT
+  CATEGORY
+  BRAND
+  GLOBAL
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FIXED_PRICE
+}
+
+enum DiscountMode {
+  AUTOMATIC
+  MANUAL
+}
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  name      String
+  fechaInicio DateTime
+  fechaFin    DateTime
+  activo      Boolean  @default(true)
+  
+  discounts   Discount[]
+}
+
+model Discount {
+  id              Int           @id @default(autoincrement())
+  name          String
+  type            DiscountType
+  value           Decimal       @db.Decimal(10, 2)
+  priority        Int           @default(0)
+  
+  scope           DiscountScope
+  targetIds       Int[]         // IDs de Productos, Categorias o Marcas. Vacío si es GLOBAL.
+  
+  conditions      Json?         // { minQty: 3, firstPurchase: true, paymentMethod: 'PUNTOS' }
+  mode            DiscountMode  @default(AUTOMATIC)
+  
+  acumulable      Boolean       @default(false)
+  active          Boolean       @default(true)
+  
+  eventId         Int?
+  event           Event?        @relation(fields: [eventId], references: [id])
+}
+
+model ShippingRule {
+  id          Int     @id @default(autoincrement())
+  region      String  @unique // "CABA", "GBA", "Córdoba", "Argentina (General)"
+  cost        Decimal @db.Decimal(10, 2)
+  active      Boolean @default(true)
+}

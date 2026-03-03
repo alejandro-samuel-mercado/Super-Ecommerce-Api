@@ -1,0 +1,67 @@
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Build output
+dist/
+build/
+out/
+
+# Prisma
+prisma/migrations/
+prisma/dev.db
+.prisma/client/
+
+# npm cache
+.npm/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarn/patches/
+.yarn/plugins/
+.yarn/releases/
+
+# Misc
+coverage/
+*.tgz
+*.log
+.cache/
+*.tsbuildinfo
+
+# Docker
+docker-compose.override.yml
+Dockerfile.local
+
+# Optional: IDE / OS specific
+*.swp
+*~

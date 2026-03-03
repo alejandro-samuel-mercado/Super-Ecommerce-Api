@@ -1,0 +1,20 @@
+[
+  {
+    "id": 1,
+    "gatewayId": 1,
+    "currencyCode": "ARS",
+    "isPrimary": true
+  },
+  {
+    "id": 3,
+    "gatewayId": 2,
+    "currencyCode": "USD",
+    "isPrimary": true
+  },
+  {
+    "id": 4,
+    "gatewayId": 2,
+    "currencyCode": "EUR",
+    "isPrimary": true
+  }
+]
