@@ -89,8 +89,8 @@ class ChatService {
     });
 
     for (const response of responses) {
-     
       const keywords = response.keywords;
+      if (!keywords || !Array.isArray(keywords)) continue;
       if (keywords.some(k => lowerContent.includes(k.toLowerCase()))) {
         return response.answer;
       }
