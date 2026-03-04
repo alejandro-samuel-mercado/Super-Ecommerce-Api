@@ -82,17 +82,15 @@ class ChatService {
    */
   async getAutoResponse(content) {
     const lowerContent = content.toLowerCase();
-    
- 
+
     const responses = await prisma.chatAutoResponse.findMany({
       where: { isActive: true },
     });
 
-    for (const response of responses) {
-      const keywords = response.keywords;
-      if (!keywords || !Array.isArray(keywords)) continue;
-      if (keywords.some(k => lowerContent.includes(k.toLowerCase()))) {
-        return response.answer;
+    for (const r of responses) {
+      if (!r.trigger) continue;
+      if (lowerContent.includes(r.trigger.toLowerCase())) {
+        return r.response;
       }
     }
 

@@ -78,7 +78,7 @@ const initSocket = (server) => {
         } else {
            const fallback = adminsOnline
              ? "Disculpa, no tengo una respuesta para eso, pero un agente está en línea y te atenderá en breve."
-             : "Te pondremos en contacto con un agente lo antes posible. Por favor, dejanos tu consulta y te responderemos a la brevedad.";
+             : "Disculpa, no tengo una respuesta para eso. Te pondremos en contacto con un agente lo antes posible. Por favor, dejanos tu consulta y te responderemos a la brevedad.";
            await chatService.addMessage(conversation.id, 'BOT', fallback);
            socket.emit('message_received', {
               conversationId: conversation.id,
