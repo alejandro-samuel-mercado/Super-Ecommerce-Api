@@ -87,31 +87,32 @@ class StockTransferService {
         }
     }
 
+    return await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+         const originStock = await tx.branchInventory.findUnique({
+             where: { skuId_branchId: { skuId: item.skuId, branchId: originBranchId } }
+         });
+         if (!originStock || Number(originStock.stock) < Number(item.quantity)) {
+             throw new Error(`Stock insuficiente en origen para SKU ID ${item.skuId}`);
+         }
+      }
 
-    for (const item of items) {
-       const originStock = await prisma.branchInventory.findUnique({
-           where: { skuId_branchId: { skuId: item.skuId, branchId: originBranchId } }
-       });
-       if (!originStock || Number(originStock.stock) < Number(item.quantity)) {
-           throw new Error(`Stock insuficiente en origen para SKU ID ${item.skuId}`);
-       }
-    }
-
-    return await prisma.stockTransfer.create({
-      data: {
-        originBranchId,
-        destinationBranchId,
-        userId,
-        status: 'PENDING',
-        notes,
-        items: {
-          create: items.map(item => ({
-            skuId: item.skuId,
-            quantity: item.quantity
-          }))
-        }
-      },
-      include: { items: true }
+      return await tx.stockTransfer.create({
+        data: {
+          originBranchId,
+          destinationBranchId,
+          userId,
+          status: 'PENDING',
+          notes,
+          items: {
+            create: items.map(item => ({
+              skuId: item.skuId,
+              quantity: item.quantity
+            }))
+          }
+        },
+        include: { items: true }
+      });
     });
   }
 

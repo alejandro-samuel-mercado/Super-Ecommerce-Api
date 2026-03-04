@@ -431,29 +431,28 @@ async createProduct(data) {
             }
             
               // Mapear resultados para inyectar Precio/Stock de Sucursal y Ratings
-              products = await Promise.all(products.map(async (p) => {
+              // Batch: pre-cargar todos los descuentos una sola vez para todos los productos
+              const discountsMap = await DiscountService.getDiscountsForProducts(products, { 
+                currencyCode: currency, 
+                branchId: activeBranchId 
+              });
+
+              products = products.map(p => {
                 const ratio = p.scalingRatio || 1.0;
                 const mappedSkus = p.skus.map(sku => {
                   const branchInv = sku.branchInventory && sku.branchInventory[0];
                   
                   return {
                     ...sku,
-                    stock: branchInv ? branchInv.stock : sku.stock,
-                    // Siempre usar sku.price como fuente de verdad del precio.
-                    // branchInv.price puede estar desincronizado.
+                    stock: branchInv ? branchInv.stock : 0,
                     price: parseFloat(sku.price.toString()) * ratio,
                     globalStock: sku.stock,
                     globalPrice: sku.price
                   };
                 });
 
-                // Inyectar DESCUENTOS como metadata (sin sobrescribir price)
-                const discountInfo = await DiscountService.getDiscountForProduct(p, { 
-                  currencyCode: currency, 
-                  branchId: activeBranchId 
-                });
+                const discountInfo = discountsMap[p.id] || { discountPercentage: 0, discountedPrice: p.price || p.basePrice };
 
-                // Agregar info de descuento a cada SKU sin tocar price
                 const finalSkus = mappedSkus.map(sku => {
                   if (discountInfo.discountPercentage > 0) {
                     const skuDiscountedPrice = sku.price * (1 - (discountInfo.discountPercentage / 100));
@@ -467,11 +466,10 @@ async createProduct(data) {
                   skus: finalSkus,
                   averageRating: ratingsMap[p.id] || 0,
                   ratingCount: p._count.comments,
-                  // price se mantiene como el precio REAL del producto
                   discountedPrice: discountInfo.discountedPrice,
                   discountPercentage: discountInfo.discountPercentage
                 };
-              }));
+              });
         }
 
         return {
@@ -535,8 +533,7 @@ async createProduct(data) {
           const branchInv = sku.branchInventory && sku.branchInventory[0];
           return {
             ...sku,
-            // Solo usar branchInv para stock. El precio siempre viene de sku.price.
-            stock: branchInv ? branchInv.stock : sku.stock
+            stock: branchInv ? branchInv.stock : 0
           };
        });
 

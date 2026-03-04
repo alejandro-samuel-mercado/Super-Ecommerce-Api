@@ -64,31 +64,43 @@ class StockCleanupService {
             });
             
             if (sale && sale.paymentStatus === 'PENDING') {
-              const oldStatus = sale.paymentStatus;
-              const newStatus = 'CANCELLED';
+              const alreadyCancelled = await tx.sale.findUnique({ where: { id: reservation.saleId } });
+              if (alreadyCancelled.paymentStatus !== 'PENDING') return;
 
-              // Cancelar la venta
               await tx.sale.update({
                 where: { id: reservation.saleId },
                 data: { 
-                  paymentStatus: newStatus,
+                  paymentStatus: 'CANCELLED',
                   observations: `Cancelado automáticamente (SYSTEM) - Tiempo expirado (${new Date().toISOString()})`
                 }
               });
 
               if (sale.pointsUsed > 0) {
-                  await tx.user.update({
-                      where: { id: sale.userId },
-                      data: { points: { increment: sale.pointsUsed } }
+                  const alreadyRefunded = await tx.pointsHistory.findFirst({
+                      where: { reason: `Reembolso por expiración de reserva - Venta #${sale.id}` }
                   });
-                  await tx.pointsHistory.create({
-                      data: {
-                          userId: sale.userId,
-                          type: 'EARNED',
-                          amount: sale.pointsUsed,
-                          reason: `Reembolso por expiración de reserva - Venta #${sale.id}`
-                      }
-                  });
+                  if (!alreadyRefunded) {
+                      await tx.user.update({
+                          where: { id: sale.userId },
+                          data: { points: { increment: sale.pointsUsed } }
+                      });
+                      await tx.pointsHistory.create({
+                          data: {
+                              userId: sale.userId,
+                              type: 'EARNED',
+                              amount: sale.pointsUsed,
+                              reason: `Reembolso por expiración de reserva - Venta #${sale.id}`
+                          }
+                      });
+                  }
+              }
+
+              if (sale.couponId) {
+                  await tx.$executeRaw`
+                      UPDATE "Coupon"
+                      SET "usedCount" = GREATEST("usedCount" - 1, 0)
+                      WHERE id = ${sale.couponId}
+                  `;
               }
 
               await AuditService.logAction({
@@ -97,7 +109,7 @@ class StockCleanupService {
                   entityType: 'SALE',
                   entityId: sale.id,
                   changes: {
-                      paymentStatus: { old: oldStatus, new: newStatus },
+                      paymentStatus: { old: 'PENDING', new: 'CANCELLED' },
                       reason: 'Expiration of stock reservation'
                   }
               });

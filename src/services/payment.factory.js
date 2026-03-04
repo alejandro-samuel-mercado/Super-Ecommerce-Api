@@ -67,7 +67,7 @@ class PaymentGatewayFactory {
    * @returns {Promise<PaymentStrategy>}
    */
   async getGatewayBySlug(slug) {
-    const gateway = await prisma.paymentGateway.findUnique({
+    const gateway = await prisma.paymentGateway.findFirst({
       where: { slug, isActive: true }
     });
 

@@ -88,7 +88,6 @@ class PaymentWebhookService {
           continue;
         }
         
-        // Bloquear fila SKU y deducir stock atómicamente
         const updateResult = await tx.$executeRaw`
           UPDATE "SKU" 
           SET 
@@ -100,7 +99,6 @@ class PaymentWebhookService {
         `;
 
         if (updateResult === 1) {
-            // Sincronizar BranchInventory
             await tx.$executeRaw`
               UPDATE "BranchInventory"
               SET 
@@ -109,11 +107,24 @@ class PaymentWebhookService {
                 "updatedAt" = NOW()
               WHERE id = ${reservation.branchInventoryId}
             `;
+
+            const inv = await tx.branchInventory.findUnique({ where: { id: reservation.branchInventoryId } });
+            await tx.stockMovement.create({
+                data: {
+                    skuId: reservation.skuId,
+                    branchId: sale.branchId,
+                    type: 'SALE',
+                    quantity: -Number(reservation.quantity),
+                    resultingStock: inv ? Number(inv.stock) : 0,
+                    referenceId: `SALE-${sale.id}`,
+                    userId: sale.userId,
+                    notes: `Pago online confirmado - Venta #${sale.id}`
+                }
+            });
         }
         
         if (updateResult === 0) {
-          // Deducción de stock falló - stock insuficiente
-          console.error(`[PaymentWebhook] ❌ Insufficient stock for SKU ${reservation.skuId}. Initiating REFUND.`);
+          console.error(`[PaymentWebhook] Insufficient stock for SKU ${reservation.skuId}. Initiating REFUND.`);
           
           const PaymentAdapter = require('../adapters/payment.adapter');
           try {
@@ -124,8 +135,7 @@ class PaymentWebhookService {
                 data: { status: 'REFUNDED' }
               });
           } catch (refundError) {
-              console.error(`[PaymentWebhook] 💀 CRITICAL: Refund failed for ${paymentId}. Manual intervention required.`);
-              // Marcamos como FAILED para revisión admin...
+              console.error(`[PaymentWebhook] CRITICAL: Refund failed for ${paymentId}. Manual intervention required.`);
               await tx.paymentTransaction.update({
                 where: { id: transaction.id },
                 data: { status: 'FAILED_REFUND_ERROR' } 
@@ -135,7 +145,6 @@ class PaymentWebhookService {
           throw new Error(`Insufficient stock for SKU ${reservation.skuId}. Payment refunded.`);
         }
         
-        // Marcar reserva como liberada
         await tx.stockReservation.update({
           where: { id: reservation.id },
           data: { released: true }
@@ -143,7 +152,6 @@ class PaymentWebhookService {
         
       }
       
-      // Paso 7: Actualizar estado de venta a PAID
       await tx.sale.update({
         where: { id: sale.id },
         data: { 
@@ -153,44 +161,11 @@ class PaymentWebhookService {
         }
       });
       
-      // Paso 8: Marcar transacción como completa
       await tx.paymentTransaction.update({
         where: { id: transaction.id },
         data: { 
           status: 'COMPLETED', 
           processedAt: new Date() 
-        }
-      });
-      
-
-      // Paso 8.5: Disparar Acciones Post-Pago (Puntos, etc.)
-      try {
-          const SaleService = require('./sale.service');
-          await SaleService.processPostPaymentActions(sale.id);
-      } catch (e) {
-          console.error('[PaymentWebhook] Error processing post-payment actions:', e);
-          // No fallar webhook por esto, es efecto secundario
-      }
-      
-      // Paso 9: Enviar email confirmación (async, fuera de transacción)
-      setImmediate(async () => {
-        if (sale.user?.email) {
-          NotificationService.sendEmail(
-            sale.user.email,
-            '¡Pago Confirmado!',
-            `<h1>Tu pago por la orden #${sale.uuid || sale.id} ha sido confirmado exitosamente.</h1>
-             <p>Total: ${sale.currencyCode} ${sale.total}</p>
-             <p>¡Gracias por tu compra!</p>`
-          ).catch(err => console.error('[PaymentWebhook] Email error:', err));
-
-          // Notificación In-App
-          InAppNotificationService.createNotification(
-             sale.userId,
-             'ORDER',
-             '¡Pago Confirmado!',
-             `Hemos recibido tu pago para la orden #${sale.id}. Prepararemos tu envío a la brevedad.`,
-             { url: `/profile/orders/${sale.id}` }
-          ).catch(err => console.error('[PaymentWebhook] InApp Notification error:', err));
         }
       });
       
@@ -201,6 +176,19 @@ class PaymentWebhookService {
       timeout: 30000,
       isolationLevel: 'Serializable'
     });
+
+    if (result.status === 'SUCCESS') {
+        const SaleService = require('./sale.service');
+        setImmediate(async () => {
+            try {
+                await SaleService.processPostPaymentActions(result.saleId);
+            } catch (e) {
+                console.error('[PaymentWebhook] Error processing post-payment actions:', e);
+            }
+        });
+    }
+
+    return result;
   }
   
   /**

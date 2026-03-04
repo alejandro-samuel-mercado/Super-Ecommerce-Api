@@ -19,7 +19,7 @@ class CurrencyService {
     'PAB': 'PA',
     'USD': 'US',
     'CAD': 'CA',
-    'EUR': 'ES', 
+    'EUR': ['ES', 'FR', 'DE', 'IT', 'PT', 'NL', 'BE', 'AT', 'IE', 'FI', 'GR', 'LU', 'MT', 'CY', 'SK', 'SI', 'EE', 'LV', 'LT'],
     'GBP': 'GB',
     'CHF': 'CH',
     'BRL': 'BR'
@@ -82,26 +82,34 @@ class CurrencyService {
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
     const baseCurrency = config?.baseCurrency || 'ARS';
     
-    // Prioridad 1: Header x-currency (útil para pruebas o integraciones específicas)
     const headerCurrency = req.headers['x-currency'];
     if (headerCurrency) {
       const exists = await this.getCurrencyByCode(headerCurrency);
       if (exists && exists.isActive) return exists.code;
     }
 
-    // Prioridad 2: Geo-IP Estricto
     const countryCode = (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase();
     
     if (countryCode) {
-       // Mapeo dinámico de Moneda Base a País de Origen
        const originCountry = this.currencyToCountry[baseCurrency];
+       const isOriginCountry = Array.isArray(originCountry) 
+           ? originCountry.includes(countryCode) 
+           : countryCode === originCountry;
 
-       // Si el usuario es del país de origen, usar moneda base.
-       if (countryCode === originCountry) {
+       if (isOriginCountry) {
          return baseCurrency;
        }
+
+       for (const [code, countries] of Object.entries(this.currencyToCountry)) {
+           const match = Array.isArray(countries) 
+               ? countries.includes(countryCode) 
+               : countries === countryCode;
+           if (match && code !== baseCurrency) {
+               const curr = await this.getCurrencyByCode(code);
+               if (curr && curr.isActive) return curr.code;
+           }
+       }
        
-       // Si es extranjero, forzar USD obligatoriamente (si existe y está activa)
        const usdExists = await this.getCurrencyByCode('USD');
        if (usdExists && usdExists.isActive) return 'USD';
     }
@@ -122,12 +130,13 @@ class CurrencyService {
 
       const cleanIp = (ipCountryCode || '').toUpperCase().trim();
       
-      // Si se provejo un IP externo, y es radicalmente distinto al país base, es exportación: NO TAX.
-      if (cleanIp && cleanIp !== originCountry) {
-          return false;
+      if (cleanIp) {
+          const isLocal = Array.isArray(originCountry) 
+              ? originCountry.includes(cleanIp) 
+              : cleanIp === originCountry;
+          if (!isLocal) return false;
       }
 
-      // De lo contrario (Local o sin IP/localhost), asume local: APLICAMOS TAX.
       return true;
   }
 }

@@ -60,11 +60,9 @@ class CouponService {
       if (coupon.type === 'PERCENTAGE') {
           discount = purchaseAmount * (parseFloat(coupon.value) / 100);
       } else {
-         
           discount = parseFloat(coupon.value) * rate;
       }
 
-      // Aplicar tope si existe (Convertir tope de moneda base a moneda activa)
       if (coupon.maxDiscount) {
           const maxDiscountConverted = parseFloat(coupon.maxDiscount) * rate;
           if (discount > maxDiscountConverted) {

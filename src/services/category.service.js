@@ -52,6 +52,8 @@ class CategoryService {
         const parent = categoryMap.get(cat.parentId);
         if (parent) {
           parent.children.push(categoryMap.get(cat.id));
+        } else {
+          roots.push(categoryMap.get(cat.id));
         }
       } else {
         roots.push(categoryMap.get(cat.id));

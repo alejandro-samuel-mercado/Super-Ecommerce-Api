@@ -32,6 +32,10 @@ class MercadoPagoStrategy extends PaymentStrategy {
         const isForeignCurrency = sale.currencyCode && sale.currencyCode !== baseCurrency;
         const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 
+        const prisma = require('../config/prisma');
+        const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+        const storeName = storeConfig?.storeName || 'TIENDA ONLINE';
+
         const convertToTarget = (amount) => {
             if (!isForeignCurrency) return Number(amount);
            
@@ -120,8 +124,7 @@ class MercadoPagoStrategy extends PaymentStrategy {
                 failure: `${baseUrl}/checkout/failure`,
                 pending: `${baseUrl}/checkout/pending`
             },
-            binary_mode: true,
-            statement_descriptor: "TIENDA MODELO"
+            statement_descriptor: storeName.substring(0, 22)
         };
 
         // Validate Totals

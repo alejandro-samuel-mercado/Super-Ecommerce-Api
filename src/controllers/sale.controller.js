@@ -67,7 +67,7 @@ class SaleController {
       // VERIFICACIÓN DE IDEMPOTENCIA (Lógica)
       // Evitar órdenes por doble clic. Verificar si el mismo usuario creó el mismo pedido (total) en los últimos 30 segundos.
       if (targetUserId) {
-          const recentSale = await SaleService.findRecentDuplicate(targetUserId, saleData.items, saleData.total || req.body.total);
+          const recentSale = await SaleService.findRecentDuplicate(targetUserId, saleData.items);
           if (recentSale) {
               return res.status(200).json({ 
                   success: true, 

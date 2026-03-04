@@ -192,7 +192,8 @@ class InvoiceService {
         y += 18;
 
         // IVA
-        doc.font('Helvetica-Bold').text('IVA (21%):', sumX, y);
+        const taxRate = config?.taxRate ? Number(config.taxRate) : 21;
+        doc.font('Helvetica-Bold').text(`IVA (${taxRate}%):`, sumX, y);
         doc.font('Helvetica').text(`${symbol}${parseFloat(sale.taxAmount || sale.tax || 0).toLocaleString('es-AR')}`, sumValX, y, { width: 85, align: 'right' });
         y += 18;
 
@@ -208,6 +209,13 @@ class InvoiceService {
         if (parseFloat(sale.discount) > 0) {
             doc.fillColor(brandCoral).font('Helvetica-Bold').text('DESCUENTOS:', sumX, y);
             doc.text(`-${symbol}${parseFloat(sale.discount).toLocaleString('es-AR')}`, sumValX, y, { width: 85, align: 'right' });
+            y += 18;
+        }
+
+        const ptsDiscount = parseFloat(sale.pointsDiscount || 0);
+        if (ptsDiscount > 0) {
+            doc.fillColor(brandCoral).font('Helvetica-Bold').text('DESC. PUNTOS:', sumX, y);
+            doc.text(`-${symbol}${ptsDiscount.toLocaleString('es-AR')}`, sumValX, y, { width: 85, align: 'right' });
             y += 18;
         }
 

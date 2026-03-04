@@ -13,7 +13,7 @@ class SaleService {
   /**
    * Verifica si se creó una venta similar recientemente (Idempotencia)
    */
-  async findRecentDuplicate(userId, items, inputTotal) {
+  async findRecentDuplicate(userId, items) {
       if (!userId) return null;
       
       const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
@@ -311,30 +311,27 @@ class SaleService {
       }
 
       const manualDiscountAmount = parseFloat(manualDiscount) || 0;
-      let totalDiscount = totalDiscountAmount + couponDiscount + manualDiscountAmount + pointsDiscount;
+      let totalDiscount = totalDiscountAmount + couponDiscount + manualDiscountAmount;
       
-      if (totalDiscount > subtotal) {
-          totalDiscount = subtotal;
-          if (pointsDiscount > 0) {
-              const otherDiscounts = totalDiscountAmount + couponDiscount + manualDiscountAmount;
-              pointsDiscount = Math.max(0, subtotal - otherDiscounts);
-          }
+      if (totalDiscount + pointsDiscount > subtotal) {
+          totalDiscount = Math.min(totalDiscount, subtotal);
+          pointsDiscount = Math.max(0, subtotal - totalDiscount);
       }
       
       totalDiscount = parseFloat(totalDiscount.toFixed(2));
 
-      // Calcular Impuesto - Solo para transacciones locales
       let tax = 0;
       const isLocal = CurrencyService.isLocalTransaction(saleData.customerIpCountry, baseCurrencyCode);
+      const taxEvent = await EventService.getActiveEvent();
+      const taxesEnabled = taxEvent ? (taxEvent.taxesEnabled !== false) : true;
       
-      if (isLocal && storeConfig && Number(storeConfig.taxRate) > 0) {
-          tax = (subtotal - totalDiscount) * (Number(storeConfig.taxRate) / 100);
+      if (isLocal && taxesEnabled && storeConfig && Number(storeConfig.taxRate) > 0) {
+          tax = (subtotal - totalDiscount - pointsDiscount) * (Number(storeConfig.taxRate) / 100);
       }
       
       tax = parseFloat(tax.toFixed(2));
 
-     
-      const finalTotal = parseFloat((subtotal - totalDiscount + shippingCost + tax - (pointsDiscount || 0)).toFixed(2));
+      const finalTotal = parseFloat((subtotal - totalDiscount - pointsDiscount + shippingCost + tax).toFixed(2));
 
       // Conversión a moneda base para consolidación contable
       const totalInBaseCurrency = parseFloat((finalTotal / exchangeRateAtPurchase).toFixed(2));
@@ -347,7 +344,7 @@ class SaleService {
             data: {
             userId,
             subtotal: subtotal,
-            discount: totalDiscount,
+            discount: totalDiscount + pointsDiscount,
             taxAmount: tax,
             total: finalTotal,
             branchId: activeBranchId,
@@ -455,9 +452,8 @@ class SaleService {
           });
 
           // Notificación de Stock Bajo/Crítico en tiempo real para administradores
-          const storeConfig = await tx.storeConfig.findFirst({ where: { id: 1 } });
-          const lowThreshold = storeConfig?.lowStockThreshold || 10;
-          const criticalThreshold = storeConfig?.criticalStockThreshold || 5;
+           const lowThreshold = storeConfig?.lowStockThreshold || 10;
+           const criticalThreshold = storeConfig?.criticalStockThreshold || 5;
 
           if (newStock < lowThreshold) {
               const isCritical = newStock < criticalThreshold;
@@ -653,9 +649,16 @@ class SaleService {
               if (thresholdConverted > 0 && subtotal >= thresholdConverted) {
                   shipping = 0;
               } else {
-                  shipping = await ShippingService.getDefaultCost();
-                  if (activeCurrencyCode !== (storeConfig?.baseCurrency || 'USD')) {
-                       shipping = shipping * rate;
+                  shipping = await ShippingService.calculateShippingCost(
+                      saleData.deliveryAddress || saleData.address || null,
+                      deliveryMethod === 'shipping' ? 'SHIPPING' : 'LOCAL',
+                      activeCurrencyCode
+                  );
+                  if (shipping <= 0) {
+                      shipping = await ShippingService.getDefaultCost();
+                      if (activeCurrencyCode !== (storeConfig?.baseCurrency || 'USD')) {
+                          shipping = shipping * rate;
+                      }
                   }
               }
           }
@@ -688,11 +691,12 @@ class SaleService {
           }
       }
 
-      // Calcular Impuesto - Solo para transacciones locales
       let tax = 0;
       const isLocal = CurrencyService.isLocalTransaction(saleData.customerIpCountry, storeConfig?.baseCurrency);
+      const previewEvent = await EventService.getActiveEvent();
+      const previewTaxesEnabled = previewEvent ? (previewEvent.taxesEnabled !== false) : true;
       
-      if (isLocal && storeConfig && Number(storeConfig.taxRate) > 0) {
+      if (isLocal && previewTaxesEnabled && storeConfig && Number(storeConfig.taxRate) > 0) {
           tax = (subtotal - totalDiscountAmount - discount) * (Number(storeConfig.taxRate) / 100);
       }
       
@@ -802,21 +806,26 @@ class SaleService {
       if (sale.couponId) {
           const CouponService = require('./coupon.service');
           try {
-            
-              const alreadyProcessed = await prisma.pointsHistory.findFirst({
-                  where: { reason: `Compra #${sale.id}`, type: 'EARNED' } 
+              const alreadyIncremented = await prisma.coupon.findUnique({ where: { id: sale.couponId } });
+              const couponUsageLog = await prisma.pointsHistory.findFirst({
+                  where: { reason: `Cupón incrementado - Compra #${sale.id}` }
               });
-          
-              if (!alreadyProcessed) {
+
+              if (!couponUsageLog) {
                   await CouponService.incrementCouponUsage(sale.couponId);
+                  await prisma.pointsHistory.create({
+                      data: {
+                          userId: sale.userId,
+                          type: 'EARNED',
+                          amount: 0,
+                          reason: `Cupón incrementado - Compra #${sale.id}`
+                      }
+                  });
               }
           } catch (e) {
               console.error(`[SaleService] Failed to increment coupon usage: ${e.message}`);
           }
       }
-
-      // 2. Deducir puntos usados (Eliminado de aquí, ahora se hace al crear la orden)
-       // Se mantiene como comentario o se elimina para evitar confusión.
 
 
       // 3. Enviar Notificaciones y Factura
@@ -936,7 +945,15 @@ class SaleService {
       if (paymentStatus || paymentType) {
           if (sale.paymentStatus !== 'PENDING' && sale.paymentStatus !== 'PAID') throw new Error('Estado de pago inválido para modificar');
           if (paymentStatus) updateData.paymentStatus = paymentStatus;
-          if (paymentType) updateData.paymentType = paymentType;
+          if (paymentType) {
+              const pendingReservations = await prisma.stockReservation.count({
+                  where: { saleId: parseInt(id), released: false }
+              });
+              if (pendingReservations > 0 && ['CASH', 'TRANSFER', 'DEBIT'].includes(paymentType) && !['CASH', 'TRANSFER', 'DEBIT'].includes(sale.paymentType)) {
+                  throw new Error('No se puede cambiar a pago offline con reservas de stock pendientes. Cancele la venta y cree una nueva.');
+              }
+              updateData.paymentType = paymentType;
+          }
       }
       
       if (deliveryStatus || deliveryType) {
@@ -986,6 +1003,19 @@ class SaleService {
                            WHERE id = ${res.branchInventoryId}
                        `;
                        await tx.stockReservation.update({ where: { id: res.id }, data: { released: true } });
+                       const inv = await tx.branchInventory.findUnique({ where: { id: res.branchInventoryId } });
+                       await tx.stockMovement.create({
+                           data: {
+                               skuId: res.skuId,
+                               branchId: sale.branchId,
+                               type: 'SALE',
+                               quantity: -Number(res.quantity),
+                               resultingStock: inv ? Number(inv.stock) : 0,
+                               referenceId: `SALE-${sale.id}`,
+                               userId: userId,
+                               notes: `Pago confirmado via updateSale - Venta #${sale.id}`
+                           }
+                       });
                    }
                });
            }
@@ -1125,6 +1155,13 @@ class SaleService {
                        }
                    });
                }
+           }
+           if (sale.couponId) {
+               await tx.$executeRaw`
+                   UPDATE "Coupon"
+                   SET "usedCount" = GREATEST("usedCount" - 1, 0)
+                   WHERE id = ${sale.couponId}
+               `;
            }
       });
 

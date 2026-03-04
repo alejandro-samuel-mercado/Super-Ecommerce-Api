@@ -30,7 +30,7 @@ class AdminSaleService {
           changes: { prev: sale.deliveryStatus, new: newStatus },
           ip
       });
-      
+
       return updatedSale;
   }
 
@@ -85,7 +85,9 @@ class AdminSaleService {
                       branchId: sale.branchId,
                       type: 'RETURN',
                       quantity: qty,
-                      resultingStock: 0, 
+                      resultingStock: branchInventoryRows.length > 0 
+                          ? (await tx.branchInventory.findUnique({ where: { id: branchInventoryRows[0].id } }))?.stock || 0 
+                          : 0,
                       referenceId: `REFUND-${sale.id}`,
                       userId: adminId,
                       notes: `Devolución Venta #${sale.id}`
@@ -146,7 +148,7 @@ class AdminSaleService {
                       await tx.pointsHistory.create({
                           data: {
                               userId: sale.userId,
-                              type: 'SPENT',
+                              type: 'USED',
                               amount: amountToRemove,
                               reason: `Reversión de puntos ganados por anulación manual - Venta #${sale.id}`
                           }
@@ -189,15 +191,72 @@ class AdminSaleService {
   }
 
   async updatePaymentStatus(adminId, saleId, newStatus, ip) {
-      const sale = await prisma.sale.findUnique({ where: { id: parseInt(saleId) } });
+      const sale = await prisma.sale.findUnique({
+          where: { id: parseInt(saleId) },
+          include: { items: true, stockReservations: true }
+      });
       if (!sale) throw new Error('Venta no encontrada');
 
-      const updatedSale = await prisma.sale.update({
-          where: { id: parseInt(saleId) },
-          data: { paymentStatus: newStatus }
-      });
+      const wasPending = sale.paymentStatus !== 'PAID';
 
-       await AuditService.logAction({
+      if (wasPending && newStatus === 'PAID') {
+          await prisma.$transaction(async (tx) => {
+              for (const reservation of (sale.stockReservations || [])) {
+                  if (reservation.released) continue;
+                  await tx.$executeRaw`
+                      UPDATE "SKU" 
+                      SET stock = stock - ${reservation.quantity},
+                          "soldQuantity" = "soldQuantity" + ${reservation.quantity},
+                          "updatedAt" = NOW()
+                      WHERE id = ${reservation.skuId}
+                  `;
+                  await tx.$executeRaw`
+                      UPDATE "BranchInventory"
+                      SET stock = stock - ${reservation.quantity},
+                          "soldQuantity" = "soldQuantity" + ${reservation.quantity},
+                          "updatedAt" = NOW()
+                      WHERE id = ${reservation.branchInventoryId}
+                  `;
+                  const inv = await tx.branchInventory.findUnique({ where: { id: reservation.branchInventoryId } });
+                  await tx.stockMovement.create({
+                      data: {
+                          skuId: reservation.skuId,
+                          branchId: sale.branchId,
+                          type: 'SALE',
+                          quantity: -Number(reservation.quantity),
+                          resultingStock: inv ? Number(inv.stock) : 0,
+                          referenceId: `SALE-${sale.id}`,
+                          userId: adminId,
+                          notes: `Pago confirmado manualmente - Venta #${sale.id}`
+                      }
+                  });
+                  await tx.stockReservation.update({
+                      where: { id: reservation.id },
+                      data: { released: true }
+                  });
+              }
+              await tx.sale.update({
+                  where: { id: parseInt(saleId) },
+                  data: { paymentStatus: newStatus }
+              });
+          });
+
+          const SaleService = require('./sale.service');
+          setImmediate(async () => {
+              try {
+                  await SaleService.processPostPaymentActions(parseInt(saleId));
+              } catch (e) {
+                  console.error('[AdminSaleService] Error in post-payment actions:', e);
+              }
+          });
+      } else {
+          await prisma.sale.update({
+              where: { id: parseInt(saleId) },
+              data: { paymentStatus: newStatus }
+          });
+      }
+
+      await AuditService.logAction({
           adminId,
           action: 'UPDATE_PAYMENT_STATUS',
           entityType: 'SALE',
@@ -206,7 +265,7 @@ class AdminSaleService {
           ip
       });
 
-      return updatedSale;
+      return await prisma.sale.findUnique({ where: { id: parseInt(saleId) } });
   }
   async getDashboardStats(timeRange = 'month', branchId = null) {
     const now = new Date();

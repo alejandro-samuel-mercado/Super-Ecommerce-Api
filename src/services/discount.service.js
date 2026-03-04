@@ -131,7 +131,6 @@ class DiscountService {
    * @returns {Promise<Object>} { originalPrice, discountedPrice, discountPercentage, appliedDiscounts }
    */
   async getDiscountForProduct(product, context = {}) {
-    // Simular un carrito con un solo item para reutilizar lógica
     const items = [{
         productId: product.id,
         quantity: 1,
@@ -155,6 +154,105 @@ class DiscountService {
         discountPercentage,
         appliedDiscounts
     };
+  }
+
+  /**
+   * Batch: Evalúa descuentos para múltiples productos en una sola pasada.
+   * Pre-carga descuentos activos, evento y config UNA VEZ, luego evalúa cada producto en memoria.
+   */
+  async getDiscountsForProducts(products, context = {}) {
+    const now = new Date();
+    const EventService = require('./event.service');
+    let activeEvent = null;
+    try {
+        activeEvent = await EventService.getActiveEvent();
+    } catch (e) {}
+
+    let whereClause = { active: true };
+    if (activeEvent) {
+        whereClause.eventId = activeEvent.id;
+    } else {
+        whereClause.eventId = null;
+    }
+
+    const [allDiscounts, storeConfig] = await Promise.all([
+      prisma.discount.findMany({
+        where: whereClause,
+        include: { event: true },
+        orderBy: { priority: 'desc' }
+      }),
+      prisma.storeConfig.findFirst({ where: { id: 1 } })
+    ]);
+
+    const validDiscounts = allDiscounts.filter(d => {
+       if (activeEvent && d.eventId !== activeEvent.id) return false;
+       if (!activeEvent && d.eventId !== null) return false;
+       const eventStart = d.event ? d.event.startDate : null;
+       const eventEnd = d.event ? d.event.endDate : null;
+       if (eventStart && now < eventStart) return false;
+       if (eventEnd && now > eventEnd) return false;
+       if (d.validFrom && now < d.validFrom) return false;
+       if (d.validUntil && now > d.validUntil) return false;
+       return true;
+    });
+
+    const results = {};
+    for (const product of products) {
+      const items = [{
+          productId: product.id,
+          quantity: 1,
+          unitPrice: product.price || product.basePrice,
+          product: product,
+          sku: product.skus ? product.skus[0] : { code: 'DEFAULT' }
+      }];
+
+      const appliedDiscounts = [];
+      let totalDiscountAmount = 0;
+      const candidates = [];
+
+      for (const discount of validDiscounts) {
+          const config = this.normalizeConfig(discount);
+          const matchedItems = this.matchItems(config.targets, items);
+          if (matchedItems.length === 0) continue;
+          if (await this.checkConditions(config.conditions, matchedItems, { ...context, items }, storeConfig)) {
+              const amount = await this.calculateAmount(config.action || {}, matchedItems, discount, context.currencyCode, storeConfig);
+              if (amount > 0) {
+                  candidates.push({ discount, amount, config });
+              }
+          }
+      }
+
+      candidates.sort((a, b) => b.discount.priority - a.discount.priority);
+      for (const candidate of candidates) {
+          if (!candidate.discount.stackable && appliedDiscounts.length > 0) continue;
+          if (appliedDiscounts.some(d => !d.stackable)) continue;
+          appliedDiscounts.push({
+              id: candidate.discount.id,
+              name: candidate.discount.name,
+              type: candidate.config.action?.type || candidate.discount.type,
+              val: candidate.config.action?.value || candidate.discount.value,
+              discountAmount: candidate.amount,
+              stackable: candidate.discount.stackable
+          });
+          totalDiscountAmount += candidate.amount;
+      }
+
+      const cartTotal = items.reduce((sum, i) => sum + (parseFloat(i.unitPrice) * i.quantity), 0);
+      if (totalDiscountAmount > cartTotal) totalDiscountAmount = cartTotal;
+
+      const originalPrice = parseFloat(product.price || product.basePrice);
+      const discountedPrice = originalPrice - totalDiscountAmount;
+      const discountPercentage = originalPrice > 0 ? Math.round((totalDiscountAmount / originalPrice) * 100) : 0;
+
+      results[product.id] = {
+          originalPrice,
+          discountedPrice,
+          discountPercentage,
+          appliedDiscounts
+      };
+    }
+
+    return results;
   }
 
   /**
