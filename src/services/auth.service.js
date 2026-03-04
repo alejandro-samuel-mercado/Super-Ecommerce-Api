@@ -226,7 +226,7 @@ class AuthService {
                     });
                     user.branchId = defaultBranch.id;
                 } else {
-                     // Usar upsert para evitar errores
+                     
                      await prisma.userBranch.upsert({
                         where: { userId_branchId: { userId: user.id, branchId: defaultBranch.id } },
                         update: {},
@@ -325,6 +325,12 @@ class AuthService {
               hashedToken,
               expiresAt
           }
+      });
+  }
+  async logout(refreshToken) {
+      if (!refreshToken) return;
+      await prisma.refreshToken.deleteMany({
+          where: { hashedToken: AuthUtils.hashToken(refreshToken) }
       });
   }
 }

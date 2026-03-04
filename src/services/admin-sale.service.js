@@ -34,6 +34,160 @@ class AdminSaleService {
       return updatedSale;
   }
 
+  async refundSale(adminId, saleId, reason, ip) {
+      if (!reason || reason.trim() === '') {
+          throw new Error('Motivo de anulación es requerido');
+      }
+
+      return await prisma.$transaction(async (tx) => {
+          const sale = await tx.sale.findUnique({
+              where: { id: parseInt(saleId) },
+              include: { items: true, user: true }
+          });
+
+          if (!sale) throw new Error('Venta no encontrada');
+          if (sale.paymentStatus === 'CANCELLED') throw new Error('La venta ya está cancelada');
+          if (sale.paymentStatus === 'PENDING' || sale.paymentStatus === 'REJECTED') {
+              throw new Error('Las ventas no pagadas no requieren reembolso manual de inventario completo');
+          }
+
+          for (const item of sale.items) {
+              const qty = Number(item.quantity);
+              
+              const branchInventoryRows = await tx.$queryRaw`
+                  SELECT id FROM "BranchInventory"
+                  WHERE "skuId" = ${item.skuId} AND "branchId" = ${sale.branchId}
+                  FOR UPDATE
+              `;
+              
+              if (branchInventoryRows.length > 0) {
+                  const biId = branchInventoryRows[0].id;
+                  await tx.$executeRaw`
+                      UPDATE "BranchInventory"
+                      SET stock = stock + ${qty},
+                          "soldQuantity" = "soldQuantity" - ${qty},
+                          "updatedAt" = NOW()
+                      WHERE id = ${biId}
+                  `;
+              }
+              
+              await tx.$executeRaw`
+                  UPDATE "SKU"
+                  SET stock = stock + ${qty},
+                      "soldQuantity" = "soldQuantity" - ${qty},
+                      "updatedAt" = NOW()
+                  WHERE id = ${item.skuId}
+              `;
+              
+              await tx.stockMovement.create({
+                  data: {
+                      skuId: item.skuId,
+                      branchId: sale.branchId,
+                      type: 'RETURN',
+                      quantity: qty,
+                      resultingStock: 0, 
+                      referenceId: \`REFUND-\${sale.id}\`,
+                      userId: adminId,
+                      notes: \`Devolución Venta #\${sale.id}\`
+                  }
+              });
+          }
+
+          let pointsReverted = 0;
+          let pointsRemoved = 0;
+
+          if (sale.pointsUsed > 0 && sale.userId) {
+              const alreadyRefunded = await tx.pointsHistory.findFirst({
+                  where: { reason: \`Reembolso por anulación manual - Venta #\${sale.id}\` }
+              });
+              
+              if (!alreadyRefunded) {
+                  await tx.user.update({
+                      where: { id: sale.userId },
+                      data: { points: { increment: sale.pointsUsed } }
+                  });
+                  await tx.pointsHistory.create({
+                      data: {
+                          userId: sale.userId,
+                          type: 'EARNED',
+                          amount: sale.pointsUsed,
+                          reason: \`Reembolso por anulación manual - Venta #\${sale.id}\`
+                      }
+                  });
+                  pointsReverted = sale.pointsUsed;
+              }
+          }
+
+          let pointsEarnedInSale = 0;
+          for (const item of sale.items) {
+              const sku = await tx.sKU.findUnique({
+                  where: { id: item.skuId },
+                  include: { product: true }
+              });
+              if (sku && sku.product && sku.product.pointsReward) {
+                   pointsEarnedInSale += (sku.product.pointsReward * Number(item.quantity));
+              }
+          }
+
+          if (pointsEarnedInSale > 0 && sale.userId) {
+              const alreadyRemoved = await tx.pointsHistory.findFirst({
+                  where: { reason: \`Reversión de puntos ganados por anulación manual - Venta #\${sale.id}\` }
+              });
+              
+              if (!alreadyRemoved) {
+                  const userCurrent = await tx.user.findUnique({ where: { id: sale.userId } });
+                  const amountToRemove = Math.min(pointsEarnedInSale, userCurrent.points || 0);
+                  
+                  if (amountToRemove > 0) {
+                      await tx.user.update({
+                          where: { id: sale.userId },
+                          data: { points: { decrement: amountToRemove } }
+                      });
+                      await tx.pointsHistory.create({
+                          data: {
+                              userId: sale.userId,
+                              type: 'SPENT',
+                              amount: amountToRemove,
+                              reason: \`Reversión de puntos ganados por anulación manual - Venta #\${sale.id}\`
+                          }
+                      });
+                      pointsRemoved = amountToRemove;
+                  }
+              }
+          }
+
+          const newObservations = sale.observations 
+              ? \`\${sale.observations} | ANULACIÓN: \${reason}\` 
+              : \`ANULACIÓN: \${reason}\`;
+
+          const updatedSale = await tx.sale.update({
+              where: { id: parseInt(saleId) },
+              data: { 
+                  paymentStatus: 'CANCELLED',
+                  deliveryStatus: 'CANCELLED',
+                  observations: newObservations
+              }
+          });
+
+          await AuditService.logAction({
+              adminId,
+              action: 'REFUND_SALE',
+              entityType: 'SALE',
+              entityId: saleId,
+              changes: { 
+                  reason, 
+                  prevStatus: sale.paymentStatus, 
+                  newStatus: 'CANCELLED',
+                  pointsReverted,
+                  pointsRemoved
+              },
+              ip
+          });
+
+          return updatedSale;
+      });
+  }
+
   async updatePaymentStatus(adminId, saleId, newStatus, ip) {
       const sale = await prisma.sale.findUnique({ where: { id: parseInt(saleId) } });
       if (!sale) throw new Error('Venta no encontrada');

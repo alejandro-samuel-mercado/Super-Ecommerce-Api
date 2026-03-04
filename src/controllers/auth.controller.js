@@ -46,9 +46,17 @@ class AuthController {
     }
   }
 
-  async logout(req, res) {
-      
-      res.status(200).json({ success: true, message: 'Sesión cerrada' });
+  async logout(req, res, next) {
+      try {
+          // Obtener token del body o cookies si aplica
+          const { refreshToken } = req.body;
+          if (refreshToken) {
+              await AuthService.logout(refreshToken);
+          }
+          res.status(200).json({ success: true, message: 'Sesión cerrada exitosamente' });
+      } catch (error) {
+          next(error);
+      }
   }
 
   async forgotPassword(req, res, next) {

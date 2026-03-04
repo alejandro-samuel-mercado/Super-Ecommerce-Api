@@ -177,6 +177,22 @@ class SaleController {
         return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
     }
   }
+
+  async refund(req, res, next) {
+      try {
+          const { id } = req.params;
+          const { reason } = req.body;
+          const { id: adminId } = req.user;
+          const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+
+          const AdminSaleService = require('../services/admin-sale.service');
+          const refundedSale = await AdminSaleService.refundSale(adminId, id, reason, ip);
+
+          res.json({ success: true, data: refundedSale });
+      } catch (error) {
+          next(error);
+      }
+  }
 }
 
 module.exports = new SaleController();

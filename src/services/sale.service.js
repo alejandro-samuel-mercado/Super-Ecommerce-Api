@@ -296,7 +296,7 @@ class SaleService {
 
       // 5. Total Final
       let pointsDiscount = 0;
-      const pointsToRedeem = parseInt(pointsToUse) || 0;
+      const pointsToRedeem = Math.max(0, parseInt(pointsToUse) || 0);
       
       if (pointsToRedeem > 0) {
           if (!storeConfig || !storeConfig.enablePointsRedemption) {
@@ -311,9 +311,16 @@ class SaleService {
       }
 
       const manualDiscountAmount = parseFloat(manualDiscount) || 0;
-      let totalDiscount = totalDiscountAmount + couponDiscount + manualDiscountAmount;
+      let totalDiscount = totalDiscountAmount + couponDiscount + manualDiscountAmount + pointsDiscount;
       
-      if (totalDiscount > subtotal) totalDiscount = subtotal;
+      if (totalDiscount > subtotal) {
+          totalDiscount = subtotal;
+          if (pointsDiscount > 0) {
+              const otherDiscounts = totalDiscountAmount + couponDiscount + manualDiscountAmount;
+              pointsDiscount = Math.max(0, subtotal - otherDiscounts);
+          }
+      }
+      
       totalDiscount = parseFloat(totalDiscount.toFixed(2));
 
       // Calcular Impuesto - Solo para transacciones locales

@@ -74,4 +74,11 @@ router.get('/:id/invoice', SaleController.getInvoice);
  */
 router.put('/:id', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), SaleController.update);
 
+/**
+ * @route POST /api/sales/:id/refund
+ * @desc Anular venta (Refund)
+ * @access Admin/Employee
+ */
+router.post('/:id/refund', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), SaleController.refund);
+
 module.exports = router;
