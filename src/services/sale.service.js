@@ -233,7 +233,7 @@ class SaleService {
                   
                    if (shippingCost <= 0) {
                        shippingCost = await ShippingService.getDefaultCost();
-                        const currency = await prisma.currency.findUnique({ where: { code: activeCurrencyCode } });
+                        const currency = await tx.currency.findUnique({ where: { code: activeCurrencyCode } });
                         const rate = currency ? parseFloat(currency.exchangeRateToBase.toString()) : 1;
                         shippingCost = shippingCost * rate;
                    }
@@ -797,7 +797,7 @@ class SaleService {
           try {
             
               const alreadyProcessed = await prisma.pointsHistory.findFirst({
-                  where: { reason: `Canje orden #${sale.id}`, type: 'EARNED' } 
+                  where: { reason: `Compra #${sale.id}`, type: 'EARNED' } 
               });
           
               if (!alreadyProcessed) {
@@ -957,11 +957,19 @@ class SaleService {
 
        // Disparar acciones post-pago si el estado cambió a PAID
        if (updateData.paymentStatus === 'PAID' && sale.paymentStatus !== 'PAID') {
-           // Si el admin está forzando a PAID, debemos deducir stock si hay reservas pendientes
+           
            if (updatedSale.stockReservations.length > 0) {
                await prisma.$transaction(async (tx) => {
-                   for (const res of updatedSale.stockReservations) {
-                       // Deducir Stock físico (Sincronización Admin)
+                   const freshSaleRows = await tx.$queryRaw`
+                       SELECT "paymentStatus" FROM "Sale" WHERE id = ${parseInt(id)} FOR UPDATE
+                   `;
+                   if (freshSaleRows[0]?.paymentStatus !== 'PAID') return;
+
+                   const activeReservations = await tx.stockReservation.findMany({
+                       where: { saleId: parseInt(id), released: false }
+                   });
+
+                   for (const res of activeReservations) {
                        await tx.$executeRaw`
                            UPDATE "SKU" SET stock = stock - ${res.quantity}, "soldQuantity" = "soldQuantity" + ${res.quantity}, "updatedAt" = NOW()
                            WHERE id = ${res.skuId}
@@ -996,8 +1004,8 @@ class SaleService {
       if (roleName === 'CUSTOMER' && sale.userId !== userId) throw new Error('No tienes permiso para cancelar esta venta.');
       if (sale.deliveryStatus === 'DELIVERED') throw new Error('No se puede cancelar una venta ya entregada');
       if (sale.paymentStatus === 'PAID' && roleName === 'CUSTOMER') throw new Error('No puedes cancelar una orden que ya fue pagada. Por favor, contacta a soporte técnico.');
+      if (sale.paymentStatus === 'CANCELLED') throw new Error('Esta venta ya fue cancelada.');
 
- 
 
       await prisma.$transaction(async (tx) => {
           // 1. Restaurar stock para ventas Offline (o ventas pagadas canceladas por Admin)
@@ -1030,8 +1038,8 @@ class SaleService {
                                 skuId: item.skuId,
                                 branchId: sale.branchId,
                                 type: 'MANUAL_ADJUSTMENT', 
-                                quantity: item.quantity, 
-                                resultingStock: inventory ? inventory.stock : 0,
+                                quantity: Number(item.quantity), 
+                                resultingStock: inventory ? Number(inventory.stock) : 0,
                                 referenceId: `CANCEL-${sale.id}`,
                                 userId: userId,
                                 notes: `Cancelación Venta #${sale.id}`
@@ -1058,21 +1066,7 @@ class SaleService {
                }
            });
 
-           // 4. Reembolsar puntos si fueron usados
-           if (sale.pointsUsed > 0) {
-               await tx.user.update({
-                   where: { id: sale.userId },
-                   data: { points: { increment: sale.pointsUsed } }
-               });
-               await tx.pointsHistory.create({
-                   data: {
-                       userId: sale.userId,
-                       type: 'EARNED',
-                       amount: sale.pointsUsed,
-                       reason: `Reembolso por Cancelación Venta #${sale.id}`
-                   }
-               });
-           }
+
 
            // 5. Revocar puntos ganados por la compra cancelada (si aplica)
            const earnedPointsObj = await tx.pointsHistory.findFirst({
@@ -1171,18 +1165,24 @@ class SaleService {
 
                // 3. Reembolsar puntos (Obligatorio en auto-cleanup para no robar puntos al usuario)
                if (sale.pointsUsed > 0) {
-                   await tx.user.update({
-                       where: { id: sale.userId },
-                       data: { points: { increment: sale.pointsUsed } }
+                   const alreadyRefunded = await tx.pointsHistory.findFirst({
+                       where: { reason: `Reembolso automático (Venta Abandonada) #${sale.id}` }
                    });
-                   await tx.pointsHistory.create({
-                       data: {
-                           userId: sale.userId,
-                           type: 'EARNED',
-                           amount: sale.pointsUsed,
-                           reason: `Reembolso automático (Venta Abandonada) #${sale.id}`
-                       }
-                   });
+
+                   if (!alreadyRefunded) {
+                       await tx.user.update({
+                           where: { id: sale.userId },
+                           data: { points: { increment: sale.pointsUsed } }
+                       });
+                       await tx.pointsHistory.create({
+                           data: {
+                               userId: sale.userId,
+                               type: 'EARNED',
+                               amount: sale.pointsUsed,
+                               reason: `Reembolso automático (Venta Abandonada) #${sale.id}`
+                           }
+                       });
+                   }
                }
               // 3. Si por alguna razón la venta ya había descontado stock directamente (no vía reserva)
               // Aquí se podría implementar lógica de devolución, pero en PENDING online suele ser reserva.

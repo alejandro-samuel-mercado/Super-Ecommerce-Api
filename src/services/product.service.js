@@ -482,12 +482,6 @@ async createProduct(data) {
            totalPages: Math.ceil(total / take)
         };
     } catch (err) {
-        console.error('[ProductService] Error en FindMany/Count Details:', {
-            message: err.message,
-            code: err.code,
-            meta: err.meta,
-            stack: err.stack
-        });
         throw err;
     }
   }

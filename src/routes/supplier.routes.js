@@ -5,6 +5,7 @@ const { protect } = require('../middlewares/auth.middleware');
 
 // Todas las rutas de proveedores requieren autenticación
 router.use(protect);
+router.use(require('../middlewares/auth.middleware').restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'));
 
 /**
  * @route GET /api/suppliers

@@ -183,7 +183,7 @@ class CartService {
             const items = [];
             for (const item of localItems) {
                 const skuIdInt = parseInt(item.skuId);
-                const sku = await prisma.sku.findUnique({
+                const sku = await prisma.sKU.findUnique({
                     where: { id: skuIdInt },
                     include: { product: true, variantOptions: true }
                 });

@@ -6,7 +6,7 @@ const authMiddleware = require('../middlewares/auth.middleware');
 // Todas las rutas requieren autenticación y rol de admin
 router.use(authMiddleware.authenticate);
 
-// router.use(authMiddleware.adminOnly);
+router.use(authMiddleware.authorize('ADMIN', 'SUPER_ADMIN'));
 
 /**
  * @route GET /api/admin/stock/reservations/stats

@@ -77,7 +77,12 @@ class PaymentController {
   async updateGateway(req, res) {
       try {
           const { id } = req.params;
-          const data = req.body;
+          const { name, isActive, isGlobalFallback, config } = req.body;
+          const data = {};
+          if (name !== undefined) data.name = name;
+          if (isActive !== undefined) data.isActive = isActive;
+          if (isGlobalFallback !== undefined) data.isGlobalFallback = isGlobalFallback;
+          if (config !== undefined) data.config = config;
           
           const updated = await prisma.paymentGateway.update({
               where: { id: parseInt(id) },

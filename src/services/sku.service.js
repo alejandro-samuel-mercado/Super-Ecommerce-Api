@@ -148,12 +148,11 @@ class SkuService {
    * Actualizar stock de una variante
    */
   async updateStock(skuId, quantity, operationType = 'set') {
-    // operationType: 'set' (fixed value), 'add' (increment), 'subtract' (decrement)
     
     const sku = await prisma.sKU.findUnique({ where: { id: parseInt(skuId) } });
     if (!sku) throw new Error('SKU no encontrado');
 
-    let newStock = sku.stock;
+    let newStock = parseFloat(sku.stock);
 
     if (operationType === 'add') newStock += quantity;
     else if (operationType === 'subtract') newStock -= quantity;

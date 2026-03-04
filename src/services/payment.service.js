@@ -24,8 +24,7 @@ class PaymentService {
         }
 
         if (sale.userId && sale.userId !== userId) {
-            // Permitir pagos a admins? Por ahora propiedad estricta
-         
+            throw new Error('Permission denied');
         }
 
         // 2. Validar Estado

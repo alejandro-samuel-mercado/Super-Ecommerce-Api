@@ -2,6 +2,7 @@ const prisma = require('../config/prisma');
 const AuthUtils = require('../utils/auth.utils');
 const AppError = require('../utils/app.error');
 const NotificationService = require('./notification.service');
+const crypto = require('crypto');
 
 class AuthService {
 
@@ -81,7 +82,7 @@ class AuthService {
         data: {
           email: normalizedEmail,
           name: name,
-          password: 'OAUTH_USER_' + Math.random().toString(36).slice(-8),
+          password: await AuthUtils.hashPassword(crypto.randomBytes(32).toString('hex')),
           roleId: role?.id,
           isActive: true
         },
@@ -289,28 +290,34 @@ class AuthService {
         throw new Error('Su sesión ha expirado, inicie sesión nuevamente.');
     }
 
-   
-    // Implementación rotación:
+    const storedToken = await prisma.refreshToken.findFirst({
+        where: { userId: decoded.id },
+        orderBy: { createdAt: 'desc' }
+    });
+
+    if (!storedToken || !AuthUtils.verifyHashedToken(token, storedToken.hashedToken)) {
+        throw new Error('Su sesión ha sido invalidada, inicie sesión nuevamente.');
+    }
+
     const user = await prisma.user.findUnique({ where: { id: decoded.id }, include: { role: true }});
     if (!user) throw new Error('El usuario de esta sesión ya no existe.');
 
-    // Generar nuevo par
     const payload = { id: user.id, role: user.role.name };
     const { accessToken, refreshToken: newRefreshToken } = AuthUtils.generateTokens(payload);
     
-    // Invalidar tokens previos (Rotación agresiva: solo 1 refresh activo por usuario o sesión)
-    // Para simplificar: Agregar nuevo, mantener historial (ideal limpiar viejos)
     await this.saveRefreshToken(user.id, newRefreshToken);
 
     return { accessToken, refreshToken: newRefreshToken };
   }
 
   async saveRefreshToken(userId, token) {
-      // Guardar hash
       const hashedToken = AuthUtils.hashToken(token);
-      // Calcular expiración (7 dias)
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + 7);
+
+      await prisma.refreshToken.deleteMany({
+          where: { userId }
+      });
 
       await prisma.refreshToken.create({
           data: {

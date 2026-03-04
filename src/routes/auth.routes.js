@@ -72,7 +72,7 @@ router.post('/logout', AuthController.logout);
  * @desc Solicitar restablecimiento de contraseña
  * @access Público
  */
-router.post('/forgot', [
+router.post('/forgot', authLimiter, [
     body('email').isEmail().withMessage('Email inválido'),
     validateRequest
 ], AuthController.forgotPassword);
@@ -82,7 +82,7 @@ router.post('/forgot', [
  * @desc Restablecer contraseña con código de verificación
  * @access Público
  */
-router.post('/reset', [
+router.post('/reset', authLimiter, [
     body('email').isEmail().withMessage('Email inválido'),
     body('code').isLength({ min: 6, max: 6 }).withMessage('El código debe tener 6 dígitos'),
     body('newPassword').isLength({ min: 8 }).withMessage('La nueva contraseña debe tener al menos 8 caracteres'),

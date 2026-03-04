@@ -16,7 +16,8 @@ class UserController {
 
   async updateProfile(req, res, next) {
     try {
-      const updatedUser = await UserService.updateProfile(req.user.id, req.body);
+      const { roleId, status, ...allowedUpdates } = req.body;
+      const updatedUser = await UserService.updateProfile(req.user.id, allowedUpdates);
       
       const { password, ...safeUser } = updatedUser;
       res.status(200).json({ success: true, message: 'Perfil actualizado', data: safeUser });
@@ -54,7 +55,7 @@ class UserController {
                return res.status(403).json({ success: false, message: 'Como empleado solo puedes registrar clientes' });
            }
 
-           const newUser = await UserService.register(req.body);
+           const newUser = await UserService.register(req.body, true);
            const { password, ...safeUser } = newUser;
            res.status(201).json({ success: true, data: safeUser });
       } catch (error) {

@@ -43,9 +43,12 @@ class AuthUtils {
     }
   }
 
-  /** Hash simple para guardar el refresh token en DB de forma segura */
   hashToken(token) {
     return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
+  verifyHashedToken(token, hashedToken) {
+    return this.hashToken(token) === hashedToken;
   }
 
   /** Sanitizar usuario para enviar al cliente */

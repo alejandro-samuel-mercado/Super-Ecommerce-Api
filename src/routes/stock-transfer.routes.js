@@ -5,6 +5,7 @@ const { protect, restrictTo } = require('../middlewares/auth.middleware');
 
 // Rutas protegidas para administración de inventario
 router.use(protect);
+router.use(restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'));
 
 /**
  * @route GET /api/stock-transfers

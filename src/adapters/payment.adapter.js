@@ -1,3 +1,4 @@
+const prisma = require('../config/prisma');
 const PaymentGatewayFactory = require('../services/payment.factory');
 
 class PaymentAdapter {

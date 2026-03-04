@@ -42,6 +42,12 @@ class CouponService {
       const baseCurrencyCode = config?.baseCurrency || 'USD';
 
       let rate = 1; 
+      if (currencyCode && currencyCode !== baseCurrencyCode) {
+          const currency = await prisma.currency.findUnique({ where: { code: currencyCode } });
+          if (currency && currency.isActive) {
+              rate = parseFloat(currency.exchangeRateToBase.toString());
+          }
+      }
 
       const minPurchaseConverted = coupon.minPurchase ? parseFloat(coupon.minPurchase) * rate : 0;
 

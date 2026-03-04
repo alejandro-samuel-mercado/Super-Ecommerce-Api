@@ -76,7 +76,21 @@ class StockCleanupService {
                 }
               });
 
-              // Registrar en Auditoría (SYSTEM)
+              if (sale.pointsUsed > 0) {
+                  await tx.user.update({
+                      where: { id: sale.userId },
+                      data: { points: { increment: sale.pointsUsed } }
+                  });
+                  await tx.pointsHistory.create({
+                      data: {
+                          userId: sale.userId,
+                          type: 'EARNED',
+                          amount: sale.pointsUsed,
+                          reason: `Reembolso por expiración de reserva - Venta #${sale.id}`
+                      }
+                  });
+              }
+
               await AuditService.logAction({
                   adminId: null,
                   action: 'AUTO_CANCEL_EXPIRED_SALE',

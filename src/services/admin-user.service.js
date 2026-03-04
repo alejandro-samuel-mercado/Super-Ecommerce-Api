@@ -36,9 +36,8 @@ class AdminUserService {
 
       // Si se suspende, revocar tokens
       if (status === 'SUSPENDED') {
-          await prisma.refreshToken.updateMany({
-              where: { userId: parseInt(userId) },
-              data: { revoked: true }
+          await prisma.refreshToken.deleteMany({
+              where: { userId: parseInt(userId) }
           });
       }
 
@@ -58,7 +57,7 @@ class AdminUserService {
       const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
       if (!user) throw new Error('Usuario no encontrado');
 
-      const newTotal = user.points + amount;
+      const newTotal = Number(user.points) + amount;
       if (newTotal < 0) throw new Error('El usuario no puede tener puntos negativos');
 
       // Transacción para historial y update

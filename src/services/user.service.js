@@ -6,7 +6,7 @@ class UserService {
   /**
    * Crear usuario (Panel Admin / Registro)
    */
-  async register(data) {
+  async register(data, isFromAdmin = false) {
     const { email, password, name, roleId, ...profileData } = data;
     const normalizedEmail = email.toLowerCase();
     
@@ -18,9 +18,10 @@ class UserService {
     if (!password) throw new Error('La contraseña es obligatoria');
     const hashedPassword = await AuthUtils.hashPassword(password);
     
-    // Rol (por defecto asume CUSTOMER si no es provisto)
-    let targetRoleId = roleId ? parseInt(roleId) : undefined;
-    if (!targetRoleId) {
+    let targetRoleId;
+    if (isFromAdmin && roleId) {
+        targetRoleId = parseInt(roleId);
+    } else {
         const customerRole = await prisma.role.findUnique({ where: { name: 'CUSTOMER' } });
         targetRoleId = customerRole.id;
     }

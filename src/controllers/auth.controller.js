@@ -101,7 +101,7 @@ class AuthController {
           user: result.user,
           accessToken,
           refreshToken
-        });
+        }).replace(/</g, '\\u003c');
 
         res.setHeader(
           'Content-Security-Policy',
@@ -178,7 +178,7 @@ class AuthController {
                           try {
                               if (window.opener) {
                                   console.log('[Auth] Opener found, sending postMessage');
-                                  window.opener.postMessage(data, '*');
+                                  window.opener.postMessage(data, '${process.env.FRONTEND_URL || "*"}');
                                   
                                   title.innerText = '¡Todo listo!';
                                   message.innerText = 'La autenticación fue exitosa y enviada.';

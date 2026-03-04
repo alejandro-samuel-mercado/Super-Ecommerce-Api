@@ -5,6 +5,7 @@ const { protect, restrictTo } = require('../middlewares/auth.middleware');
 
 // Proteger todas las rutas de compras a proveedores
 router.use(protect);
+router.use(restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'));
 
 /**
  * @route GET /api/purchases

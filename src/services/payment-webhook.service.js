@@ -239,13 +239,36 @@ class PaymentWebhookService {
       }
       
       // Actualizar estado de venta
-      await tx.sale.update({
+      const sale = await tx.sale.update({
         where: { id: saleId },
         data: { 
           paymentStatus: 'REJECTED',
           observations: 'Payment rejected or cancelled'
         }
       });
+
+      if (sale.pointsUsed > 0) {
+          const alreadyRefunded = await tx.pointsHistory.findFirst({
+              where: { reason: `Reembolso por pago fallido - Orden #${saleId}` }
+          });
+          
+          if (!alreadyRefunded) {
+              await tx.user.update({
+                  where: { id: sale.userId },
+                  data: { points: { increment: sale.pointsUsed } }
+              });
+              await tx.pointsHistory.create({
+                  data: {
+                      userId: sale.userId,
+                      type: 'EARNED',
+                      amount: sale.pointsUsed,
+                      reason: `Reembolso por pago fallido - Orden #${saleId}`
+                  }
+              });
+          }
+      }
+    }, {
+      isolationLevel: 'Serializable'
     });
   }
 }
