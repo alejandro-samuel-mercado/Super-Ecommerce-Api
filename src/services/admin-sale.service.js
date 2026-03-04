@@ -86,9 +86,9 @@ class AdminSaleService {
                       type: 'RETURN',
                       quantity: qty,
                       resultingStock: 0, 
-                      referenceId: \`REFUND-\${sale.id}\`,
+                      referenceId: `REFUND-${sale.id}`,
                       userId: adminId,
-                      notes: \`Devolución Venta #\${sale.id}\`
+                      notes: `Devolución Venta #${sale.id}`
                   }
               });
           }
@@ -98,7 +98,7 @@ class AdminSaleService {
 
           if (sale.pointsUsed > 0 && sale.userId) {
               const alreadyRefunded = await tx.pointsHistory.findFirst({
-                  where: { reason: \`Reembolso por anulación manual - Venta #\${sale.id}\` }
+                  where: { reason: `Reembolso por anulación manual - Venta #${sale.id}` }
               });
               
               if (!alreadyRefunded) {
@@ -111,7 +111,7 @@ class AdminSaleService {
                           userId: sale.userId,
                           type: 'EARNED',
                           amount: sale.pointsUsed,
-                          reason: \`Reembolso por anulación manual - Venta #\${sale.id}\`
+                          reason: `Reembolso por anulación manual - Venta #${sale.id}`
                       }
                   });
                   pointsReverted = sale.pointsUsed;
@@ -131,7 +131,7 @@ class AdminSaleService {
 
           if (pointsEarnedInSale > 0 && sale.userId) {
               const alreadyRemoved = await tx.pointsHistory.findFirst({
-                  where: { reason: \`Reversión de puntos ganados por anulación manual - Venta #\${sale.id}\` }
+                  where: { reason: `Reversión de puntos ganados por anulación manual - Venta #${sale.id}` }
               });
               
               if (!alreadyRemoved) {
@@ -148,7 +148,7 @@ class AdminSaleService {
                               userId: sale.userId,
                               type: 'SPENT',
                               amount: amountToRemove,
-                              reason: \`Reversión de puntos ganados por anulación manual - Venta #\${sale.id}\`
+                              reason: `Reversión de puntos ganados por anulación manual - Venta #${sale.id}`
                           }
                       });
                       pointsRemoved = amountToRemove;
@@ -157,8 +157,8 @@ class AdminSaleService {
           }
 
           const newObservations = sale.observations 
-              ? \`\${sale.observations} | ANULACIÓN: \${reason}\` 
-              : \`ANULACIÓN: \${reason}\`;
+              ? `${sale.observations} | ANULACIÓN: ${reason}` 
+              : `ANULACIÓN: ${reason}`;
 
           const updatedSale = await tx.sale.update({
               where: { id: parseInt(saleId) },
