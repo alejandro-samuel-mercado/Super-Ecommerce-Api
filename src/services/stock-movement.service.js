@@ -17,7 +17,7 @@ class StockMovementService {
         const inventory = await client.branchInventory.findUnique({
              where: { skuId_branchId: { skuId: data.skuId, branchId: data.branchId } }
         });
-        resultingStock = inventory ? inventory.stock : 0;
+        resultingStock = inventory ? Number(inventory.stock) : 0;
     }
 
     return await client.stockMovement.create({

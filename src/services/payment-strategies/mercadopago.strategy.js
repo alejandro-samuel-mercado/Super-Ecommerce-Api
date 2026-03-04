@@ -11,7 +11,7 @@ class MercadoPagoStrategy extends PaymentStrategy {
     }
 
     init() {
-        // Config can come from DB or ENV. Prioritize DB config if passed.
+       
         const accessToken = this.config?.accessToken || process.env.MP_ACCESS_TOKEN;
         
         if (accessToken) {
@@ -27,18 +27,14 @@ class MercadoPagoStrategy extends PaymentStrategy {
         const preference = new Preference(this.client);
         const items = [];
 
-        // Check currency. MP only supports ARS (mostly) for this region. 
-        // We must ensure values are in ARS.
-        // Logic migrated from PaymentAdapter to handle currency conversion.
+       
         const baseCurrency = this.config?.currencyCode || 'ARS';
         const isForeignCurrency = sale.currencyCode && sale.currencyCode !== baseCurrency;
         const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 
         const convertToTarget = (amount) => {
             if (!isForeignCurrency) return Number(amount);
-            // If the sale is in a different currency, convert to ARS (baseCurrency)
-            // exchangeRate is 'Currency to Base', so we divide if the sale currency is stronger or multiply?
-            // Actually, SaleService already handles conversion to base.
+           
             return Number(amount) / exchangeRate;
         };
 
@@ -210,21 +206,18 @@ class MercadoPagoStrategy extends PaymentStrategy {
         } else {
             console.warn('⚠️ [MercadoPago Webhook] Validation skipped: WEBHOOK_SECRET not configured.');
         }
-        // --- End Signature Validation ---
-
-        // MP format: ?id=123&topic=payment or body.data.id
-        // V1: topic/id in query. V2: type/data.id in body.
+      
         
         let paymentId = query.id || query['data.id'] || (body && body.data && body.data.id);
         const topic = query.topic || (body && body.type);
 
         if (!paymentId || (topic !== 'payment' && topic !== 'mp-payment')) {
-            // Ignore non-payment events (like merchant_order) for now
+           
             return null; 
         }
 
         try {
-            console.log(`[MercadoPago] Fetching payment ${paymentId}...`);
+        
             const paymentClient = new Payment(this.client);
             const paymentData = await paymentClient.get({ id: paymentId });
             

@@ -78,14 +78,14 @@ class AuthController {
   }
 
   async googleCallback(req, res, next) {
-    console.log('[Auth] Google callback triggered');
+
     passport.authenticate('google', { session: false }, async (err, user, info) => {
       if (err || !user) {
         console.error('[Auth] Google auth failed:', err || 'No user found');
         return res.redirect(`${process.env.FRONTEND_URL}/login?error=google_failed`);
       }
 
-      console.log('[Auth] Google auth success for:', user.email);
+
 
       try {
         const result = await AuthService.loginWithGoogle({
@@ -93,8 +93,7 @@ class AuthController {
             name: user.name
         });
 
-        console.log('[Auth] App login success for:', result.user.email);
-        console.log('[Auth] Sending success response to popup');
+
 
         const { accessToken, refreshToken } = result.tokens;
         const authData = JSON.stringify({

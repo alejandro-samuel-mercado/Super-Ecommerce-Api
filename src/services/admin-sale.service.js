@@ -113,7 +113,7 @@ class AdminSaleService {
             break;
     }
 
-    console.log(`[STATS DEBUG] range=${timeRange}, branch=${branchId}, startDate=${startDate?.toISOString()}`);
+
     if (startDate) {
         filter.createdAt = { gte: startDate };
     }
@@ -124,7 +124,7 @@ class AdminSaleService {
       where: filter
     });
     const totalRevenue = Number(totalRevenueAgg._sum.totalInBaseCurrency || 0);
-    console.log(`[STATS DEBUG] totalRevenue=${totalRevenue}, filter=`, JSON.stringify(filter));
+
 
     // 2. Crecimiento de Ingresos (Vs Periodo Anterior)
     // Solo significativo si comparamos periodos similares, 'total' no tiene crecimiento

@@ -92,7 +92,7 @@ class StockTransferService {
        const originStock = await prisma.branchInventory.findUnique({
            where: { skuId_branchId: { skuId: item.skuId, branchId: originBranchId } }
        });
-       if (!originStock || originStock.stock < item.quantity) {
+       if (!originStock || Number(originStock.stock) < Number(item.quantity)) {
            throw new Error(`Stock insuficiente en origen para SKU ID ${item.skuId}`);
        }
     }
@@ -131,7 +131,7 @@ class StockTransferService {
                where: { skuId_branchId: { skuId: item.skuId, branchId: transfer.originBranchId } }
            });
            
-           if (!originStock || originStock.stock < item.quantity) {
+           if (!originStock || Number(originStock.stock) < Number(item.quantity)) {
                throw new Error(`Stock insuficiente en origen para SKU ID ${item.skuId} al momento del envío`);
            }
 
@@ -251,8 +251,8 @@ class StockTransferService {
                            skuId: item.skuId,
                            branchId: transfer.originBranchId,
                            type: 'TRANSFER_IN',
-                           quantity: item.quantity,
-                           resultingStock: updatedInv.stock,
+                           quantity: Number(item.quantity),
+                           resultingStock: Number(updatedInv.stock),
                            referenceId: `TX-CANCEL-${transfer.id}`,
                            userId, 
                            notes: `Cancelación de Transferencia #${transfer.id}`

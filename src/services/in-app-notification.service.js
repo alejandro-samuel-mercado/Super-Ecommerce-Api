@@ -66,7 +66,7 @@ class InAppNotificationService {
 
        for (const product of favorites.favorites) {
            // Verificar stock total del producto (suma de skus)
-           const totalStock = product.skus.reduce((acc, sku) => acc + sku.stock, 0);
+           const totalStock = product.skus.reduce((acc, sku) => acc + parseFloat(sku.stock || 0), 0);
            
            if (totalStock === 0) {
                // Alerta de stock agotado
@@ -76,7 +76,7 @@ class InAppNotificationService {
                    `¡${product.name} está agotado!`,
                    `El producto que te gusta se ha quedado sin stock. Te avisaremos cuando vuelva.`
                );
-           } else if (totalStock < 3) {
+           } else if (totalStock < 10) {
                // Alerta de stock bajo
                await this._createUniqueSystemNotification(
                    userId,

@@ -193,7 +193,7 @@ class PurchaseService {
                    skuId: item.skuId,
                    branchId: purchase.branchId,
                    type: 'PURCHASE',
-                   quantity: item.quantity,
+                   quantity: Number(item.quantity),
                    resultingStock: newStock,
                    referenceId: `PURCHASE-${purchase.id}`,
                    userId,

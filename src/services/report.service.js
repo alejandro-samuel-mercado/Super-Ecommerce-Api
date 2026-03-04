@@ -178,9 +178,10 @@ class ReportService {
             cost = 0;
         }
 
-        const value = item.stock * cost;
+        const stockNum = Number(item.stock);
+        const value = stockNum * cost;
         totalValue += value;
-        totalItems += item.stock;
+        totalItems += stockNum;
 
         // Agrupar por Categoría
         const catName = item.sku.product.category.name;

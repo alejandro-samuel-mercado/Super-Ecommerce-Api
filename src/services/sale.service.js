@@ -156,13 +156,11 @@ class SaleService {
           _sum: { quantity: true }
         });
         
-        const reservedQty = reservedQtyResult._sum.quantity || 0;
+        const reservedQty = Number(reservedQtyResult._sum.quantity || 0);
         const storeConfig = await tx.storeConfig.findFirst({ where: { id: 1 } });
         const safetyBuffer = (!isPOS && storeConfig) ? Number(storeConfig.webSafetyStock) : 0;
         
-        // Lógica de Prioridad (Opción A): Tanto POS como Online respetan las reservas activas.
-        // Esto evita que una venta física le "robe" el producto a un cliente que está pagando en la web.
-        const effectiveAvailableStock = inventory.stock - reservedQty - safetyBuffer;
+        const effectiveAvailableStock = Number(inventory.stock) - reservedQty - safetyBuffer;
         
         
         if (effectiveAvailableStock < itemQty) {
@@ -420,7 +418,7 @@ class SaleService {
               orderBy: { createdAt: 'asc' }
           });
           
-          const totalReserved = activeReservations.reduce((sum, res) => sum + res.quantity, 0);
+          const totalReserved = activeReservations.reduce((sum, res) => sum + Number(res.quantity), 0);
           
           if (newStock < totalReserved) {
               let amountToRelease = totalReserved - newStock;
@@ -432,7 +430,7 @@ class SaleService {
                       where: { id: reservation.id },
                       data: { released: true }
                   });
-                  amountToRelease -= reservation.quantity;
+                  amountToRelease -= Number(reservation.quantity);
               }
           }
 
@@ -608,13 +606,13 @@ class SaleService {
               hasStockError = true;
               stockIssues.push({ skuId: sku.id, skuCode: sku.code, productName: sku.product.name, available: 0, requested: itemQty, reason: 'Not available in branch' });
           } else {
-              const reservedQty = resMap.get(skuIdInt) || 0;
+              const reservedQty = Number(resMap.get(skuIdInt) || 0);
               const isEmployee = user && ['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'].includes(user.role?.name);
               const safetyBuffer = (!isEmployee && storeConfig) ? Number(storeConfig.webSafetyStock) : 0;
               
               const availableForUser = isEmployee 
-                ? inventory.stock 
-                : inventory.stock - reservedQty - safetyBuffer;
+                ? Number(inventory.stock) 
+                : Number(inventory.stock) - reservedQty - safetyBuffer;
 
               if (availableForUser < itemQty) {
                   hasStockError = true;
@@ -677,7 +675,9 @@ class SaleService {
                       discount = couponResult.discountAmount;
                       couponData = { code: couponResult.code, type: couponResult.type, value: couponResult.value, amount: couponResult.discountAmount };
                   }
-              } catch (e) {}
+              } catch (e) {
+                  couponData = { error: e.message };
+              }
           }
       }
 
@@ -883,7 +883,7 @@ class SaleService {
       // 1. Puntos por Producto (solo si puntos habilitados)
       for (const item of sale.items) {
           const pointsReward = item.sku?.product?.pointsReward || 0;
-          totalPointsEarned += pointsReward * item.quantity;
+          totalPointsEarned += pointsReward * Number(item.quantity);
       }
 
       // 2. Puntos por Gasto (Consolidado en Moneda Base)

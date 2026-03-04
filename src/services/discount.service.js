@@ -39,8 +39,7 @@ class DiscountService {
       orderBy: { priority: 'desc' }
     });
 
-    console.log(`[DiscountService] Evento Activo: ${activeEvent?.name || 'Ninguno'}`);
-    console.log(`[DiscountService] Descuentos encontrados en DB: ${allDiscounts.length}`);
+
 
     const validDiscounts = allDiscounts.filter(d => {
        // Defensa extra: Si hay un evento activo, saltar cualquier descuento que no le pertenezca
@@ -72,19 +71,19 @@ class DiscountService {
         
         // Paso A: Identificar items afectados (Scope/Targets)
         const matchedItems = this.matchItems(config.targets, items);
-        console.log(`[DiscountService] Evaluando "${discount.name}". Items matcheados: ${matchedItems.length}`);
+
         if (matchedItems.length === 0) continue;
 
         // Paso B: Verificar Condiciones sobre los items afectados
         if (await this.checkConditions(config.conditions, matchedItems, context, storeConfig)) {
             // Paso C: Calcular Monto
             const amount = await this.calculateAmount(config.action || {}, matchedItems, discount, currencyCode, storeConfig);
-            console.log(`[DiscountService] Descuento "${discount.name}" APLICABLE. Monto: ${amount}`);
+
             if (amount > 0) {
                 candidates.push({ discount, amount, config });
             }
         } else {
-            console.log(`[DiscountService] Descuento "${discount.name}" RECHAZADO por condiciones.`);
+
         }
     }
 
@@ -256,7 +255,7 @@ class DiscountService {
               let total = 0;
               matchedItems.forEach(i => {
                   // Verificar unidad de medida si es estricto
-                  total += i.quantity;
+                  total += Number(i.quantity);
               });
 
               if (total < cond.value) return false;
@@ -315,7 +314,7 @@ class DiscountService {
       } else if (type === 'FIXED_AMOUNT') {
           // Si es applyPerUnit, se multiplica por la cantidad de items matcheados
           if (action.applyPerUnit) {
-               const totalUnits = matchedItems.reduce((acc, i) => acc + i.quantity, 0);
+               const totalUnits = matchedItems.reduce((acc, i) => acc + Number(i.quantity), 0);
                amount = value * totalUnits;
           } else {
                amount = value;

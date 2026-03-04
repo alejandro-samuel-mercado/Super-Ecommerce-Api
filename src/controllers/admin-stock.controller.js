@@ -85,12 +85,12 @@ class AdminStockController {
 
       for (const sku of skus) {
         const totalReserved = sku.reservations.reduce(
-          (sum, r) => sum + r.quantity,
+          (sum, r) => sum + Number(r.quantity),
           0,
         );
-        const availableStock = sku.stock - totalReserved;
+        const availableStock = Number(sku.stock) - totalReserved;
 
-        if (sku.stock < 0) {
+        if (Number(sku.stock) < 0) {
           issues.push({
             type: "NEGATIVE_STOCK",
             severity: "CRITICAL",
@@ -116,7 +116,7 @@ class AdminStockController {
           });
         }
 
-        if (sku.stock === 0 && totalReserved > 0) {
+        if (Number(sku.stock) === 0 && totalReserved > 0) {
           issues.push({
             type: "ZERO_STOCK_WITH_RESERVATIONS",
             severity: "MEDIUM",

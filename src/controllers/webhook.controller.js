@@ -10,7 +10,7 @@ class WebhookController {
         const { gatewaySlug } = req.params;
         
         try {
-            console.log(`[Webhook] Received for ${gatewaySlug}`);
+        
         
             const strategy = await PaymentGatewayFactory.getGatewayBySlug(gatewaySlug);
             

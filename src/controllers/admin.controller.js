@@ -21,7 +21,7 @@ class AdminController {
 
   async getAuditLogs(req, res, next) {
       try {
-          console.log(' [AUDIT CONTROLLER] Query Params:', req.query);
+          
           const result = await AuditService.getLogs(req.query);
           res.json({ success: true, data: result });
       } catch (error) {
