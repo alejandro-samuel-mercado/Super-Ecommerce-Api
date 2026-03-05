@@ -4,7 +4,7 @@ class ProductController {
 
   async create(req, res, next) {
     try {
-      const product = await ProductService.createProduct(req.body);
+      const product = await ProductService.createProduct({ ...req.body, adminId: req.user.id, ip: req.ip });
       res.status(201).json({ success: true, message: 'Producto creado exitosamente', data: product });
     } catch (error) {
       if (error.code === 'P2002') {
@@ -58,7 +58,7 @@ class ProductController {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const product = await ProductService.updateProduct(id, req.body);
+      const product = await ProductService.updateProduct(id, { ...req.body, adminId: req.user.id, ip: req.ip });
       res.status(200).json({ success: true, message: 'Producto actualizado exitosamente', data: product });
     } catch (error) {
       if (error.message === 'Product not found') {
@@ -71,7 +71,7 @@ class ProductController {
   async delete(req, res, next) {
     try {
       const { id } = req.params;
-      await ProductService.deleteProduct(id);
+      await ProductService.deleteProduct(id, req.user.id, req.ip);
       res.status(200).json({ success: true, message: 'Producto eliminado correctamente' });
     } catch (error) {
       if (error.message.includes('sales history')) {

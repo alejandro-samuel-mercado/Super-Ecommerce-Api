@@ -199,8 +199,7 @@ class CartService {
                             sku: {
                                 include: {
                                     product: true,
-                                    variantOptions: true,
-                                    branchInventory: { take: 1 }
+                                    variantOptions: true
                                 }
                             }
                         }
@@ -210,7 +209,7 @@ class CartService {
 
             if (updatedCart) {
                 for (const cartItem of updatedCart.items) {
-                    const stock = cartItem.sku.branchInventory?.[0]?.stock;
+                    const stock = cartItem.sku.stock;
                     const currentQty = parseFloat(cartItem.quantity.toString());
                     
                     if (stock !== undefined && stock !== null && currentQty > Number(stock)) {
@@ -246,17 +245,34 @@ class CartService {
                     where: { id: skuIdInt },
                     include: { product: true, variantOptions: true }
                 });
-                
                 if (sku) {
                     const qty = parseFloat(item.quantity);
                     if (sku.product?.measurementUnit === 'UNIDAD' && !Number.isInteger(qty)) { continue; }
                     
-                    const price = await PriceService.getSkuPrice(skuIdInt, currencyCode);
-                    items.push({
-                        skuId: skuIdInt,
-                        quantity: parseFloat(item.quantity),
-                        sku: { ...sku, price }
-                    });
+                    const stock = sku.stock;
+                    let finalQty = qty;
+                    
+                    if (stock !== undefined && stock !== null && finalQty > Number(stock)) {
+                        finalQty = Math.max(Number(stock), 0);
+                        if (finalQty !== qty) {
+                            stockAdjustments.push({
+                                skuId: skuIdInt,
+                                productName: sku.product?.name || 'Producto',
+                                requestedQty: qty,
+                                availableStock: Number(stock),
+                                adjustedQty: finalQty
+                            });
+                        }
+                    }
+                    
+                    if (finalQty > 0) {
+                        const price = await PriceService.getSkuPrice(skuIdInt, currencyCode);
+                        items.push({
+                            skuId: skuIdInt,
+                            quantity: finalQty,
+                            sku: { ...sku, price, stock }
+                        });
+                    }
                 }
             }
             return { items, stockAdjustments };

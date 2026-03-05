@@ -277,6 +277,34 @@ class PaymentWebhookService {
       isolationLevel: 'Serializable'
     });
   }
+
+  async handlePendingPayment(paymentId, webhookData) {
+    const saleId = parseInt(webhookData.external_reference);
+    if (!saleId || isNaN(saleId)) return;
+
+    await prisma.paymentTransaction.upsert({
+      where: { paymentId: String(paymentId) },
+      create: {
+        paymentId: String(paymentId),
+        saleId: saleId,
+        status: 'PROCESSING',
+        webhookPayload: webhookData,
+        attempts: 1
+      },
+      update: {
+        webhookPayload: webhookData,
+        attempts: { increment: 1 }
+      }
+    });
+
+    await prisma.sale.update({
+      where: { id: saleId },
+      data: { 
+        mpPaymentId: String(paymentId),
+        updatedAt: new Date()
+      }
+    });
+  }
 }
 
 module.exports = new PaymentWebhookService();

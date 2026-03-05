@@ -2,13 +2,14 @@ const prisma = require('../config/prisma');
 const SaleService = require('../services/sale.service');
 const InvoiceService = require('../services/invoice.service');
 const CurrencyService = require('../services/currency.service');
+const UploadService = require('../services/upload.service');
 
 class SaleController {
 
   async preview(req, res, next){
     try {
       // Calcular totales sin crear la venta
-      const { items, couponCode, deliveryMethod, pointsToUse, paymentType } = req.body;
+      const { items, couponCode, deliveryMethod, pointsToUse, paymentType, manualDiscount } = req.body;
       
      
       if (!items || items.length === 0) {
@@ -27,6 +28,7 @@ class SaleController {
           branchId,
           pointsToUse,
           paymentType,
+          manualDiscount,
           currency,
           customerIpCountry: (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase()
       }, userId);
@@ -75,7 +77,7 @@ class SaleController {
 
       const currency = await CurrencyService.getCurrencyByContext(req);
       const customerIpCountry = (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase();
-      const saleData = { ...req.body, employeeId, pointsToUse: req.body.pointsToUse || 0, branchId, currency, customerIpCountry };
+      const saleData = { ...req.body, employeeId, pointsToUse: req.body.pointsToUse || 0, branchId, currency, customerIpCountry, ip: req.ip };
 
       // VERIFICACIÓN DE IDEMPOTENCIA (Lógica)
       // Evitar órdenes por doble clic. Verificar si el mismo usuario creó el mismo pedido (total) en los últimos 30 segundos.
@@ -227,6 +229,47 @@ class SaleController {
       } catch (error) {
           next(error);
       }
+  }
+
+  async uploadPaymentProof(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { id: userId } = req.user;
+
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No se envió ningún archivo' });
+      }
+
+      const sale = await prisma.sale.findUnique({
+        where: { id: parseInt(id) }
+      });
+
+      if (!sale) {
+        return res.status(404).json({ success: false, message: 'Venta no encontrada' });
+      }
+
+      if (sale.userId !== userId) {
+        return res.status(403).json({ success: false, message: 'No tienes permiso para subir el comprobante de esta venta' });
+      }
+
+      const url = await UploadService.uploadImage(req.file.buffer, 'comprobantes');
+
+      await prisma.sale.update({
+        where: { id: parseInt(id) },
+        data: {
+          paymentProofUrl: url,
+          paymentProofUploadedAt: new Date()
+        }
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Comprobante subido con éxito',
+        data: { url }
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 }
 

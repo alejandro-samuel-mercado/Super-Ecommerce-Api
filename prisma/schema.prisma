@@ -411,6 +411,9 @@ model Sale {
   stockReservations   StockReservation[]
   receipt             SaleReceipt?
   
+  paymentProofUrl        String?
+  paymentProofUploadedAt DateTime?
+  
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }

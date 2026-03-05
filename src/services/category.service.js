@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const AuditService = require('./audit.service');
 
 /**
  * Service para manejar la lógica de negocio de Categorías.
@@ -86,7 +87,7 @@ class CategoryService {
         where: { slug: data.slug } 
     });
     
-    return await prisma.category.create({
+    const category = await prisma.category.create({
       data: {
         name: data.name,
         slug: data.slug, 
@@ -94,6 +95,19 @@ class CategoryService {
         parentId: data.parentId || null
       }
     });
+
+    if (data.adminId) {
+      await AuditService.logAction({
+        adminId: data.adminId,
+        action: 'CREATE_CATEGORY',
+        entityType: 'CATEGORY',
+        entityId: category.id,
+        changes: data,
+        ip: data.ip
+      });
+    }
+
+    return category;
   }
 
   /**
@@ -103,8 +117,12 @@ class CategoryService {
    * @returns {Promise<Object>}
    */
   async updateCategory(id, data) {
-    return await prisma.category.update({
-      where: { id: parseInt(id) },
+    const catId = parseInt(id);
+    const existing = await prisma.category.findUnique({ where: { id: catId } });
+    if (!existing) throw new Error('Category not found');
+
+    const category = await prisma.category.update({
+      where: { id: catId },
       data: {
         name: data.name,
         slug: data.slug,
@@ -112,6 +130,35 @@ class CategoryService {
         parentId: data.parentId !== undefined ? data.parentId : undefined
       }
     });
+
+    if (data.adminId) {
+      const changes = {};
+      const updateData = {
+        name: data.name,
+        slug: data.slug,
+        description: data.description,
+        parentId: data.parentId
+      };
+
+      Object.keys(updateData).forEach(k => {
+        if (updateData[k] !== undefined && existing[k] !== updateData[k]) {
+          changes[k] = { prev: existing[k], new: updateData[k] };
+        }
+      });
+
+      if (Object.keys(changes).length > 0) {
+        await AuditService.logAction({
+          adminId: data.adminId,
+          action: 'UPDATE_CATEGORY',
+          entityType: 'CATEGORY',
+          entityId: catId,
+          changes,
+          ip: data.ip
+        });
+      }
+    }
+
+    return category;
   }
 
   /**
@@ -131,9 +178,22 @@ class CategoryService {
         throw new Error('No se puede eliminar una categoría que tiene productos asociados.');
     }
 
-    return await prisma.category.delete({
+    const result = await prisma.category.delete({
       where: { id: parseInt(id) }
     });
+
+    if (adminId) {
+      await AuditService.logAction({
+        adminId,
+        action: 'DELETE_CATEGORY',
+        entityType: 'CATEGORY',
+        entityId: parseInt(id),
+        changes: { name: category.name },
+        ip
+      });
+    }
+
+    return result;
   }
 }
 

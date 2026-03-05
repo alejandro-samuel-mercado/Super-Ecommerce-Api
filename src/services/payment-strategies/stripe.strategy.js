@@ -28,27 +28,56 @@ class StripeStrategy extends PaymentStrategy {
         const isForeignCurrency = saleCurrency !== (this.config?.currencyCode || saleCurrency);
         const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 
-        const convertToTarget = (amount) => {
-            if (!isForeignCurrency) return Number(amount);
-            return Number(amount) / exchangeRate;
-        };
-
         const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency)
             ? Number(sale.totalInBaseCurrency)
-            : convertToTarget(sale.total);
+            : (isForeignCurrency ? Number(sale.total) / exchangeRate : Number(sale.total));
 
-        const lineItems = [
-            {
+        const convertToTarget = (amount) => {
+            if (!isForeignCurrency) return Number(amount);
+            return (Number(amount) / Number(sale.total)) * targetTotal;
+        };
+
+        const lineItems = [];
+
+        const itemsAndDiscounts = Number(sale.subtotal) - Number(sale.discount) - Number(sale.pointsDiscount || 0);
+        lineItems.push({
+            price_data: {
+                currency: targetCurrency,
+                product_data: { name: `Subtotal (Orden #${sale.uuid || sale.id})` },
+                unit_amount: Math.round(convertToTarget(itemsAndDiscounts) * 100),
+            },
+            quantity: 1,
+        });
+
+        if (Number(sale.shippingCost) > 0) {
+            lineItems.push({
                 price_data: {
                     currency: targetCurrency,
-                    product_data: {
-                        name: `Orden #${sale.uuid || sale.id}`,
-                    },
-                    unit_amount: Math.round(targetTotal * 100),
+                    product_data: { name: 'Costo de Envío' },
+                    unit_amount: Math.round(convertToTarget(sale.shippingCost) * 100),
                 },
                 quantity: 1,
-            }
-        ];
+            });
+        }
+
+        if (Number(sale.taxAmount) > 0) {
+            lineItems.push({
+                price_data: {
+                    currency: targetCurrency,
+                    product_data: { name: 'Impuestos (IVA)' },
+                    unit_amount: Math.round(convertToTarget(sale.taxAmount) * 100),
+                },
+                quantity: 1,
+            });
+        }
+
+        const sumCents = lineItems.reduce((acc, item) => acc + item.price_data.unit_amount, 0);
+        const expectedCents = Math.round(targetTotal * 100);
+        const diff = expectedCents - sumCents;
+        
+        if (diff !== 0 && lineItems.length > 0) {
+            lineItems[0].price_data.unit_amount += diff;
+        }
 
         const session = await this.client.checkout.sessions.create({
             payment_method_types: ['card'],

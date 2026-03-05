@@ -1,5 +1,5 @@
-const prisma = require('../config/prisma');
 const AuthUtils = require('../utils/auth.utils');
+const AuditService = require('./audit.service');
 
 class UserService {
 
@@ -84,11 +84,36 @@ class UserService {
         updateData.password = await AuthUtils.hashPassword(data.password);
     }
 
-    return await prisma.user.update({
+    const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+    if (!user) throw new Error('User not found');
+
+    const updatedUser = await prisma.user.update({
       where: { id: parseInt(userId) },
       data: updateData,
       include: { role: true }
     });
+
+    if (data.adminId) {
+      const changes = {};
+      Object.keys(updateData).forEach(k => {
+        if (user[k] !== updateData[k]) {
+          changes[k] = { prev: user[k], new: updateData[k] };
+        }
+      });
+
+      if (Object.keys(changes).length > 0) {
+        await AuditService.logAction({
+          adminId: data.adminId,
+          action: 'UPDATE_USER_PROFILE',
+          entityType: 'USER',
+          entityId: userId,
+          changes,
+          ip: data.ip
+        });
+      }
+    }
+
+    return updatedUser;
   }
 
   // --- ADMINISTRACIÓN ---
@@ -116,8 +141,8 @@ class UserService {
     const userId = parseInt(id);
     const salesCount = await prisma.sale.count({ where: { userId } });
     
-    if (salesCount > 0) {
-        return await prisma.user.update({
+    const result = salesCount > 0 
+        ? await prisma.user.update({
             where: { id: userId },
             data: { 
                 status: 'DELETED',
@@ -132,12 +157,23 @@ class UserService {
                 country: null,
                 zipCode: null
             }
+        })
+        : await prisma.user.delete({
+            where: { id: userId }
+        });
+
+    if (adminId) {
+        await AuditService.logAction({
+            adminId,
+            action: 'DELETE_USER',
+            entityType: 'USER',
+            entityId: userId,
+            changes: { status: 'DELETED' },
+            ip
         });
     }
-    
-    return await prisma.user.delete({
-        where: { id: userId }
-    });
+
+    return result;
   }
 
   // --- FAVORITOS ---

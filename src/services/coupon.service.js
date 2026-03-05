@@ -3,8 +3,13 @@ const prisma = require('../config/prisma');
 class CouponService {
 
   async create(data) {
-    if (data.type === 'PERCENTAGE' && !data.maxDiscount) {
-        throw new Error('Los cupones porcentuales deben tener un tope máximo de reintegro (maxDiscount)');
+    if (data.type === 'PERCENTAGE') {
+        if (!data.maxDiscount) {
+            throw new Error('Los cupones porcentuales deben tener un tope máximo de reintegro (maxDiscount)');
+        }
+        if (parseFloat(data.value) <= 0 || parseFloat(data.value) > 100) {
+            throw new Error('El valor del cupón porcentual debe estar entre 0 y 100.');
+        }
     }
     
     const existing = await prisma.coupon.findUnique({ where: { code: data.code } });
@@ -85,8 +90,13 @@ class CouponService {
   }
 
   async update(id, data) {
-      if (data.type === 'PERCENTAGE' && !data.maxDiscount) {
-          throw new Error('Los cupones porcentuales deben tener un tope máximo de reintegro (maxDiscount)');
+      if (data.type === 'PERCENTAGE') {
+          if (!data.maxDiscount) {
+              throw new Error('Los cupones porcentuales deben tener un tope máximo de reintegro (maxDiscount)');
+          }
+          if (data.value !== undefined && (parseFloat(data.value) <= 0 || parseFloat(data.value) > 100)) {
+              throw new Error('El valor del cupón porcentual debe estar entre 0 y 100.');
+          }
       }
       if (data.code) {
           const existing = await prisma.coupon.findFirst({

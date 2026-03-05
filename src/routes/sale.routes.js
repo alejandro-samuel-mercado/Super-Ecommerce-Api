@@ -3,6 +3,9 @@ const { body } = require('express-validator');
 const SaleController = require('../controllers/sale.controller');
 const { protect, restrictTo, optionalProtect } = require('../middlewares/auth.middleware');
 const { validateRequest } = require('../middlewares/validate.middleware');
+const multer = require('multer');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = Router();
 
@@ -80,5 +83,12 @@ router.put('/:id', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), SaleControl
  * @access Admin/Employee
  */
 router.post('/:id/refund', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), SaleController.refund);
+
+/**
+ * @route POST /api/sales/:id/payment-proof
+ * @desc Subir comprobante de pago
+ * @access Privado (Dueño de la venta)
+ */
+router.post('/:id/payment-proof', upload.single('image'), SaleController.uploadPaymentProof);
 
 module.exports = router;

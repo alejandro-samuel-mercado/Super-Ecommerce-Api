@@ -61,7 +61,7 @@ class UserController {
                return res.status(403).json({ success: false, message: 'Como empleado solo puedes registrar clientes' });
            }
 
-           const newUser = await UserService.register(req.body, true);
+           const newUser = await UserService.register({ ...req.body, adminId: req.user.id, ip: req.ip }, true);
            const { password, ...safeUser } = newUser;
            res.status(201).json({ success: true, data: safeUser });
       } catch (error) {
@@ -103,7 +103,7 @@ class UserController {
               }
           }
 
-          const updated = await UserService.updateProfile(id, req.body);
+           const updated = await UserService.updateProfile(id, { ...req.body, adminId: req.user.id, ip: req.ip });
           const { password, ...safeUser } = updated;
           res.status(200).json({ success: true, data: safeUser });
       } catch (error) {
@@ -134,7 +134,7 @@ class UserController {
               return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este perfil' });
           }
 
-          await UserService.deleteUser(id);
+           await UserService.deleteUser(id, req.user.id, req.ip);
           res.status(200).json({ success: true, message: 'Usuario eliminado correctamente' });
       } catch (error) {
           next(error);
@@ -162,7 +162,6 @@ class UserController {
 
   async addAddress(req, res, next) {
       try {
-
            const { street, city, state, zip, phone } = req.body;
            
            await UserService.updateProfile(req.user.id, {
@@ -181,7 +180,6 @@ class UserController {
 
   async deleteAddress(req, res, next) {
       try {
-          // Limpiar campos de dirección
           await UserService.updateProfile(req.user.id, {
                address: null,
                city: null,

@@ -1,6 +1,7 @@
 const prisma = require('../config/prisma');
 const PriceService = require('./price.service');
 const DiscountService = require('./discount.service');
+const AuditService = require('./audit.service');
 
 class ProductService {
 
@@ -82,6 +83,17 @@ async createProduct(data) {
         allowFractional: allowFractional || false
       }
     });
+
+    if (data.adminId) {
+      await AuditService.logAction({
+        adminId: data.adminId,
+        action: 'CREATE_PRODUCT',
+        entityType: 'PRODUCT',
+        entityId: product.id,
+        changes: data,
+        ip: data.ip
+      });
+    }
 
     // 2. Obtener todas las sucursales activas
     const branches = await tx.branch.findMany({
@@ -723,7 +735,7 @@ async createProduct(data) {
 
     // 2. PRODUCTOS RELACIONADOS (Misma categoría, excluyendo el actual)
     const related = await prisma.product.findMany({
-      where: { 
+      where: {
         categoryId: product.categoryId,
         id: { not: prodIdNum },
         isActive: true
@@ -805,7 +817,7 @@ async createProduct(data) {
     // Helper para mapear inventario a nivel de SKU y Ratings
     const processResult = async (list) => {
       if (list.length === 0) return [];
-      
+
       let processed = list;
 
       // Inyectar precios multimoneda
@@ -813,7 +825,7 @@ async createProduct(data) {
         const productIds = processed.map(p => p.id);
         const multiPrices = await PriceService.getMultipleProductPrices(productIds, currency);
         const priceMap = new Map(multiPrices.map(mp => [mp.productId, mp.price]));
-        
+
         processed = processed.map(p => ({
           ...p,
           price: priceMap.get(p.id) || p.basePrice,
@@ -830,8 +842,8 @@ async createProduct(data) {
             price: inv?.price ?? sku.price
           };
         });
-        return { 
-          ...p, 
+        return {
+          ...p,
           skus: mappedSkus,
           averageRating: 0,
           ratingCount: p._count.comments

@@ -1,5 +1,4 @@
 const CategoryService = require('../services/category.service');
-const AuditService = require('../services/audit.service');
 
 
 /**
@@ -71,17 +70,7 @@ class CategoryController {
         return res.status(400).json({ success: false, message: 'El name es obligatorio' });
       }
 
-      const newCategory = await CategoryService.createCategory({ name, description, slug, parentId });
-      
-      // Audit
-      await AuditService.logAction({
-          adminId: req.user.id,
-          action: 'CREATE_CATEGORY',
-          entityType: 'CATEGORY',
-          entityId: newCategory.id,
-          changes: { name, description, slug },
-          ip: req.ip
-      });
+      const newCategory = await CategoryService.createCategory({ name, description, slug, parentId, adminId: req.user.id, ip: req.ip });
 
       res.status(201).json({
 
@@ -105,17 +94,7 @@ class CategoryController {
     try {
       const { id } = req.params;
       const { name, description, slug, parentId } = req.body;
-      const updatedCategory = await CategoryService.updateCategory(id, { name, description, slug, parentId });
-      
-      // Audit
-      await AuditService.logAction({
-          adminId: req.user.id,
-          action: 'UPDATE_CATEGORY',
-          entityType: 'CATEGORY',
-          entityId: id,
-          changes: { name, description, slug, parentId },
-          ip: req.ip
-      });
+      const updatedCategory = await CategoryService.updateCategory(id, { name, description, slug, parentId, adminId: req.user.id, ip: req.ip });
 
       res.status(200).json({
 
@@ -137,16 +116,7 @@ class CategoryController {
   async delete(req, res, next) {
     try {
       const { id } = req.params;
-      await CategoryService.deleteCategory(id);
-      
-      // Audit
-      await AuditService.logAction({
-          adminId: req.user.id,
-          action: 'DELETE_CATEGORY',
-          entityType: 'CATEGORY',
-          entityId: id,
-          ip: req.ip
-      });
+      await CategoryService.deleteCategory(id, req.user.id, req.ip);
 
       res.status(200).json({
 

@@ -73,8 +73,30 @@ class NotificationService {
       return `<h1>¡Bienvenido/a, ${name}!</h1><p>Gracias por registrarte en nuestra plataforma.</p>`;
   }
 
-  getOrderConfirmationTemplate(orderId, total) {
-      return `<h1>¡Pedido Recibido!</h1><p>Tu pedido #${orderId} por el monto de $${total} ha sido creado. Realiza el pago para procesar el envío.</p>`;
+  getOrderConfirmationTemplate(orderId, total, paymentType = 'MERCADO_PAGO') {
+      let instructions = '';
+      if (paymentType === 'MERCADO_PAGO' || paymentType === 'TRANSFER') {
+          instructions = `
+            <div style="margin-top: 20px; padding: 15px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fcd34d;">
+                <p style="margin: 0; font-weight: bold; color: #92400e;">⚠️ Instrucciones de Pago:</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #b45309;">
+                    Si elegiste Pago Fácil, Rapipago o Transferencia, recuerda que debes enviar el comprobante de pago para que procesemos tu envío.
+                    <br><br>
+                    <strong>WhatsApp:</strong> +54 9 11 1234-5678<br>
+                    <strong>Email:</strong> pagos@tienda.com
+                </p>
+            </div>
+          `;
+      }
+
+      return `
+        <div style="font-family: sans-serif; color: #374151;">
+            <h1>¡Pedido Recibido!</h1>
+            <p>Tu pedido <strong>#${orderId}</strong> por el monto de <strong>$${total}</strong> ha sido creado.</p>
+            ${instructions}
+            <p style="margin-top: 20px;">Una vez acreditado el pago, procesaremos tu envío a la brevedad.</p>
+        </div>
+      `;
   }
 }
 

@@ -29,6 +29,11 @@ class WebhookController {
                  }
 
                  await PaymentWebhookService.processPaymentWebhook(paymentId, raw);
+            } else if (status === 'pending' || status === 'in_process') {
+                 if (!raw.external_reference && externalReference) {
+                     raw.external_reference = externalReference;
+                 }
+                 await PaymentWebhookService.handlePendingPayment(paymentId, raw);
             } else if (status === 'rejected' || status === 'cancelled') {
                  if (externalReference) {
                     await PaymentWebhookService.handlePaymentFailure(paymentId, parseInt(externalReference));

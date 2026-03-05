@@ -87,6 +87,10 @@ class PromoController {
             validFrom, validUntil
           } = req.body;
 
+          if (type === 'PERCENTAGE' && (parseFloat(value) <= 0 || parseFloat(value) > 100)) {
+              return res.status(400).json({ success: false, message: 'El valor del descuento porcentual debe estar entre 0 y 100.' });
+          }
+
           const discount = await prisma.discount.create({
               data: {
                 name,
@@ -161,6 +165,10 @@ class PromoController {
             mode, stackable, active, priority, eventId,
             validFrom, validUntil
           } = req.body;
+
+          if (type === 'PERCENTAGE' && (parseFloat(value) <= 0 || parseFloat(value) > 100)) {
+              return res.status(400).json({ success: false, message: 'El valor del descuento porcentual debe estar entre 0 y 100.' });
+          }
 
           const discount = await prisma.discount.update({
               where: { id: parseInt(id) },

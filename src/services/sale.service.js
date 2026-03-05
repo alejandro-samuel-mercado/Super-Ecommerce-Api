@@ -7,6 +7,7 @@ const DiscountService = require('./discount.service');
 const PaymentAdapter = require('../adapters/payment.adapter');
 const InAppNotificationService = require('./in-app-notification.service');
 const EventService = require('./event.service');
+const AuditService = require('./audit.service');
 
 class SaleService {
 
@@ -398,7 +399,7 @@ class SaleService {
             data: {
             userId,
             subtotal: subtotal,
-            discount: totalDiscount + pointsDiscount,
+            discount: totalDiscount,
             taxAmount: tax,
             total: finalTotal,
             branchId: activeBranchId,
@@ -432,6 +433,21 @@ class SaleService {
       }
 
       // Gestión de Stock
+      if (employeeId) {
+          await AuditService.logAction({
+              adminId: employeeId,
+              action: 'CREATE_SALE_POS',
+              entityType: 'SALE',
+              entityId: sale.id,
+              changes: { 
+                  total: sale.total, 
+                  paymentType: sale.paymentType, 
+                  itemsCount: items.length 
+              },
+              ip: saleData.ip
+          });
+      }
+
       if (requiresOnlinePayment) {
       } else {
         // Venta POS / Instantánea: Deducir stock y gestionar reservas preventivas si es necesario
@@ -532,12 +548,17 @@ class SaleService {
            }
        });
 
-       // 7. Deducir puntos inmediatamente (Blindaje contra sobregasto)
+       // 7. Deducir puntos inmediatamente (Blindaje contra sobregasto / Doble Gasto)
        if (pointsToRedeem > 0) {
-           await tx.user.update({
-               where: { id: userIdInt },
+           const updateResult = await tx.user.updateMany({
+               where: { id: userIdInt, points: { gte: pointsToRedeem } },
                data: { points: { decrement: pointsToRedeem } }
            });
+           
+           if (updateResult.count === 0) {
+               throw new Error(`Los puntos solicitados (${pointsToRedeem}) superan tu saldo disponible actual dentro de la transacción. Operación cancelada.`);
+           }
+
            await tx.pointsHistory.create({
                data: { 
                    userId: userIdInt, 
@@ -582,6 +603,18 @@ class SaleService {
                  throw new Error(`Venta creada (#${ticketNumber}) pero falló inicio de pago: ${error.message}`);
              }
         }
+
+        // Enviar mail de confirmación de pedido (Pendiente de pago)
+        setImmediate(async () => {
+            try {
+                const NotificationService = require('./notification.service');
+                const emailSubject = `Confirmación de Pedido #${sale.id} - Pendiente de Pago`;
+                const emailHtml = NotificationService.getOrderConfirmationTemplate(sale.id, sale.total, sale.paymentType);
+                await NotificationService.sendEmail(user.email, emailSubject, emailHtml);
+            } catch (err) {
+                console.error('[SaleService] Error sending order confirmation email:', err);
+            }
+        });
     } else {
         // Venta ya pagada (POS): Procesar puntos y cupones inmediatamente
         setImmediate(async () => {
@@ -598,7 +631,7 @@ class SaleService {
   }
 
   async previewSale(saleData, userId) {
-      const { items, paymentType = 'CARD', couponCode, deliveryMethod: inputDeliveryMethod, deliveryType, branchId, currency: requestedCurrency } = saleData;
+      const { items, paymentType = 'CARD', couponCode, manualDiscount = 0, deliveryMethod: inputDeliveryMethod, deliveryType, branchId, currency: requestedCurrency } = saleData;
 
       const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
       const activeCurrencyCode = requestedCurrency || (storeConfig?.baseCurrency || 'USD');
@@ -738,12 +771,20 @@ class SaleService {
       const previewEvent = await EventService.getActiveEvent();
       const previewTaxesEnabled = previewEvent ? (previewEvent.taxesEnabled !== false) : true;
       
+      const manualDiscountAmount = parseFloat(manualDiscount) || 0;
+      let totalDiscount = totalDiscountAmount + discount + manualDiscountAmount;
+      
+      if (totalDiscount + pointsDiscount > subtotal) {
+          totalDiscount = Math.min(totalDiscount, subtotal);
+          pointsDiscount = Math.max(0, subtotal - totalDiscount);
+      }
+      
       if (isLocal && previewTaxesEnabled && storeConfig && Number(storeConfig.taxRate) > 0) {
-          tax = (subtotal - totalDiscountAmount - discount - pointsDiscount) * (Number(storeConfig.taxRate) / 100);
+          tax = (subtotal - totalDiscount - pointsDiscount) * (Number(storeConfig.taxRate) / 100);
       }
       
       tax = parseFloat(tax.toFixed(2));
-      const total = subtotal - totalDiscountAmount - discount + shipping + tax - pointsDiscount;
+      const total = subtotal - totalDiscount + shipping + tax - pointsDiscount;
 
       return { subtotal, discount: totalDiscountAmount + discount, pointsDiscount, shipping, tax, total: total < 0 ? 0 : total, hasStockError, stockIssues, items: enrichedItems, discountDetails: couponData, appliedDiscounts, currencyCode: activeCurrencyCode };
   }
@@ -1213,11 +1254,27 @@ class SaleService {
    */
   async cleanupAbandonedSales() {
       const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+      const fortyEightHoursAgo = new Date(Date.now() - 48 * 60 * 60 * 1000);
       
       const abandonedSales = await prisma.sale.findMany({
           where: {
               paymentStatus: 'PENDING',
-              createdAt: { lt: oneHourAgo }
+              OR: [
+                  {
+                      createdAt: { lt: oneHourAgo },
+                      paymentTransactions: {
+                          none: {}
+                      }
+                  },
+                  {
+                      createdAt: { lt: fortyEightHoursAgo },
+                      paymentTransactions: {
+                          some: {
+                              status: 'PROCESSING'
+                          }
+                      }
+                  }
+              ]
           },
           include: {
               stockReservations: { where: { released: false } }

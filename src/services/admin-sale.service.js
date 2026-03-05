@@ -210,9 +210,6 @@ class AdminSaleService {
   }
 
   async updatePaymentStatus(adminId, saleId, newStatus, ip) {
-      if (newStatus === 'PAID') {
-          throw new Error('No se puede confirmar un pago manualmente. Los pagos solo se confirman desde el POS o la pasarela de pagos.');
-      }
 
       const sale = await prisma.sale.findUnique({
           where: { id: parseInt(saleId) },
@@ -221,8 +218,15 @@ class AdminSaleService {
       if (!sale) throw new Error('Venta no encontrada');
 
       const wasPending = sale.paymentStatus !== 'PAID';
-
+      
       if (wasPending && newStatus === 'PAID') {
+          const hasMPOIntent = !!sale.mpPaymentId;
+          const hasManualProof = !!sale.paymentProofUrl;
+          
+          if (!hasMPOIntent && !hasManualProof) {
+              throw new Error('No se puede marcar como PAGADO una venta que no tiene un comprobante adjunto o un ticket de pago generado.');
+          }
+
           await prisma.$transaction(async (tx) => {
               for (const reservation of (sale.stockReservations || [])) {
                   if (reservation.released) continue;
