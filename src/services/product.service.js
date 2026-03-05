@@ -669,7 +669,6 @@ async createProduct(data) {
    */
   async deleteProduct(id) {
     return await prisma.$transaction(async (tx) => {
-       // 1. Verificar si existen ventas en algún SKU
        const skusConVentas = await tx.sKU.count({
           where: {
             productId: parseInt(id),
@@ -680,6 +679,16 @@ async createProduct(data) {
        if (skusConVentas > 0) {
          throw new Error('No se puede eliminar el producto porque tiene historial de ventas asociadas.');
        }
+
+       const reservasPendientes = await tx.stockReservation.count({
+           where: { sku: { productId: parseInt(id) }, released: false, expiresAt: { gt: new Date() } }
+       });
+       if (reservasPendientes > 0) throw new Error('No se puede eliminar el producto porque tiene reservas activas.');
+
+       const transferenciasActivas = await tx.stockTransferItem.count({
+           where: { sku: { productId: parseInt(id) }, transfer: { status: { in: ['PENDING', 'IN_TRANSIT'] } } }
+       });
+       if (transferenciasActivas > 0) throw new Error('No se puede eliminar el producto porque está en una transferencia.');
 
        // 2. Si no hay ventas, eliminar (Cascade se encarga de SKUs y Variantes)
        // Pero verificamos existencia primero

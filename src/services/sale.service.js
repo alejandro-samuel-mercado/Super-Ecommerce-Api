@@ -13,17 +13,20 @@ class SaleService {
   /**
    * Verifica si se creó una venta similar recientemente (Idempotencia)
    */
-  async findRecentDuplicate(userId, items) {
+  async findRecentDuplicate(userId, items, currencyCode) {
       if (!userId) return null;
       
       const thirtySecondsAgo = new Date(Date.now() - 30 * 1000);
       
+      const where = {
+          userId: parseInt(userId),
+          createdAt: { gt: thirtySecondsAgo },
+          paymentStatus: 'PENDING'
+      };
+      if (currencyCode) where.currencyCode = currencyCode;
+      
       const recentSales = await prisma.sale.findMany({
-          where: {
-              userId: parseInt(userId),
-              createdAt: { gt: thirtySecondsAgo },
-              paymentStatus: 'PENDING' 
-          },
+          where,
           include: { items: true }
       });
 
@@ -100,13 +103,24 @@ class SaleService {
         let totalPointsEarned = 0; 
         const saleItemsData = [];
         const enrichedItems = []; 
-        const stockValidations = []; 
+        const stockValidations = [];
+        const storeConfigCached = await tx.storeConfig.findFirst({ where: { id: 1 } }); 
 
         items.sort((a, b) => parseInt(a.skuId) - parseInt(b.skuId));
 
         for (const item of items) {
           const itemQty = parseFloat((item.quantity || item.qty || 0).toString());
           if (!itemQty || itemQty <= 0) throw new Error('Falta la cantidad del item o es inválida');
+          
+          if (itemQty % 1 !== 0) {
+                const skuCheck = await tx.sKU.findUnique({
+                    where: { id: parseInt(item.skuId) },
+                    include: { product: true }
+                });
+                if (skuCheck?.product?.measurementUnit === 'UNIDAD') {
+                    throw new Error(`Cantidad fraccionaria no permitida para venta por unidad (${skuCheck.product.name})`);
+                }
+          }
           
           const skuIdInt = parseInt(item.skuId);
           
@@ -157,8 +171,7 @@ class SaleService {
         });
         
         const reservedQty = Number(reservedQtyResult._sum.quantity || 0);
-        const storeConfig = await tx.storeConfig.findFirst({ where: { id: 1 } });
-        const safetyBuffer = (!isPOS && storeConfig) ? Number(storeConfig.webSafetyStock) : 0;
+        const safetyBuffer = (!isPOS && storeConfigCached) ? Number(storeConfigCached.webSafetyStock) : 0;
         
         const effectiveAvailableStock = Number(inventory.stock) - reservedQty - safetyBuffer;
         
@@ -175,12 +188,35 @@ class SaleService {
         subtotal += itemTotal;
 
         const activeEvent = await EventService.getActiveEvent();
-        const pointsEnabled = activeEvent ? activeEvent.pointsEnabled : (storeConfig?.enablePoints ?? true);
+        const pointsEnabled = activeEvent ? activeEvent.pointsEnabled : (storeConfigCached?.enablePoints ?? true);
 
         // Puntos ganados por este item
         if (pointsEnabled) {
             const pointsForItem = (product.pointsReward || 0) * itemQty;
             totalPointsEarned += pointsForItem;
+        }
+
+        let unitCostBase = 0;
+        if (inventory.costPrice && Number(inventory.costPrice) > 0) {
+             unitCostBase = Number(inventory.costPrice);
+        } else {
+             const supplierSkus = await tx.$queryRaw`SELECT "basePurchasePrice", "currency" FROM "SupplierSKU" WHERE "skuId" = ${skuIdInt} ORDER BY "updatedAt" DESC LIMIT 1`;
+             if (supplierSkus.length > 0) {
+                 const sSku = supplierSkus[0];
+                 const rawCost = Number(sSku.basePurchasePrice);
+                 const sCurrency = sSku.currency || 'ARS';
+                 if (sCurrency === baseCurrencyCode) {
+                     unitCostBase = rawCost;
+                 } else {
+                     const currencyRow = await tx.$queryRaw`SELECT "exchangeRateToBase" FROM "Currency" WHERE "code" = ${sCurrency}`;
+                     if (currencyRow.length > 0) {
+                         const rate = Number(currencyRow[0].exchangeRateToBase);
+                         unitCostBase = rate > 0 ? rawCost / rate : rawCost;
+                     } else {
+                         unitCostBase = rawCost;
+                     }
+                 }
+             }
         }
 
         saleItemsData.push({
@@ -190,6 +226,7 @@ class SaleService {
           quantity: itemQty,
           subtotal: itemTotal,
           subtotalInBaseCurrency: itemTotal / exchangeRateAtPurchase,
+          unitCostBase: unitCostBase,
           skuId: sku.id,
           measurementUnit: product.measurementUnit
         });
@@ -213,10 +250,9 @@ class SaleService {
       }
 
       
-      // 2. Calcular Envío
       let shippingCost = 0;
       
-      const storeConfig = await tx.storeConfig.findFirst({ where: { id: 1 } });
+      const storeConfig = storeConfigCached;
       
       if (inputShippingCost !== undefined && inputShippingCost !== null) {
            shippingCost = parseFloat(inputShippingCost);
@@ -233,13 +269,16 @@ class SaleService {
                   
                    if (shippingCost <= 0) {
                        shippingCost = await ShippingService.getDefaultCost();
-                        const currency = await tx.currency.findUnique({ where: { code: activeCurrencyCode } });
-                        const rate = currency ? parseFloat(currency.exchangeRateToBase.toString()) : 1;
-                        shippingCost = shippingCost * rate;
+                       if (activeCurrencyCode !== baseCurrencyCode) {
+                           shippingCost = shippingCost * exchangeRateAtPurchase;
+                       }
                    }
                } catch (e) {
                    console.error('Error calculating shipping, falling back to default:', e.message);
                    shippingCost = await ShippingService.getDefaultCost();
+                    if (activeCurrencyCode !== baseCurrencyCode) {
+                        shippingCost = shippingCost * exchangeRateAtPurchase;
+                    }
                }
            }
       }
@@ -296,7 +335,7 @@ class SaleService {
 
       // 5. Total Final
       let pointsDiscount = 0;
-      const pointsToRedeem = Math.max(0, parseInt(pointsToUse) || 0);
+      let pointsToRedeem = Math.max(0, parseInt(pointsToUse) || 0);
       
       if (pointsToRedeem > 0) {
           if (!storeConfig || !storeConfig.enablePointsRedemption) {
@@ -316,6 +355,16 @@ class SaleService {
       if (totalDiscount + pointsDiscount > subtotal) {
           totalDiscount = Math.min(totalDiscount, subtotal);
           pointsDiscount = Math.max(0, subtotal - totalDiscount);
+          
+          if (pointsToRedeem > 0 && storeConfig) {
+              const moneyPerPointBase = storeConfig.moneyPerPoint ? parseFloat(storeConfig.moneyPerPoint.toString()) : 0;
+              const moneyPerPoint = moneyPerPointBase * exchangeRateAtPurchase;
+              if (moneyPerPoint > 0) {
+                  pointsToRedeem = Math.ceil(pointsDiscount / moneyPerPoint);
+              } else {
+                  pointsToRedeem = 0;
+              }
+          }
       }
       
       totalDiscount = parseFloat(totalDiscount.toFixed(2));
@@ -340,6 +389,11 @@ class SaleService {
 
       let sale;
       try {
+        if (couponData && couponCode) {
+            const CouponService = require('./coupon.service');
+            await CouponService.incrementCouponUsage(couponData.id, tx);
+        }
+        
         sale = await tx.sale.create({
             data: {
             userId,
@@ -379,18 +433,6 @@ class SaleService {
 
       // Gestión de Stock
       if (requiresOnlinePayment) {
-        const expiresAt = new Date(Date.now() + reservationTTL * 60 * 1000);
-        for (const validation of stockValidations) {
-          await tx.stockReservation.create({
-            data: {
-              skuId: validation.skuId,
-              branchInventoryId: validation.branchInventoryId,
-              saleId: sale.id,
-              quantity: validation.quantity,
-              expiresAt: expiresAt
-            }
-          });
-        }
       } else {
         // Venta POS / Instantánea: Deducir stock y gestionar reservas preventivas si es necesario
         for (const validation of stockValidations) {
@@ -517,7 +559,7 @@ class SaleService {
     let checkoutUrl = '';
 
      // Notificar a Admins sobre nueva venta en tiempo real
-     const localeMap = { 'ARS': 'es-AR', 'MXN': 'es-MX', 'USD': 'en-US', 'EUR': 'es-ES' };
+     const localeMap = { 'ARS': 'es-AR', 'MXN': 'es-MX', 'USD': 'en-US', 'EUR': 'es-ES', 'BRL': 'pt-BR', 'CLP': 'es-CL', 'COP': 'es-CO', 'UYU': 'es-UY', 'PEN': 'es-PE', 'BOB': 'es-BO', 'PYG': 'es-PY', 'VES': 'es-VE', 'CRC': 'es-CR', 'DOP': 'es-DO', 'GTQ': 'es-GT', 'HNL': 'es-HN', 'NIO': 'es-NI', 'PAB': 'es-PA', 'CAD': 'en-CA', 'GBP': 'en-GB', 'CHF': 'de-CH' };
      const currentLocale = localeMap[activeCurrencyCode] || 'es-AR';
 
      InAppNotificationService.emitAdminNotification(
@@ -529,7 +571,7 @@ class SaleService {
 
     if (sale.paymentStatus !== 'PAID') {
         if (['CASH', 'TRANSFER', 'DEBIT'].includes(sale.paymentType)) {
-             checkoutUrl = `/checkout/success?saleId=${sale.id}`;
+             checkoutUrl = `/checkout/pending?saleId=${sale.id}`;
         } else {
              try {
               
@@ -697,7 +739,7 @@ class SaleService {
       const previewTaxesEnabled = previewEvent ? (previewEvent.taxesEnabled !== false) : true;
       
       if (isLocal && previewTaxesEnabled && storeConfig && Number(storeConfig.taxRate) > 0) {
-          tax = (subtotal - totalDiscountAmount - discount) * (Number(storeConfig.taxRate) / 100);
+          tax = (subtotal - totalDiscountAmount - discount - pointsDiscount) * (Number(storeConfig.taxRate) / 100);
       }
       
       tax = parseFloat(tax.toFixed(2));
@@ -726,9 +768,13 @@ class SaleService {
   }
 
   async getAllSales(params = {}) {
-      const { branchId, paymentStatus, isAbandoned } = params;
+      const { branchId, branchIds, paymentStatus, isAbandoned } = params;
       const where = {};
-      if (branchId) where.branchId = parseInt(branchId);
+      if (branchId) {
+          where.branchId = parseInt(branchId);
+      } else if (branchIds && branchIds.length > 0) {
+          where.branchId = { in: branchIds.map(id => parseInt(id)) };
+      }
       
       if (paymentStatus) {
           where.paymentStatus = paymentStatus;
@@ -803,30 +849,7 @@ class SaleService {
 
       const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
       
-      if (sale.couponId) {
-          const CouponService = require('./coupon.service');
-          try {
-              const alreadyIncremented = await prisma.coupon.findUnique({ where: { id: sale.couponId } });
-              const couponUsageLog = await prisma.pointsHistory.findFirst({
-                  where: { reason: `Cupón incrementado - Compra #${sale.id}` }
-              });
-
-              if (!couponUsageLog) {
-                  await CouponService.incrementCouponUsage(sale.couponId);
-                  await prisma.pointsHistory.create({
-                      data: {
-                          userId: sale.userId,
-                          type: 'EARNED',
-                          amount: 0,
-                          reason: `Cupón incrementado - Compra #${sale.id}`
-                      }
-                  });
-              }
-          } catch (e) {
-              console.error(`[SaleService] Failed to increment coupon usage: ${e.message}`);
-          }
-      }
-
+      // La deducción de cupones ahora sucede atómicamente en la creación de la venta para prevenir bypass simultáneo.
 
       // 3. Enviar Notificaciones y Factura
       setImmediate(async () => {
@@ -844,8 +867,9 @@ class SaleService {
              const NotificationService = require('./notification.service');
              const InvoiceService = require('./invoice.service');
              
-             const pdfBuffer = await InvoiceService.generateInvoicePDF(sale);
-             const emailSubject = `Factura de tu Compra #${sale.id} - Tienda Online`;
+             const pdfBuffer = await InvoiceService.generateInvoicePDF(sale, storeConfig);
+             const storeName = storeConfig?.storeName || 'Tienda Online';
+             const emailSubject = `Factura de tu Compra #${sale.id} - ${storeName}`;
              const emailHtml = `
                 <div style="font-family: sans-serif; color: #374151; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
                     <div style="background-color: #4F46E5; padding: 24px; text-align: center;">
@@ -893,26 +917,28 @@ class SaleService {
       // Si el evento deshabilita puntos, no acumular nada
       if (!pointsEnabled) return;
 
-      // Calcular puntos totales ganados (Por Producto + Por Gasto en Moneda Base)
       let totalPointsEarned = 0;
+      let spendingBaseForGeneric = 0;
       
-      // 1. Puntos por Producto (solo si puntos habilitados)
       for (const item of sale.items) {
           const pointsReward = item.sku?.product?.pointsReward || 0;
-          totalPointsEarned += pointsReward * Number(item.quantity);
+          if (pointsReward > 0) {
+              totalPointsEarned += pointsReward * Number(item.quantity);
+          } else {
+              spendingBaseForGeneric += Number(item.subtotalInBaseCurrency || 0);
+          }
       }
 
-      // 2. Puntos por Gasto (Consolidado en Moneda Base)
       const pointsPerCurrency = storeConfig.pointsPerCurrency ? Number(storeConfig.pointsPerCurrency) : 0.001;
       if (pointsPerCurrency > 0) {
-          const spendingPoints = Math.floor(Number(sale.totalInBaseCurrency) * pointsPerCurrency);
+          const spendingPoints = Math.floor(spendingBaseForGeneric * pointsPerCurrency);
           totalPointsEarned += spendingPoints;
       }
 
       if (totalPointsEarned > 0 && sale.user) {
           
            const existingHistory = await prisma.pointsHistory.findFirst({
-               where: { reason: `Compra #${sale.id}`, type: 'EARNED' }
+               where: { userId: sale.userId, type: 'EARNED', reason: { contains: `#${sale.id}` } }
            });
 
            if (!existingHistory) {
@@ -957,8 +983,20 @@ class SaleService {
       }
       
       if (deliveryStatus || deliveryType) {
-          if (sale.deliveryStatus === 'DELIVERED') throw new Error('No puede modificar envío si ya fue Entregado');
-          if (deliveryStatus) updateData.deliveryStatus = deliveryStatus;
+          const validTransitions = {
+              'PENDING_DELIVERY': ['SHIPPED', 'DELIVERED', 'CANCELLED'],
+              'SHIPPED': ['DELIVERED', 'CANCELLED'],
+              'DELIVERED': [],
+              'CANCELLED': [],
+              'REQUIRES_ACTION': ['PENDING_DELIVERY', 'SHIPPED', 'CANCELLED']
+          };
+          if (deliveryStatus) {
+              const allowed = validTransitions[sale.deliveryStatus] || [];
+              if (!allowed.includes(deliveryStatus)) {
+                  throw new Error(`No se puede cambiar de ${sale.deliveryStatus} a ${deliveryStatus}`);
+              }
+              updateData.deliveryStatus = deliveryStatus;
+          }
           if (deliveryType) updateData.deliveryType = deliveryType;
       }
       
@@ -1030,21 +1068,23 @@ class SaleService {
    * ¿Solo para ventas fuera de línea o ventas online que ya fueron capturadas pero necesitan reembolso manual?
    * Por ahora, el caso de uso principal es cancelar ventas fuera de línea que reservaron stock inmediatamente.
    */
-  async cancelSale(id, userId, roleName) {
-      const sale = await prisma.sale.findUnique({ 
-          where: { id: parseInt(id) },
-          include: { items: true, stockReservations: true } 
-      });
+   async cancelSale(id, userId, roleName) {
+       await prisma.$transaction(async (tx) => {
+           const lockedRows = await tx.$queryRaw`
+               SELECT * FROM "Sale" WHERE id = ${parseInt(id)} FOR UPDATE
+           `;
+           if (!lockedRows || lockedRows.length === 0) throw new Error('La venta a cancelar no fue encontrada.');
+           const saleRow = lockedRows[0];
 
-      if (!sale) throw new Error('La venta a cancelar no fue encontrada.');
-     
-      if (roleName === 'CUSTOMER' && sale.userId !== userId) throw new Error('No tienes permiso para cancelar esta venta.');
-      if (sale.deliveryStatus === 'DELIVERED') throw new Error('No se puede cancelar una venta ya entregada');
-      if (sale.paymentStatus === 'PAID' && roleName === 'CUSTOMER') throw new Error('No puedes cancelar una orden que ya fue pagada. Por favor, contacta a soporte técnico.');
-      if (sale.paymentStatus === 'CANCELLED') throw new Error('Esta venta ya fue cancelada.');
+           if (roleName === 'CUSTOMER' && saleRow.userId !== userId) throw new Error('No tienes permiso para cancelar esta venta.');
+           if (saleRow.deliveryStatus === 'DELIVERED') throw new Error('No se puede cancelar una venta ya entregada');
+           if (saleRow.paymentStatus === 'PAID' && roleName === 'CUSTOMER') throw new Error('No puedes cancelar una orden que ya fue pagada. Por favor, contacta a soporte técnico.');
+           if (saleRow.paymentStatus === 'CANCELLED') throw new Error('Esta venta ya fue cancelada.');
 
-
-      await prisma.$transaction(async (tx) => {
+           const sale = await tx.sale.findUnique({ 
+               where: { id: parseInt(id) },
+               include: { items: true, stockReservations: true } 
+           });
           // 1. Restaurar stock para ventas Offline (o ventas pagadas canceladas por Admin)
           if (['CASH', 'TRANSFER', 'DEBIT'].includes(sale.paymentType) || sale.paymentStatus === 'PAID') {
               for (const item of sale.items) {

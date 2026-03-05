@@ -80,10 +80,9 @@ class StockTransferService {
         if (user.branchId) userBranchIds.push(user.branchId);
         
         const hasOrigin = userBranchIds.includes(parseInt(originBranchId));
-        const hasDest = userBranchIds.includes(parseInt(destinationBranchId));
 
-        if (!hasOrigin || !hasDest) {
-            throw new Error('No tienes permisos en ambas sucursales para realizar esta transferencia');
+        if (!hasOrigin) {
+            throw new Error('No tienes permisos en la sucursal de origen para realizar esta transferencia');
         }
     }
 
@@ -118,18 +117,18 @@ class StockTransferService {
 
   async shipTransfer(id, userId) {
     return await prisma.$transaction(async (tx) => {
-      const transfer = await tx.stockTransfer.findUnique({ 
-          where: { id: parseInt(id) },
-          include: { items: true } 
-      });
+      const locked = await tx.$queryRaw`
+        SELECT * FROM "StockTransfer" WHERE id = ${parseInt(id)} FOR UPDATE
+      `;
+      if (!locked || locked.length === 0) throw new Error('Transferencia no encontrada');
+      const transferRow = locked[0];
+      if (transferRow.status !== 'PENDING') throw new Error('La transferencia no está en estado PENDING');
 
-      if (!transfer) throw new Error('Transferencia no encontrada');
-      if (transfer.status !== 'PENDING') throw new Error('La transferencia no está en estado PENDING');
+      const items = await tx.stockTransferItem.findMany({ where: { stockTransferId: transferRow.id } });
 
-      // Deducir stock
-      for (const item of transfer.items) {
+      for (const item of items) {
            const originStock = await tx.branchInventory.findUnique({
-               where: { skuId_branchId: { skuId: item.skuId, branchId: transfer.originBranchId } }
+               where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.originBranchId } }
            });
            
            if (!originStock || Number(originStock.stock) < Number(item.quantity)) {
@@ -137,7 +136,7 @@ class StockTransferService {
            }
 
            const updatedOrigin = await tx.branchInventory.update({
-               where: { skuId_branchId: { skuId: item.skuId, branchId: transfer.originBranchId } },
+               where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.originBranchId } },
                data: { stock: { decrement: item.quantity } }
            });
 
@@ -146,50 +145,47 @@ class StockTransferService {
                data: { stock: { decrement: item.quantity } }
            });
 
-           // Registrar TRANSFER_OUT
            await tx.stockMovement.create({
                data: {
                    skuId: item.skuId,
-                   branchId: transfer.originBranchId,
+                   branchId: transferRow.originBranchId,
                    type: 'TRANSFER_OUT',
                    quantity: -Number(item.quantity),
                    resultingStock: Number(updatedOrigin.stock),
-                   referenceId: `TX-OUT-${transfer.id}`,
+                   referenceId: `TX-OUT-${transferRow.id}`,
                    userId, 
-                   notes: `Envío: Transferencia #${transfer.id} a Sucursal ${transfer.destinationBranchId}`
+                   notes: `Envío: Transferencia #${transferRow.id} a Sucursal ${transferRow.destinationBranchId}`
                }
            });
       }
 
       return await tx.stockTransfer.update({
-          where: { id: transfer.id },
+          where: { id: transferRow.id },
           data: { status: 'IN_TRANSIT' }
       });
     });
   }
 
   async receiveTransfer(id, userId) {
-
     return await prisma.$transaction(async (tx) => {
-      const transfer = await tx.stockTransfer.findUnique({ 
-          where: { id: parseInt(id) },
-          include: { items: true } 
-      });
+      const locked = await tx.$queryRaw`
+        SELECT * FROM "StockTransfer" WHERE id = ${parseInt(id)} FOR UPDATE
+      `;
+      if (!locked || locked.length === 0) throw new Error('Transferencia no encontrada');
+      const transferRow = locked[0];
+      if (transferRow.status !== 'IN_TRANSIT') throw new Error('La transferencia no está en estado IN_TRANSIT');
 
-      if (!transfer) throw new Error('Transferencia no encontrada');
-      if (transfer.status !== 'IN_TRANSIT') throw new Error('La transferencia no está en estado IN_TRANSIT');
+      const items = await tx.stockTransferItem.findMany({ where: { stockTransferId: transferRow.id } });
 
-      // Agregar stock
-      for (const item of transfer.items) {
-      
+      for (const item of items) {
            const sku = await tx.sKU.findUnique({ where: { id: item.skuId } });
 
            const updatedInv = await tx.branchInventory.upsert({
-               where: { skuId_branchId: { skuId: item.skuId, branchId: transfer.destinationBranchId } },
+               where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.destinationBranchId } },
                update: { stock: { increment: item.quantity } },
                create: {
                    skuId: item.skuId,
-                   branchId: transfer.destinationBranchId,
+                   branchId: transferRow.destinationBranchId,
                    stock: item.quantity,
                    price: sku.price, 
                    costPrice: null 
@@ -201,44 +197,45 @@ class StockTransferService {
                data: { stock: { increment: item.quantity } }
            });
 
-        
            await tx.stockMovement.create({
                data: {
                    skuId: item.skuId,
-                   branchId: transfer.destinationBranchId,
+                   branchId: transferRow.destinationBranchId,
                    type: 'TRANSFER_IN',
                    quantity: Number(item.quantity),
                    resultingStock: Number(updatedInv.stock),
-                   referenceId: `TX-IN-${transfer.id}`,
+                   referenceId: `TX-IN-${transferRow.id}`,
                    userId, 
-                   notes: `Recepción: Transferencia #${transfer.id} desde Sucursal ${transfer.originBranchId}`
+                   notes: `Recepción: Transferencia #${transferRow.id} desde Sucursal ${transferRow.originBranchId}`
                }
            });
       }
 
       return await tx.stockTransfer.update({
-          where: { id: transfer.id },
+          where: { id: transferRow.id },
           data: { status: 'COMPLETED' }
       });
     });
   }
 
   async cancelTransfer(id, userId) {
-
       return await prisma.$transaction(async (tx) => {
-          const transfer = await tx.stockTransfer.findUnique({ where: { id: parseInt(id) }, include: { items: true } });
+          const locked = await tx.$queryRaw`
+            SELECT * FROM "StockTransfer" WHERE id = ${parseInt(id)} FOR UPDATE
+          `;
+          if (!locked || locked.length === 0) throw new Error('Transferencia no encontrada');
+          const transferRow = locked[0];
           
-          if (!transfer) throw new Error('Transferencia no encontrada');
-          
-          if (transfer.status === 'PENDING') {
+          if (transferRow.status === 'PENDING') {
               return await tx.stockTransfer.update({
-                  where: { id: transfer.id },
+                  where: { id: transferRow.id },
                   data: { status: 'CANCELLED' }
               });
-          } else if (transfer.status === 'IN_TRANSIT') {
-               for (const item of transfer.items) {
+          } else if (transferRow.status === 'IN_TRANSIT') {
+               const items = await tx.stockTransferItem.findMany({ where: { stockTransferId: transferRow.id } });
+               for (const item of items) {
                    const updatedInv = await tx.branchInventory.update({
-                       where: { skuId_branchId: { skuId: item.skuId, branchId: transfer.originBranchId } },
+                       where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.originBranchId } },
                        data: { stock: { increment: item.quantity } }
                    });
 
@@ -250,18 +247,18 @@ class StockTransferService {
                    await tx.stockMovement.create({
                        data: {
                            skuId: item.skuId,
-                           branchId: transfer.originBranchId,
+                           branchId: transferRow.originBranchId,
                            type: 'TRANSFER_IN',
                            quantity: Number(item.quantity),
                            resultingStock: Number(updatedInv.stock),
-                           referenceId: `TX-CANCEL-${transfer.id}`,
+                           referenceId: `TX-CANCEL-${transferRow.id}`,
                            userId, 
-                           notes: `Cancelación de Transferencia #${transfer.id}`
+                           notes: `Cancelación de Transferencia #${transferRow.id}`
                        }
                    });
                }
                return await tx.stockTransfer.update({
-                  where: { id: transfer.id },
+                  where: { id: transferRow.id },
                   data: { status: 'CANCELLED' }
               });
           } else {

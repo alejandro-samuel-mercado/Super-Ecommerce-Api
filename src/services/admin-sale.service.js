@@ -12,9 +12,17 @@ class AdminSaleService {
       const sale = await prisma.sale.findUnique({ where: { id: parseInt(saleId) } });
       if (!sale) throw new Error('Venta no encontrada');
 
-      // Validar transición (Simple)
-      if (sale.deliveryStatus === 'DELIVERED') {
-          throw new Error('No se puede cambiar el estado de una venta entregada');
+      const validTransitions = {
+          'PENDING_DELIVERY': ['SHIPPED', 'DELIVERED', 'CANCELLED'],
+          'SHIPPED': ['DELIVERED', 'CANCELLED'],
+          'DELIVERED': [],
+          'CANCELLED': [],
+          'REQUIRES_ACTION': ['PENDING_DELIVERY', 'SHIPPED', 'CANCELLED']
+      };
+
+      const allowed = validTransitions[sale.deliveryStatus] || [];
+      if (!allowed.includes(newStatus)) {
+          throw new Error(`No se puede cambiar de ${sale.deliveryStatus} a ${newStatus}`);
       }
       
       const updatedSale = await prisma.sale.update({
@@ -65,19 +73,32 @@ class AdminSaleService {
                   await tx.$executeRaw`
                       UPDATE "BranchInventory"
                       SET stock = stock + ${qty},
-                          "soldQuantity" = "soldQuantity" - ${qty},
+                          "soldQuantity" = GREATEST("soldQuantity" - ${qty}, 0),
                           "updatedAt" = NOW()
                       WHERE id = ${biId}
                   `;
+              } else {
+                  await tx.branchInventory.create({
+                      data: {
+                          skuId: item.skuId,
+                          branchId: sale.branchId,
+                          stock: qty,
+                          isActive: true
+                      }
+                  });
               }
               
               await tx.$executeRaw`
                   UPDATE "SKU"
                   SET stock = stock + ${qty},
-                      "soldQuantity" = "soldQuantity" - ${qty},
+                      "soldQuantity" = GREATEST("soldQuantity" - ${qty}, 0),
                       "updatedAt" = NOW()
                   WHERE id = ${item.skuId}
               `;
+
+              const updatedInv = await tx.branchInventory.findFirst({
+                  where: { skuId: item.skuId, branchId: sale.branchId }
+              });
               
               await tx.stockMovement.create({
                   data: {
@@ -85,9 +106,7 @@ class AdminSaleService {
                       branchId: sale.branchId,
                       type: 'RETURN',
                       quantity: qty,
-                      resultingStock: branchInventoryRows.length > 0 
-                          ? (await tx.branchInventory.findUnique({ where: { id: branchInventoryRows[0].id } }))?.stock || 0 
-                          : 0,
+                      resultingStock: updatedInv ? Number(updatedInv.stock) : qty,
                       referenceId: `REFUND-${sale.id}`,
                       userId: adminId,
                       notes: `Devolución Venta #${sale.id}`
@@ -191,6 +210,10 @@ class AdminSaleService {
   }
 
   async updatePaymentStatus(adminId, saleId, newStatus, ip) {
+      if (newStatus === 'PAID') {
+          throw new Error('No se puede confirmar un pago manualmente. Los pagos solo se confirman desde el POS o la pasarela de pagos.');
+      }
+
       const sale = await prisma.sale.findUnique({
           where: { id: parseInt(saleId) },
           include: { items: true, stockReservations: true }
@@ -267,10 +290,10 @@ class AdminSaleService {
 
       return await prisma.sale.findUnique({ where: { id: parseInt(saleId) } });
   }
-  async getDashboardStats(timeRange = 'month', branchId = null) {
+  async getDashboardStats(timeRange = 'month', branchId = null, branchIds = null) {
     const now = new Date();
     // Inicio del día actual (00:00:00)
-    const todayStart = new Date(now.setHours(0,0,0,0));
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     // Calcular startDate basado en rango
     let startDate;
@@ -287,6 +310,8 @@ class AdminSaleService {
     // Agregar filtro de sucursal si se especifica
     if (branchId) {
         filter.branchId = branchId;
+    } else if (branchIds && branchIds.length > 0) {
+        filter.branchId = { in: branchIds };
     }
 
     switch (timeRange) {
@@ -351,6 +376,8 @@ class AdminSaleService {
         // Agregar filtro de sucursal al periodo anterior también
         if (branchId) {
             prevFilter.branchId = branchId;
+        } else if (branchIds && branchIds.length > 0) {
+            prevFilter.branchId = { in: branchIds };
         }
         
         // Caso especial para hoy/semana se podría necesitar manejo preciso, pero aprox está bien

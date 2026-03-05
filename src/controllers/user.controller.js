@@ -16,8 +16,14 @@ class UserController {
 
   async updateProfile(req, res, next) {
     try {
-      const { roleId, status, ...allowedUpdates } = req.body;
-      const updatedUser = await UserService.updateProfile(req.user.id, allowedUpdates);
+      const { name, email, phone, address, city, state, zipCode, profileImage } = req.body;
+      const allowedUpdates = { name, email, phone, address, city, state, zipCode, profileImage };
+      
+      const filteredUpdates = Object.fromEntries(
+        Object.entries(allowedUpdates).filter(([_, v]) => v !== undefined)
+      );
+
+      const updatedUser = await UserService.updateProfile(req.user.id, filteredUpdates);
       
       const { password, ...safeUser } = updatedUser;
       res.status(200).json({ success: true, message: 'Perfil actualizado', data: safeUser });

@@ -22,12 +22,21 @@ class ReportService {
     const revenueAgg = await prisma.sale.aggregate({
         _sum: { 
             total: true,
-            totalInBaseCurrency: true 
+            totalInBaseCurrency: true,
+            taxAmount: true,
+            shippingCost: true
         },
         where: saleWhere
     });
-    const totalRevenue = Number(revenueAgg._sum.total || 0);
-    const totalRevenueBase = Number(revenueAgg._sum.totalInBaseCurrency || 0);
+    
+    // Revenue Neto = Total - Impuestos - Envío
+    const sumGross = Number(revenueAgg._sum.total || 0);
+    const sumTax = Number(revenueAgg._sum.taxAmount || 0);
+    const sumShip = Number(revenueAgg._sum.shippingCost || 0);
+    const totalRevenue = sumGross - sumTax - sumShip;
+
+    const ratio = sumGross > 0 ? totalRevenue / sumGross : 1;
+    const totalRevenueBase = Number(revenueAgg._sum.totalInBaseCurrency || 0) * ratio;
 
     // 2. GASTOS (Pagos a Proveedores)
     // Solo contamos pagos vinculados a compras para filtrado de sucursal específica
@@ -52,16 +61,44 @@ class ReportService {
     const totalExpenses = Number(expenseAgg._sum.amount || 0);
     const totalExpensesBase = Number(expenseAgg._sum.amountInBaseCurrency || 0);
 
-    // 3. BENEFICIO
-    const netProfit = totalRevenueBase - totalExpensesBase;
-
-    // 4. DATOS DEL GRÁFICO (Agrupados por Día o Mes)
-    // Construir datos granulares para el gráfico
-    // Necesitamos obtener datos crudos y agregar en JS para flexibilidad
-    
     const sales = await prisma.sale.findMany({
         where: saleWhere,
-        select: { createdAt: true, total: true, totalInBaseCurrency: true }
+        select: { 
+            createdAt: true, 
+            total: true, 
+            totalInBaseCurrency: true,
+            taxAmount: true,
+            shippingCost: true,
+            items: {
+                include: {
+                    sku: {
+                        include: {
+                            supplierSkus: { take: 1, orderBy: { updatedAt: 'desc' } }
+                        }
+                    },
+                    branchInventory: true
+                }
+            }
+        }
+    });
+
+    const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+    const baseCurrency = storeConfig?.baseCurrency || 'USD';
+    const currencies = await prisma.currency.findMany();
+
+    let totalCostBase = 0;
+    sales.forEach(s => {
+        s.items.forEach(item => {
+            let cost = 0;
+            if (item.unitCostBase !== null && item.unitCostBase !== undefined) {
+                cost = Number(item.unitCostBase);
+            } else if (item.branchInventory && item.branchInventory.costPrice) {
+                cost = Number(item.branchInventory.costPrice);
+            } else if (item.sku && item.sku.supplierSkus && item.sku.supplierSkus.length > 0) {
+                cost = Number(item.sku.supplierSkus[0].basePurchasePrice);
+            }
+            totalCostBase += cost * Number(item.quantity);
+        });
     });
 
     const payments = await prisma.supplierPayment.findMany({
@@ -69,11 +106,11 @@ class ReportService {
         select: { paymentDate: true, amount: true, amountInBaseCurrency: true }
     });
 
-    // Agrupar (Bucketize)
+    const netProfit = totalRevenueBase - totalCostBase - totalExpensesBase;
+
     const map = new Map();
 
     const getKey = (date) => {
-        // Si el rango es > 90 días, agrupar por mes. Sino por día.
         const diffDays = (end - start) / (1000 * 60 * 60 * 24);
         if (diffDays > 90) {
             return date.toLocaleString('es-ES', { month: 'short', year: 'numeric' });
@@ -83,26 +120,40 @@ class ReportService {
 
     sales.forEach(s => {
         const key = getKey(s.createdAt);
-        if (!map.has(key)) map.set(key, { revenue: 0, revenueBase: 0, expenses: 0, profit: 0 });
+        if (!map.has(key)) map.set(key, { revenueBase: 0, costOfGoods: 0, supplierPayments: 0 });
         const entry = map.get(key);
-        entry.revenue += Number(s.total);
-        entry.revenueBase += Number(s.totalInBaseCurrency || s.total);
+        
+        const saleGross = Number(s.total);
+        const saleNet = saleGross - Number(s.taxAmount || 0) - Number(s.shippingCost || 0);
+
+        const saleRatio = saleGross > 0 ? saleNet / saleGross : 1;
+        entry.revenueBase += Number(s.totalInBaseCurrency || s.total) * saleRatio;
+        
+        s.items.forEach(item => {
+            let cost = 0;
+            if (item.unitCostBase !== null && item.unitCostBase !== undefined) {
+                cost = Number(item.unitCostBase);
+            } else if (item.branchInventory && item.branchInventory.costPrice) {
+                cost = Number(item.branchInventory.costPrice);
+            } else if (item.sku && item.sku.supplierSkus && item.sku.supplierSkus.length > 0) {
+                cost = Number(item.sku.supplierSkus[0].basePurchasePrice);
+            }
+            entry.costOfGoods += cost * Number(item.quantity);
+        });
     });
 
     payments.forEach(p => {
         const key = getKey(p.paymentDate);
-        if (!map.has(key)) map.set(key, { revenue: 0, revenueBase: 0, expenses: 0, expensesBase: 0, profit: 0 });
+        if (!map.has(key)) map.set(key, { revenueBase: 0, costOfGoods: 0, supplierPayments: 0 });
         const entry = map.get(key);
-        entry.expenses += Number(p.amount);
-        entry.expensesBase += Number(p.amountInBaseCurrency || p.amount);
+        entry.supplierPayments += Number(p.amount);
     });
 
-    // Calcular beneficio por grupo y formato
     const chartData = Array.from(map.entries()).map(([name, data]) => ({
         name,
         revenue: data.revenueBase,
-        expenses: data.expensesBase,
-        profit: data.revenueBase - data.expensesBase
+        expenses: data.costOfGoods + data.supplierPayments,
+        profit: data.revenueBase - data.costOfGoods - data.supplierPayments
     }));
 
 
@@ -160,20 +211,7 @@ class ReportService {
             cost = Number(item.costPrice);
          
         } else if (item.sku.supplierSkus && item.sku.supplierSkus.length > 0) {
-            const sSku = item.sku.supplierSkus[0];
-            const rawCost = Number(sSku.basePurchasePrice);
-            const sCurrency = sSku.currency || 'ARS';
-            
-            if (sCurrency === baseCurrency) {
-                cost = rawCost;
-            } else {
-                // Convertir a moneda base
-                const currencyInfo = currencies.find(c => c.code === sCurrency);
-                const rate = currencyInfo ? Number(currencyInfo.exchangeRateToBase) : 1;
-                // exchangeRateToBase es (Objetivo / Base). 
-                // Para obtener Base desde Objetivo: valorObjetivo / tasa
-                cost = rawCost / rate;
-            }
+            cost = Number(item.sku.supplierSkus[0].basePurchasePrice);
         } else {
             cost = 0;
         }
@@ -207,17 +245,7 @@ class ReportService {
                 if (item.costPrice) {
                     unitCost = Number(item.costPrice);
                 } else if (item.sku.supplierSkus && item.sku.supplierSkus.length > 0) {
-                    const sSku = item.sku.supplierSkus[0];
-                    const rawCost = Number(sSku.basePurchasePrice);
-                    const sCurrency = sSku.currency || 'ARS';
-                    
-                    if (sCurrency === baseCurrency) {
-                        unitCost = rawCost;
-                    } else {
-                        const currencyInfo = currencies.find(c => c.code === sCurrency);
-                        const rate = currencyInfo ? Number(currencyInfo.exchangeRateToBase) : 1;
-                        unitCost = rawCost / rate;
-                    }
+                    unitCost = Number(item.sku.supplierSkus[0].basePurchasePrice);
                 }
                 
                 return {

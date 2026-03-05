@@ -22,28 +22,37 @@ class StripeStrategy extends PaymentStrategy {
         if (!this.client) throw new Error('Stripe Provider not configured');
 
         const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-        
+
+        const targetCurrency = (this.config?.currencyCode || sale.currencyCode || 'usd').toLowerCase();
+        const saleCurrency = (sale.currencyCode || 'USD').toUpperCase();
+        const isForeignCurrency = saleCurrency !== (this.config?.currencyCode || saleCurrency);
+        const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
+
+        const convertToTarget = (amount) => {
+            if (!isForeignCurrency) return Number(amount);
+            return Number(amount) / exchangeRate;
+        };
+
+        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency)
+            ? Number(sale.totalInBaseCurrency)
+            : convertToTarget(sale.total);
+
+        const lineItems = [
+            {
+                price_data: {
+                    currency: targetCurrency,
+                    product_data: {
+                        name: `Orden #${sale.uuid || sale.id}`,
+                    },
+                    unit_amount: Math.round(targetTotal * 100),
+                },
+                quantity: 1,
+            }
+        ];
+
         const session = await this.client.checkout.sessions.create({
             payment_method_types: ['card'],
-            line_items: sale.items.map(item => ({
-                price_data: {
-                    currency: (sale.currencyCode || 'usd').toLowerCase(),
-                    product_data: {
-                        name: item.productName || item.skuCode,
-                    },
-                    unit_amount: Math.round(item.unitPrice * 100),
-                },
-                quantity: item.quantity,
-            })).concat(
-                (sale.shippingCost > 0) ? [{
-                    price_data: {
-                        currency: (sale.currencyCode || 'usd').toLowerCase(),
-                        product_data: { name: 'Envío' },
-                        unit_amount: Math.round(sale.shippingCost * 100),
-                    },
-                    quantity: 1,
-                }] : []
-            ),
+            line_items: lineItems,
             mode: 'payment',
             client_reference_id: String(sale.id),
             customer_email: user.email,
@@ -60,15 +69,10 @@ class StripeStrategy extends PaymentStrategy {
     async refundPayment(paymentId, amount) {
         if (!this.client) throw new Error('Stripe Provider not configured');
         
-        try {
-            const refundParams = { payment_intent: paymentId };
-            if (amount) refundParams.amount = Math.round(amount * 100);
-            
-            return await this.client.refunds.create(refundParams);
-        } catch (error) {
-            console.error(`Stripe Refund Error for ${paymentId}:`, error);
-            throw error;
-        }
+        const refundParams = { payment_intent: paymentId };
+        if (amount) refundParams.amount = Math.round(amount * 100);
+        
+        return await this.client.refunds.create(refundParams);
     }
 
     async processWebhook(req) {
@@ -81,25 +85,22 @@ class StripeStrategy extends PaymentStrategy {
 
         if (webhookSecret && sig) {
             try {
-                // We need the raw body for signature verification.
-                // Assuming express.raw() or compatible parser is used.
                 event = this.client.webhooks.constructEvent(req.rawBody || req.body, sig, webhookSecret);
             } catch (err) {
                 console.error(`[Stripe Webhook] Signature verification failed: ${err.message}`);
                 throw new Error(`Webhook Error: ${err.message}`);
             }
         } else {
-            // Fallback for development IF secret is missing (not recommended)
             event = req.body;
         }
         
         if (event.type === 'checkout.session.completed') {
             const session = event.data.object;
             return {
-                paymentId: session.id,
+                paymentId: session.payment_intent || session.id,
                 status: 'approved',
                 externalReference: session.metadata?.saleId || session.client_reference_id,
-                raw: session
+                raw: { ...session, external_reference: session.metadata?.saleId || session.client_reference_id }
             };
         }
         

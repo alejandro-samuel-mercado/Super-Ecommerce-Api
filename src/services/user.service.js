@@ -113,8 +113,30 @@ class UserService {
   }
 
   async deleteUser(id) {
+    const userId = parseInt(id);
+    const salesCount = await prisma.sale.count({ where: { userId } });
+    
+    if (salesCount > 0) {
+        return await prisma.user.update({
+            where: { id: userId },
+            data: { 
+                status: 'DELETED',
+                email: `deleted_${userId}@super.ecommerce`,
+                name: 'Usuario Eliminado',
+                password: '***',
+                dni: null,
+                phone: null,
+                address: null,
+                city: null,
+                state: null,
+                country: null,
+                zipCode: null
+            }
+        });
+    }
+    
     return await prisma.user.delete({
-        where: { id: parseInt(id) }
+        where: { id: userId }
     });
   }
 

@@ -3,6 +3,9 @@ const prisma = require('../config/prisma');
 class CouponService {
 
   async create(data) {
+    if (data.type === 'PERCENTAGE' && !data.maxDiscount) {
+        throw new Error('Los cupones porcentuales deben tener un tope máximo de reintegro (maxDiscount)');
+    }
     
     const existing = await prisma.coupon.findUnique({ where: { code: data.code } });
     if (existing) throw new Error('Coupon code already exists');
@@ -82,6 +85,9 @@ class CouponService {
   }
 
   async update(id, data) {
+      if (data.type === 'PERCENTAGE' && !data.maxDiscount) {
+          throw new Error('Los cupones porcentuales deben tener un tope máximo de reintegro (maxDiscount)');
+      }
       if (data.code) {
           const existing = await prisma.coupon.findFirst({
               where: { 
@@ -100,6 +106,7 @@ class CouponService {
               value: data.value,
               active: data.active,
               maxUses: data.maxUses,
+              maxDiscount: data.maxDiscount,
               validFrom: data.validFrom,
               validUntil: data.validUntil,
               minPurchase: data.minPurchase
@@ -129,9 +136,9 @@ class CouponService {
           // Verificar si falló porque no existe o porque se alcanzó el límite
           const coupon = await client.coupon.findUnique({ where: { id: parseInt(id) } });
           if (!coupon) throw new Error('Cupón no encontrado al incrementar');
-          if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
-              throw new Error(`Límite de uso del cupón alcanzado durante el procesamiento. Uso: ${coupon.usedCount}/${coupon.maxUses}`);
-          }
+           if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
+               throw new Error(`El cupón "${coupon.code}" ya alcanzó su límite de uso. Por favor, retíralo e intenta de nuevo sin él.`);
+           }
       }
   }
 }

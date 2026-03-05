@@ -7,12 +7,43 @@ class DiscountService {
    * @param {Object} context - { items: [], user: {}, paymentType: 'CASH' }
    * @returns {Promise<Object>} { appliedDiscounts: [], totalDiscountAmount: 0 }
    */
+  async expandCategoryTargets(discounts) {
+      if (!discounts || discounts.length === 0) return discounts;
+      const categories = await prisma.category.findMany();
+      const getSubs = (parentId) => {
+          let ids = [];
+          const children = categories.filter(c => c.parentId === Number(parentId));
+          for (const child of children) {
+              ids.push(child.id);
+              ids.push(...getSubs(child.id));
+          }
+          return ids;
+      };
+
+      for (const discount of discounts) {
+          const config = this.normalizeConfig(discount);
+          for (const target of config.targets) {
+              if (target.type === 'CATEGORY') {
+                  const expanded = [];
+                  const baseValues = Array.isArray(target.value) ? target.value : [target.value];
+                  for (const val of baseValues) {
+                      expanded.push(String(val));
+                      const subs = getSubs(val);
+                      subs.forEach(s => expanded.push(String(s)));
+                  }
+                  target.value = [...new Set(expanded)];
+              }
+          }
+          discount._config = config;
+      }
+      return discounts;
+  }
+
   async calculateDiscounts(context) {
     const { items, user, paymentType, currencyCode } = context;
     const appliedDiscounts = [];
     let totalDiscountAmount = 0;
 
-    // 1. Obtener descuentos activos y vigentes
     const now = new Date();
     const EventService = require('./event.service');
     let activeEvent = null;
@@ -24,9 +55,6 @@ class DiscountService {
 
     let whereClause = { active: true };
     
-    // REGLA DE PRIORIDAD: 
-    // 1. Si hay un Evento activo, SOLO aplicar descuentos vinculados a ese evento.
-    // 2. Si NO hay evento activo, SOLO aplicar descuentos generales (eventId: null).
     if (activeEvent) {
         whereClause.eventId = activeEvent.id;
     } else {
@@ -39,7 +67,7 @@ class DiscountService {
       orderBy: { priority: 'desc' }
     });
 
-
+    await this.expandCategoryTargets(allDiscounts);
 
     const validDiscounts = allDiscounts.filter(d => {
        // Defensa extra: Si hay un evento activo, saltar cualquier descuento que no le pertenezca
@@ -66,10 +94,8 @@ class DiscountService {
     const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
 
     for (const discount of validDiscounts) {
-        // Normalizar configuración (Legacy vs New Rules)
-        const config = this.normalizeConfig(discount);
+        const config = discount._config || this.normalizeConfig(discount);
         
-        // Paso A: Identificar items afectados (Scope/Targets)
         const matchedItems = this.matchItems(config.targets, items);
 
         if (matchedItems.length === 0) continue;
@@ -184,6 +210,8 @@ class DiscountService {
       prisma.storeConfig.findFirst({ where: { id: 1 } })
     ]);
 
+    await this.expandCategoryTargets(allDiscounts);
+
     const validDiscounts = allDiscounts.filter(d => {
        if (activeEvent && d.eventId !== activeEvent.id) return false;
        if (!activeEvent && d.eventId !== null) return false;
@@ -211,7 +239,7 @@ class DiscountService {
       const candidates = [];
 
       for (const discount of validDiscounts) {
-          const config = this.normalizeConfig(discount);
+          const config = discount._config || this.normalizeConfig(discount);
           const matchedItems = this.matchItems(config.targets, items);
           if (matchedItems.length === 0) continue;
           if (await this.checkConditions(config.conditions, matchedItems, { ...context, items }, storeConfig)) {
@@ -341,18 +369,13 @@ class DiscountService {
   /**
    * Verifica si los items matcheados cumplen las condiciones 
    */
-  async checkConditions(conditions, matchedItems, context, config) {
+   async checkConditions(conditions, matchedItems, context, config) {
       if (!conditions || conditions.length === 0) return true;
 
       for (const cond of conditions) {
           if (cond.type === 'MIN_QTY') {
-              // Calcular cantidad total de los items APLICABLES (no de todo el carro, salvo que sea global)
-              // "unit" podría ser 'UNIDAD', 'KG', 'METRO'
-              // Asumiremos 'UNIDAD' por defecto o leeremos property si existe en Product
-              
               let total = 0;
               matchedItems.forEach(i => {
-                  // Verificar unidad de medida si es estricto
                   total += Number(i.quantity);
               });
 
@@ -360,17 +383,17 @@ class DiscountService {
           }
           
           if (cond.type === 'MIN_AMOUNT') {
-              const totalAmount = matchedItems.reduce((acc, i) => acc + (parseFloat(i.unitPrice) * i.quantity), 0);
+              const itemsToSum = (context && context.items) ? context.items : matchedItems;
+              const totalAmount = itemsToSum.reduce((acc, i) => acc + (parseFloat(i.unitPrice) * i.quantity), 0);
               
               let minAmountConverted = parseFloat(cond.value);
               
               const baseCurrency = config?.baseCurrency || 'USD';
-              const currencyCode = context?.currency || baseCurrency;
+              const currencyCode = context?.currencyCode || baseCurrency;
               
               if (currencyCode && currencyCode !== baseCurrency) {
-                  // AUTO-HEALING: Desactivamos el rate-multiplier asumiendo que el admin guardó las condiones en moneda local.
-                  // const rate = await this.getExchangeRate(currencyCode);
-                  // minAmountConverted = minAmountConverted * rate;
+                  const rate = await this.getExchangeRate(currencyCode);
+                  minAmountConverted = minAmountConverted * rate;
               }
 
               if (totalAmount < minAmountConverted) return false;
@@ -392,16 +415,13 @@ class DiscountService {
       const type = action.type || discount.type;
       let value = parseFloat(action.value || discount.value);
 
-      // Convertir valor desde moneda base a moneda activa en caso necesario
       const baseCurrency = config?.baseCurrency || 'USD';
 
       if (currencyCode && currencyCode !== baseCurrency) {
-          // AUTO-HEALING: Desactivamos multiplicador
-          // const rate = await this.getExchangeRate(currencyCode);
-          // Los valores fijos y fijos definidos están definidos en moneda base
-          // if (type === 'FIXED_AMOUNT' || type === 'FIXED_PRICE') {
-          //     value = value * rate;
-          // }
+          if (type === 'FIXED_AMOUNT' || type === 'FIXED_PRICE') {
+              const rate = await this.getExchangeRate(currencyCode);
+              value = value * rate;
+          }
       }
 
       let amount = 0;
@@ -410,7 +430,6 @@ class DiscountService {
       if (type === 'PERCENTAGE') {
           amount = subtotal * (value / 100);
       } else if (type === 'FIXED_AMOUNT') {
-          // Si es applyPerUnit, se multiplica por la cantidad de items matcheados
           if (action.applyPerUnit) {
                const totalUnits = matchedItems.reduce((acc, i) => acc + Number(i.quantity), 0);
                amount = value * totalUnits;
@@ -418,10 +437,8 @@ class DiscountService {
                amount = value;
           }
           
-          // Cap a subtotal
           if (amount > subtotal) amount = subtotal;
       } else if (type === 'FIXED_PRICE') {
-          // Fija el precio unitario a X. Descuentos es (PrecioReal - PrecioFijo) * ctd
           matchedItems.forEach(i => {
               const currentPrice = parseFloat(i.unitPrice);
               if (currentPrice > value) {
@@ -431,6 +448,11 @@ class DiscountService {
       }
 
       return amount;
+  }
+
+  async getExchangeRate(currencyCode) {
+      const currency = await prisma.currency.findUnique({ where: { code: currencyCode } });
+      return (currency && currency.isActive) ? parseFloat(currency.exchangeRateToBase.toString()) : 1;
   }
 }
 

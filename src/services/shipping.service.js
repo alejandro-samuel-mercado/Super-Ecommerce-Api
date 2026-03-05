@@ -53,6 +53,7 @@ class ShippingService {
     const stringMatch = sortedZones.find(z => {
         if (z.city && addressString.includes(z.city.toLowerCase())) return true;
         if (z.province && addressString.includes(z.province.toLowerCase())) return true;
+        if (z.country && addressString.includes(z.country.toLowerCase())) return true;
         return false;
     });
 
@@ -84,17 +85,12 @@ class ShippingService {
   }
 
   async getDefaultCost() {
-      // Fallback por defecto si no hay reglas configuradas: costo base
-      // Verificar si hay una zona 'General' o nula
       const defaultZone = await prisma.shippingZone.findFirst({
           where: {
               active: true,
               city: null,
               province: null,
-              OR: [
-                  { country: null },
-                  { country: 'Argentina' }
-              ]
+              country: null
           }
       });
       return defaultZone ? parseFloat(defaultZone.cost) : 1000;

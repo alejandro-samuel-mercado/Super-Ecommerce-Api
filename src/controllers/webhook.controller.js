@@ -40,7 +40,7 @@ class WebhookController {
         } catch (error) {
             console.error(`[Webhook] Error processing ${gatewaySlug}:`, error);
           
-            return res.status(500).json({ error: error.message });
+            return res.status(200).json({ received: true, error: 'Processing failed' });
         }
     }
 }

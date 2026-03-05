@@ -146,6 +146,8 @@ class InvoiceService {
 
         const currencySymbols = { 'ARS': '$', 'USD': 'USD ', 'UYU': '$U ', 'EUR': '€' };
         const symbol = sale.currency?.symbol || currencySymbols[sale.currencyCode] || '$';
+        const localeMap = { 'ARS': 'es-AR', 'UYU': 'es-UY', 'USD': 'en-US', 'EUR': 'en-US' };
+        const numLocale = localeMap[sale.currencyCode] || 'es-AR';
 
         sale.items.forEach((item, index) => {
             const itemHeight = doc.heightOfString(item.productName.toUpperCase(), { width: 230 }) + 10;
@@ -161,8 +163,8 @@ class InvoiceService {
                 .fillColor(darkGray)
                 .text(item.productName.toUpperCase(), itemX + 10, y + 5, { width: 230 })
                 .text(Number(item.quantity).toString(), qtyX, y + 5)
-                .text(`${symbol}${parseFloat(item.unitPrice).toLocaleString('es-AR')}`, priceX, y + 5, { width: 80, align: 'right' })
-                .text(`${symbol}${parseFloat(item.subtotal).toLocaleString('es-AR')}`, totalX, y + 5, { width: 85, align: 'right' });
+                .text(`${symbol}${parseFloat(item.unitPrice).toLocaleString(numLocale)}`, priceX, y + 5, { width: 80, align: 'right' })
+                .text(`${symbol}${parseFloat(item.subtotal).toLocaleString(numLocale)}`, totalX, y + 5, { width: 85, align: 'right' });
             
             doc
                 .moveTo(50, y + rowHeight)
@@ -188,34 +190,36 @@ class InvoiceService {
         
         // Subtotal
         doc.font('Helvetica-Bold').text('SUBTOTAL NETO:', sumX, y);
-        doc.font('Helvetica').text(`${symbol}${parseFloat(sale.subtotal).toLocaleString('es-AR')}`, sumValX, y, { width: 85, align: 'right' });
+        doc.font('Helvetica').text(`${symbol}${parseFloat(sale.subtotal).toLocaleString(numLocale)}`, sumValX, y, { width: 85, align: 'right' });
         y += 18;
 
         // IVA
         const taxRate = config?.taxRate ? Number(config.taxRate) : 21;
-        doc.font('Helvetica-Bold').text(`IVA (${taxRate}%):`, sumX, y);
-        doc.font('Helvetica').text(`${symbol}${parseFloat(sale.taxAmount || sale.tax || 0).toLocaleString('es-AR')}`, sumValX, y, { width: 85, align: 'right' });
+        const taxVal = parseFloat(sale.taxAmount || sale.tax || 0);
+        const taxLabel = taxVal > 0 ? `IVA (${taxRate}%):` : `IVA (0% - EXENTO):`;
+        doc.font('Helvetica-Bold').text(taxLabel, sumX, y);
+        doc.font('Helvetica').text(`${symbol}${taxVal.toLocaleString(numLocale)}`, sumValX, y, { width: 85, align: 'right' });
         y += 18;
 
         // Envío
         const shippingVal = parseFloat(sale.shippingCost || sale.shipping || 0);
         if (shippingVal > 0) {
             doc.font('Helvetica-Bold').text('COSTO ENVÍO:', sumX, y);
-            doc.font('Helvetica').text(`${symbol}${shippingVal.toLocaleString('es-AR')}`, sumValX, y, { width: 85, align: 'right' });
+            doc.font('Helvetica').text(`${symbol}${shippingVal.toLocaleString(numLocale)}`, sumValX, y, { width: 85, align: 'right' });
             y += 18;
         }
 
         // Descuentos
         if (parseFloat(sale.discount) > 0) {
             doc.fillColor(brandCoral).font('Helvetica-Bold').text('DESCUENTOS:', sumX, y);
-            doc.text(`-${symbol}${parseFloat(sale.discount).toLocaleString('es-AR')}`, sumValX, y, { width: 85, align: 'right' });
+            doc.text(`-${symbol}${parseFloat(sale.discount).toLocaleString(numLocale)}`, sumValX, y, { width: 85, align: 'right' });
             y += 18;
         }
 
         const ptsDiscount = parseFloat(sale.pointsDiscount || 0);
         if (ptsDiscount > 0) {
             doc.fillColor(brandCoral).font('Helvetica-Bold').text('DESC. PUNTOS:', sumX, y);
-            doc.text(`-${symbol}${ptsDiscount.toLocaleString('es-AR')}`, sumValX, y, { width: 85, align: 'right' });
+            doc.text(`-${symbol}${ptsDiscount.toLocaleString(numLocale)}`, sumValX, y, { width: 85, align: 'right' });
             y += 18;
         }
 
@@ -225,7 +229,7 @@ class InvoiceService {
             .rect(sumX - 10, y - 5, 210, 45)
             .fill(brandCoral);
         
-        const totalStr = `${symbol}${parseFloat(sale.total).toLocaleString('es-AR')}`;
+        const totalStr = `${symbol}${parseFloat(sale.total).toLocaleString(numLocale)}`;
         const totalFontSize = totalStr.length > 12 ? 14 : 18;
 
         doc

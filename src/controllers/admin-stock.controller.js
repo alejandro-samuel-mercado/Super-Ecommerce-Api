@@ -75,33 +75,55 @@ class AdminStockController {
       const skus = await prisma.sKU.findMany({
         include: {
           product: true,
+          branchInventory: {
+            include: { branch: { select: { name: true } } }
+          },
           reservations: {
-            where: { released: false },
+            where: { released: false, expiresAt: { gt: new Date() } },
           },
         },
       });
 
       const issues = [];
+      const now = new Date();
 
       for (const sku of skus) {
         const totalReserved = sku.reservations.reduce(
           (sum, r) => sum + Number(r.quantity),
           0,
         );
-        const availableStock = Number(sku.stock) - totalReserved;
 
         if (Number(sku.stock) < 0) {
           issues.push({
-            type: "NEGATIVE_STOCK",
+            type: "NEGATIVE_GLOBAL_STOCK",
             severity: "CRITICAL",
             skuId: sku.id,
             skuCode: sku.code,
             productName: sku.product.name,
             stock: sku.stock,
-            message: `SKU tiene stock negativo: ${sku.stock}`,
+            message: `SKU tiene stock global negativo: ${sku.stock}`,
           });
         }
 
+        for (const inv of sku.branchInventory) {
+          const branchStock = Number(inv.stock);
+          
+          if (branchStock < 0) {
+            issues.push({
+              type: "NEGATIVE_BRANCH_STOCK",
+              severity: "HIGH",
+              skuId: sku.id,
+              skuCode: sku.code,
+              productName: sku.product.name,
+              branchId: inv.branchId,
+              branchName: inv.branch.name,
+              stock: inv.stock,
+              message: `Stock negativo en sucursal "${inv.branch.name}": ${inv.stock}`,
+            });
+          }
+        }
+
+        const availableStock = Number(sku.stock) - totalReserved;
         if (availableStock < 0) {
           issues.push({
             type: "OVER_RESERVED",
@@ -112,19 +134,7 @@ class AdminStockController {
             stock: sku.stock,
             totalReserved: totalReserved,
             availableStock: availableStock,
-            message: `Stock sobre-reservado. Stock: ${sku.stock}, Reservado: ${totalReserved}, Disponible: ${availableStock}`,
-          });
-        }
-
-        if (Number(sku.stock) === 0 && totalReserved > 0) {
-          issues.push({
-            type: "ZERO_STOCK_WITH_RESERVATIONS",
-            severity: "MEDIUM",
-            skuId: sku.id,
-            skuCode: sku.code,
-            productName: sku.product.name,
-            totalReserved: totalReserved,
-            message: `SKU sin stock pero tiene ${totalReserved} unidades reservadas`,
+            message: `Stock sobre-reservado globalmente. Stock: ${sku.stock}, Reservado: ${totalReserved}, Disponible: ${availableStock}`,
           });
         }
       }

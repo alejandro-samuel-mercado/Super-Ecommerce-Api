@@ -42,74 +42,17 @@ class MercadoPagoStrategy extends PaymentStrategy {
             return Number(amount) / exchangeRate;
         };
 
-        // 1. Items
-        if (sale.items && sale.items.length > 0) {
-            sale.items.forEach(item => {
-                items.push({
-                    id: String(item.skuId || item.id),
-                    title: item.productName || item.skuCode || `Producto #${item.skuId}`,
-                    quantity: parseInt(item.quantity),
-                    unit_price: parseFloat(convertToTarget(item.unitPrice).toFixed(2)),
-                    currency_id: baseCurrency
-                });
-            });
-        } else {
-            items.push({
-                id: String(sale.id),
-                title: `Orden #${sale.uuid || sale.id}`,
-                quantity: 1,
-                unit_price: convertToTarget(sale.subtotal || sale.total),
-                currency_id: baseCurrency
-            });
-        }
+        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency) 
+              ? Number(sale.totalInBaseCurrency) 
+              : convertToTarget(sale.total);
 
-        // 2. Discounts (Promotional)
-        const totalDiscount = Number(sale.discount || 0);
-        if (totalDiscount > 0) {
-            items.push({
-                id: 'discount',
-                title: 'Descuentos Aplicados',
-                quantity: 1,
-                unit_price: -convertToTarget(totalDiscount),
-                currency_id: baseCurrency
-            });
-        }
-
-        // 2.5 Points Discount
-        const pointsDiscount = Number(sale.pointsDiscount || 0);
-        if (pointsDiscount > 0) {
-            items.push({
-                id: 'points_discount',
-                title: 'Descuento por Puntos',
-                quantity: 1,
-                unit_price: -convertToTarget(pointsDiscount),
-                currency_id: baseCurrency
-            });
-        }
-
-        // 3. Shipping
-        const shipping = Number(sale.shippingCost || 0);
-        if (shipping > 0) {
-            items.push({
-                id: 'shipping',
-                title: 'Costo de Envío',
-                quantity: 1,
-                unit_price: convertToTarget(shipping),
-                currency_id: baseCurrency
-            });
-        }
-
-        // 4. Tax
-        const tax = Number(sale.taxAmount || sale.tax || 0);
-        if (tax > 0) {
-            items.push({
-                id: 'tax',
-                title: 'Impuestos',
-                quantity: 1,
-                unit_price: convertToTarget(tax),
-                currency_id: baseCurrency
-            });
-        }
+        items.push({
+            id: String(sale.id),
+            title: `Orden #${sale.uuid || sale.id}`,
+            quantity: 1,
+            unit_price: parseFloat(targetTotal.toFixed(2)),
+            currency_id: baseCurrency
+        });
 
         const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
         const preferenceBody = {
@@ -126,19 +69,6 @@ class MercadoPagoStrategy extends PaymentStrategy {
             },
             statement_descriptor: storeName.substring(0, 22)
         };
-
-        // Validate Totals
-        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency) 
-              ? Number(sale.totalInBaseCurrency) 
-              : convertToTarget(sale.total);
-              
-        const sumOfItems = items.reduce((sum, i) => sum + (i.unit_price * i.quantity), 0);
-          
-        if (Math.abs(sumOfItems - targetTotal) > 0.1) {
-             console.warn(`⚠️ Multi-item sum discrepancy (${sumOfItems} vs ${targetTotal}). Adjusting last item.`);
-             const diff = targetTotal - sumOfItems;
-             items[items.length - 1].unit_price += (diff / items[items.length - 1].quantity);
-        }
 
         try {
             const result = await preference.create({ body: preferenceBody });

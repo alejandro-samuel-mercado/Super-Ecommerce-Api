@@ -355,6 +355,7 @@ enum DeliveryStatus {
   SHIPPED
   DELIVERED
   CANCELLED
+  REQUIRES_ACTION
 }
 
 model Sale {
@@ -427,6 +428,7 @@ model SaleItem {
   quantity        Decimal @db.Decimal(10, 3) 
   subtotal        Decimal @db.Decimal(10, 2)
   subtotalInBaseCurrency Decimal? @db.Decimal(10, 2)
+  unitCostBase    Decimal? @db.Decimal(10, 2)
   
   measurementUnit String? @default("UNIDAD") 
   

@@ -77,13 +77,18 @@ class PriceService {
     let scalingRatio = 1.0;
 
     if (manualPrice) {
-      // Si hay precio manual, calculamos el ratio basado en el basePrice del producto
       const basePrice = parseFloat(sku.product.basePrice.toString());
       if (basePrice > 0) {
         scalingRatio = parseFloat(manualPrice.price.toString()) / basePrice;
+      } else {
+        const currency = await prisma.currency.findUnique({
+          where: { code: currencyCode }
+        });
+        if (currency && currency.isActive) {
+          scalingRatio = parseFloat(currency.exchangeRateToBase.toString());
+        }
       }
     } else if (currencyCode !== baseCurrency) {
-      // Si no hay precio manual y no es moneda base, usamos el exchange rate
       const currency = await prisma.currency.findUnique({
         where: { code: currencyCode }
       });
@@ -135,6 +140,8 @@ class PriceService {
            const basePrice = parseFloat(sku.product.basePrice.toString());
            if (basePrice > 0) {
                scalingRatio = manualPrice / basePrice;
+           } else if (currencyCode !== baseCurrency) {
+               scalingRatio = exchangeRatio;
            }
        } else if (currencyCode !== baseCurrency) {
            scalingRatio = exchangeRatio;

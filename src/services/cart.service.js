@@ -42,6 +42,7 @@ class CartService {
             
             cart.items = cart.items.map(item => ({
                 ...item,
+                convertedPrice: pricesMap[item.skuId] || null,
                 sku: {
                     ...item.sku,
                     price: pricesMap[item.skuId] || item.sku.price
@@ -63,6 +64,16 @@ class CartService {
         const skuIdInt = parseInt(skuId);
         const qty = parseFloat(quantity);
         if (!qty || qty <= 0) throw new Error('Cantidad inválida');
+
+        const skuExists = await prisma.sKU.findUnique({ 
+            where: { id: skuIdInt }, 
+            include: { product: { select: { measurementUnit: true } } } 
+        });
+        if (!skuExists) throw new Error('El producto no fue encontrado');
+        
+        if (skuExists.product?.measurementUnit === 'UNIDAD' && !Number.isInteger(qty)) {
+            throw new Error(`Cantidad fraccionaria no permitida para venta por unidad`);
+        }
 
         // Validar si el item existe en el carrito
         const existingItem = await prisma.cartItem.findUnique({
@@ -152,6 +163,7 @@ class CartService {
      */
     async mergeCart(userId, localItems, currencyCode) {
         const PriceService = require('./price.service');
+        const stockAdjustments = [];
         
         if (userId) {
             const cart = await this.getCart(userId);
@@ -169,7 +181,7 @@ class CartService {
                          }
                      },
                      update: {
-                         quantity: qty
+                         quantity: { increment: qty }
                      },
                      create: {
                          cartId: cart.id,
@@ -178,7 +190,54 @@ class CartService {
                      }
                  });
             }
-            return await this.getCart(userId, currencyCode);
+
+            const updatedCart = await prisma.cart.findUnique({
+                where: { userId: parseInt(userId) },
+                include: {
+                    items: {
+                        include: {
+                            sku: {
+                                include: {
+                                    product: true,
+                                    variantOptions: true,
+                                    branchInventory: { take: 1 }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (updatedCart) {
+                for (const cartItem of updatedCart.items) {
+                    const stock = cartItem.sku.branchInventory?.[0]?.stock;
+                    const currentQty = parseFloat(cartItem.quantity.toString());
+                    
+                    if (stock !== undefined && stock !== null && currentQty > Number(stock)) {
+                        const cappedQty = Math.max(Number(stock), 0);
+                        
+                        if (cappedQty <= 0) {
+                            await prisma.cartItem.delete({ where: { id: cartItem.id } });
+                        } else {
+                            await prisma.cartItem.update({
+                                where: { id: cartItem.id },
+                                data: { quantity: cappedQty }
+                            });
+                        }
+                        
+                        stockAdjustments.push({
+                            skuId: cartItem.skuId,
+                            productName: cartItem.sku.product?.name || 'Producto',
+                            requestedQty: currentQty,
+                            availableStock: Number(stock),
+                            adjustedQty: cappedQty
+                        });
+                    }
+                }
+            }
+
+            const finalCart = await this.getCart(userId, currencyCode);
+            return { ...finalCart, stockAdjustments };
         } else {
             const items = [];
             for (const item of localItems) {
@@ -189,6 +248,9 @@ class CartService {
                 });
                 
                 if (sku) {
+                    const qty = parseFloat(item.quantity);
+                    if (sku.product?.measurementUnit === 'UNIDAD' && !Number.isInteger(qty)) { continue; }
+                    
                     const price = await PriceService.getSkuPrice(skuIdInt, currencyCode);
                     items.push({
                         skuId: skuIdInt,
@@ -197,7 +259,7 @@ class CartService {
                     });
                 }
             }
-            return { items };
+            return { items, stockAdjustments };
         }
     }
     

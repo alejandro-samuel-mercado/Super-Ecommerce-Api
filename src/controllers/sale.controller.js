@@ -59,7 +59,20 @@ class SaleController {
 
 
 
-      const branchId = req.headers['x-branch-id'] || req.body.branchId;
+      let branchId = req.headers['x-branch-id'] || req.body.branchId;
+      if (roleName === 'EMPLOYEE') {
+          const userProfile = await require('../services/user.service').getProfile(loggedUserId);
+          if (userProfile && userProfile.branchId) {
+              branchId = userProfile.branchId;
+          }
+      } else if (roleName === 'ADMIN') {
+          const adminBranches = await require('../config/prisma').userBranch.findMany({ where: { userId: loggedUserId } });
+          const allowedBranchIds = adminBranches.map(b => b.branchId);
+          if (allowedBranchIds.length > 0 && (!branchId || !allowedBranchIds.includes(parseInt(branchId)))) {
+              branchId = allowedBranchIds[0];
+          }
+      }
+
       const currency = await CurrencyService.getCurrencyByContext(req);
       const customerIpCountry = (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase();
       const saleData = { ...req.body, employeeId, pointsToUse: req.body.pointsToUse || 0, branchId, currency, customerIpCountry };
@@ -67,7 +80,7 @@ class SaleController {
       // VERIFICACIÓN DE IDEMPOTENCIA (Lógica)
       // Evitar órdenes por doble clic. Verificar si el mismo usuario creó el mismo pedido (total) en los últimos 30 segundos.
       if (targetUserId) {
-          const recentSale = await SaleService.findRecentDuplicate(targetUserId, saleData.items);
+          const recentSale = await SaleService.findRecentDuplicate(targetUserId, saleData.items, currency);
           if (recentSale) {
               return res.status(200).json({ 
                   success: true, 
@@ -110,11 +123,33 @@ class SaleController {
 
   async getAll(req, res, next) {
     try {
-        const branchId = req.query.branchId || req.headers['x-branch-id'];
+        let branchId = req.query.branchId || req.headers['x-branch-id'];
+        let branchIds = null;
+        const roleName = req.user.role.name || req.user.role;
+        
+        if (roleName === 'EMPLOYEE') {
+             const userProfile = await require('../services/user.service').getProfile(req.user.id);
+             if (userProfile && userProfile.branchId) {
+                 branchId = userProfile.branchId;
+             }
+        } else if (roleName === 'ADMIN') {
+             const adminBranches = await require('../config/prisma').userBranch.findMany({ where: { userId: req.user.id } });
+             const allowedBranchIds = adminBranches.map(b => b.branchId);
+             
+             if (branchId) {
+                 if (!allowedBranchIds.includes(parseInt(branchId))) {
+                     branchId = allowedBranchIds.length > 0 ? allowedBranchIds[0] : null;
+                 }
+             } else {
+                 branchIds = allowedBranchIds;
+             }
+        }
+
         const { paymentStatus, isAbandoned, isCancelled } = req.query;
         
         const sales = await SaleService.getAllSales({ 
-            branchId, 
+            branchId,
+            branchIds,
             paymentStatus, 
             isAbandoned,
             isCancelled

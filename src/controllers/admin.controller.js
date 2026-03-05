@@ -8,8 +8,28 @@ class AdminController {
 
   async getStats(req, res, next) {
       try {
-          const { timeRange, branchId } = req.query;
-          const stats = await AdminSaleService.getDashboardStats(timeRange, branchId ? parseInt(branchId) : null);
+          let { timeRange, branchId } = req.query;
+          let branchIds = null;
+          const roleName = req.user.role.name || req.user.role;
+
+          if (roleName === 'EMPLOYEE') {
+              const userProfile = await require('../services/user.service').getProfile(req.user.id);
+              if (userProfile && userProfile.branchId) {
+                  branchId = userProfile.branchId;
+              }
+          } else if (roleName === 'ADMIN') {
+              const adminBranches = await require('../config/prisma').userBranch.findMany({ where: { userId: req.user.id } });
+              const allowedBranchIds = adminBranches.map(b => b.branchId);
+              if (branchId) {
+                  if (!allowedBranchIds.includes(parseInt(branchId))) {
+                      branchId = allowedBranchIds.length > 0 ? allowedBranchIds[0] : null;
+                  }
+              } else {
+                  branchIds = allowedBranchIds;
+              }
+          }
+
+          const stats = await AdminSaleService.getDashboardStats(timeRange, branchId ? parseInt(branchId) : null, branchIds);
           res.json({
               success: true,
               data: stats

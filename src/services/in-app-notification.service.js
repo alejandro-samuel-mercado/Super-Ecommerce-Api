@@ -36,10 +36,7 @@ class InAppNotificationService {
       take: limit
     });
 
-    // 2. Disparar verificaciones inteligentes (fire and forget o await si es crítico)
-    // Esperamos aquí para asegurar datos frescos al usuario
-    await this.checkStockAlerts(userId);
-  
+    this.checkStockAlerts(userId).catch(() => {});
 
     return notifications;
   }
@@ -117,6 +114,11 @@ class InAppNotificationService {
       if (notificationId === 'all') {
           await prisma.notification.updateMany({
               where: { userId, read: false },
+              data: { read: true }
+          });
+      } else {
+          await prisma.notification.updateMany({
+              where: { id: parseInt(notificationId), userId },
               data: { read: true }
           });
       }
