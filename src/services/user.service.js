@@ -1,3 +1,4 @@
+const prisma = require('../config/prisma');
 const AuthUtils = require('../utils/auth.utils');
 const AuditService = require('./audit.service');
 

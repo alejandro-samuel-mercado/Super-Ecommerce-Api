@@ -53,7 +53,11 @@ class InAppNotificationService {
          select: {
             favorites: {
                 include: {
-                    skus: true
+                    skus: {
+                        include: {
+                            branchInventory: true
+                        }
+                    }
                 }
             }
          }
@@ -62,10 +66,13 @@ class InAppNotificationService {
        if (!favorites || !favorites.favorites) return;
 
        for (const product of favorites.favorites) {
-           // Verificar stock total del producto (suma de skus)
-           const totalStock = product.skus.reduce((acc, sku) => acc + parseFloat(sku.stock || 0), 0);
+           // Verificar stock total del producto iterando por skus y sumando de branchInventory 
+           const totalStock = product.skus.reduce((acc, sku) => {
+               const skuStock = sku.branchInventory?.reduce((invAcc, inv) => invAcc + Number(inv.stock || 0), 0) || 0;
+               return acc + skuStock;
+           }, 0);
            
-           if (totalStock === 0) {
+           if (totalStock <= 0) {
                // Alerta de stock agotado
                await this._createUniqueSystemNotification(
                    userId,

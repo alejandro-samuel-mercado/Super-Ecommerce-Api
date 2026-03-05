@@ -27,7 +27,7 @@ app.use(helmet());
 app.use(cors({
   origin: ['https://superx-ecommerce.unixxtech.online','https://superx-ecommerce-admin.unixxtech.online',"https://super-ecommerce-administrador.vercel.app",'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'],
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-branch-id', 'x-idempotency-key', 'x-silence-toast']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-branch-id', 'x-currency', 'x-idempotency-key', 'x-silence-toast']
 }));
 
 // 3. Logger: Registra peticiones en consola (formato 'dev' para colores y tiempos)
@@ -94,7 +94,6 @@ app.use('/api/sales', checkMaintenanceMode, saleRoutes);
 const notificationRoutes = require('./routes/notification.routes');
 const paymentRoutes = require('./routes/payment.routes');
 
-// ...
 
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/payments', checkMaintenanceMode, paymentRoutes);
