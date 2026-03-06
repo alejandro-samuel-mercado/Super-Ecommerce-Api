@@ -743,6 +743,16 @@ class SaleService {
             coupon: true
             }
         });
+        
+        // Limpiar carrito en la DB para este usuario
+        if (userId) {
+            try {
+                const CartService = require('./cart.service');
+                await CartService.clearCart(userId);
+            } catch (cartError) {
+                console.error('[SaleService] Error clearing cart after sale:', cartError.message);
+            }
+        }
       } catch (e) {
           console.error('[SaleService] ERROR CREATING SALE:', e);
           throw e; 
