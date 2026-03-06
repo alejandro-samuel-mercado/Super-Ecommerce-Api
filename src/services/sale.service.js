@@ -47,8 +47,322 @@ class SaleService {
       return null;
   }
 
+  async previewSale(saleData, userId) {
+    const { items, couponCode, paymentType, deliveryType: inputDeliveryType, deliveryMethod, deliveryAddress, customer, employeeId, manualDiscount, pointsToUse, shippingCost: inputShippingCost, branchId, currency: requestedCurrency, address } = saleData;
+
+    const aggregatedItemsMap = new Map();
+    items.forEach(item => {
+        if (!item.skuId) return;
+        const sid = String(item.skuId);
+        const rawQty = item.quantity ?? item.qty ?? 0;
+        const qty = parseFloat(String(rawQty));
+        aggregatedItemsMap.set(sid, (aggregatedItemsMap.get(sid) || 0) + qty);
+    });
+    const aggregatedItems = Array.from(aggregatedItemsMap.entries()).map(([skuId, quantity]) => ({ skuId, quantity }));
+    const skuIds = Array.from(aggregatedItemsMap.keys()).map(id => parseInt(id));
+    
+    const [config, activeEvent, allSkus, allInventory, allReservations, branches, allCurrencies] = await Promise.all([
+        prisma.storeConfig.findFirst({ where: { id: 1 } }),
+        EventService.getActiveEvent(),
+        prisma.sKU.findMany({ 
+            where: { id: { in: skuIds } },
+            include: { 
+                variantOptions: true,
+                product: { include: { category: true } }
+            }
+        }),
+        prisma.branchInventory.findMany({ 
+            where: { skuId: { in: skuIds }, isActive: true } 
+        }),
+        prisma.stockReservation.groupBy({
+            by: ['skuId', 'branchInventoryId'],
+            where: { 
+                skuId: { in: skuIds }, 
+                released: false,
+                expiresAt: { gt: new Date() } 
+            },
+            _sum: { quantity: true }
+        }),
+        prisma.branch.findMany({ where: { isActive: true } }),
+        prisma.currency.findMany()
+    ]);
+
+    const baseCurrencyCode = config?.baseCurrency || 'USD';
+    const activeCurrencyCode = requestedCurrency || baseCurrencyCode;
+    const currency = allCurrencies.find(c => c.code === activeCurrencyCode);
+
+    if (!currency || !currency.isActive) throw new Error(`La moneda seleccionada no está activa o no fue encontrada.`);
+    const exchangeRateAtPurchase = parseFloat(currency.exchangeRateToBase.toString());
+
+    let user = null;
+    if (userId) {
+        user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+    }
+
+    const deliveryType = inputDeliveryType || (deliveryMethod === 'pickup' ? 'PICKUP' : deliveryMethod === 'shipping' ? 'DELIVERY' : deliveryMethod);
+    let activeBranchId = Number(branchId);
+    let aggregateStock = !(activeBranchId > 0);
+
+    if (!aggregateStock) {
+        const branchExists = branches.find(b => b.id === activeBranchId);
+        if (!branchExists) throw new Error(`La sucursal con ID ${activeBranchId} no existe.`);
+    }
+
+    if (!items || items.length === 0) throw new Error('El carrito no puede estar vacío');
+    const isPOS = !!employeeId;
+
+    const skuPrices = await PriceService.getMultipleSkuPrices(skuIds, activeCurrencyCode);
+
+    const supplierSkus = await prisma.supplierSKU.findMany({
+        where: { skuId: { in: skuIds } },
+        orderBy: { updatedAt: 'desc' }
+    });
+
+    console.log(`[PREVIEW_SALE] Previewing ${aggregatedItems.length} items for user ${userId || 'Guest'}`);
+
+    const latestSupplierSkus = new Map();
+    supplierSkus.forEach(ss => {
+        if (!latestSupplierSkus.has(ss.skuId)) latestSupplierSkus.set(ss.skuId, ss);
+    });
+
+    let subtotal = 0;
+    let totalPointsEarned = 0;
+    const saleItemsData = [];
+    const enrichedItems = [];
+    const stockIssues = [];
+
+    const skusMap = new Map(allSkus.map(s => [s.id, s]));
+    const currencyMap = new Map(allCurrencies.map(c => [c.code, c]));
+
+    aggregatedItems.sort((a, b) => parseInt(a.skuId) - parseInt(b.skuId));
+
+    for (const item of aggregatedItems) {
+        const skuIdInt = parseInt(item.skuId);
+        const sku = skusMap.get(skuIdInt);
+        if (!sku) throw new Error(`SKU ${item.skuId} no encontrado`);
+        
+        const product = sku.product;
+        const itemQty = parseFloat((item.quantity || item.qty || 0).toString());
+
+        if (itemQty % 1 !== 0 && product.measurementUnit === 'UNIDAD') {
+            stockIssues.push({ skuId: skuIdInt, productName: product.name, requested: itemQty, available: Math.floor(itemQty), message: `Cantidad fraccionaria no permitida para venta por unidad (${product.name})` });
+        }
+
+        let inventory;
+        if (aggregateStock) {
+            const skuInventories = allInventory.filter(inv => inv.skuId === skuIdInt);
+            const totalStock = skuInventories.reduce((sum, inv) => sum + Number(inv.stock), 0);
+            const costPrice = skuInventories.length > 0 ? skuInventories[0].costPrice : 0;
+            inventory = { stock: totalStock, costPrice: costPrice, isActive: true };
+        } else {
+            inventory = allInventory.find(inv => inv.skuId === skuIdInt && inv.branchId === activeBranchId);
+        }
+
+        if (!inventory || !inventory.isActive) {
+            stockIssues.push({ skuId: sku.id, productName: product.name, requested: itemQty, available: 0, message: `Producto ${product.name} (${sku.code}) no está disponible en esta sucursal o no hay inventario.` });
+            inventory = { stock: 0, costPrice: 0, isActive: false };
+        }
+
+        let reservedQty = 0;
+        if (aggregateStock) {
+            reservedQty = allReservations.filter(r => r.skuId === skuIdInt).reduce((sum, r) => sum + Number(r._sum.quantity || 0), 0);
+        } else {
+            reservedQty = allReservations.filter(r => r.skuId === skuIdInt && r.branchInventoryId === inventory.id).reduce((sum, r) => sum + Number(r._sum.quantity || 0), 0);
+        }
+
+        const safetyBuffer = (!isPOS && config) ? Number(config.webSafetyStock) : 0;
+        const effectiveAvailableStock = Number(inventory.stock) - reservedQty - safetyBuffer;
+
+        if (effectiveAvailableStock < itemQty) {
+            stockIssues.push({ skuId: sku.id, productName: product.name, requested: itemQty, available: Math.max(0, effectiveAvailableStock), message: isPOS ? `Stock físico insuficiente para ${product.name}. Disponible: ${inventory.stock}` : `Stock insuficiente para ${product.name} (Online). Disponible para web: ${effectiveAvailableStock > 0 ? effectiveAvailableStock : 0}` });
+        }
+
+        const unitPrice = skuPrices[sku.id] || 0;
+        const itemTotal = unitPrice * itemQty;
+        subtotal += itemTotal;
+
+        const pointsEnabled = activeEvent ? activeEvent.pointsEnabled : (config?.enablePoints ?? true);
+        if (pointsEnabled) totalPointsEarned += (product.pointsReward || 0) * itemQty;
+
+        let unitCostBase = 0;
+        if (inventory.costPrice && Number(inventory.costPrice) > 0) {
+            unitCostBase = Number(inventory.costPrice);
+        } else {
+            const sSku = latestSupplierSkus.get(skuIdInt);
+            if (sSku) {
+                const rawCost = Number(sSku.basePurchasePrice);
+                const sCurrencyCode = sSku.currency || 'ARS';
+                if (sCurrencyCode === baseCurrencyCode) {
+                    unitCostBase = rawCost;
+                } else {
+                    const sCurrency = currencyMap.get(sCurrencyCode);
+                    if (sCurrency) {
+                        const rate = Number(sCurrency.exchangeRateToBase);
+                        unitCostBase = rate > 0 ? rawCost / rate : rawCost;
+                    } else {
+                        unitCostBase = rawCost;
+                    }
+                }
+            }
+        }
+
+        saleItemsData.push({
+            productName: product.name,
+            skuCode: sku.code,
+            unitPrice: unitPrice,
+            quantity: itemQty,
+            subtotal: itemTotal,
+            subtotalInBaseCurrency: itemTotal / exchangeRateAtPurchase,
+            unitCostBase: unitCostBase,
+            skuId: sku.id,
+            measurementUnit: product.measurementUnit,
+            variantOptions: sku.variantOptions
+        });
+
+        enrichedItems.push({ id: sku.id, quantity: itemQty, sku: { ...sku, product }, unitPrice, product });
+    }
+
+    let appliedDiscounts = [];
+    let autoDiscountAmount = 0;
+
+    if (user || enrichedItems.length > 0) {
+        const discountContext = { items: enrichedItems, user, paymentType, currencyCode: activeCurrencyCode };
+        const discountResult = await DiscountService.calculateDiscounts(discountContext);
+        appliedDiscounts = discountResult.appliedDiscounts || [];
+        autoDiscountAmount = discountResult.totalDiscountAmount || 0;
+    }
+
+    let totalDiscount = autoDiscountAmount;
+    let couponDiscount = 0;
+    let discountDetails = null;
+
+    if (couponCode) {
+        const couponsEnabled = activeEvent ? activeEvent.couponsEnabled : true;
+        if (couponsEnabled) {
+            const subtotalAfterAutoDiscounts = subtotal - autoDiscountAmount;
+            if (subtotalAfterAutoDiscounts > 0) {
+                const couponResult = await CouponService.validateCoupon(couponCode, subtotalAfterAutoDiscounts, activeCurrencyCode);
+                couponDiscount = couponResult.discountAmount;
+                totalDiscount += couponDiscount;
+                discountDetails = { code: couponResult.code, type: couponResult.type, value: couponResult.value, amount: couponDiscount };
+            }
+        }
+    }
+
+    if (manualDiscount && manualDiscount > 0) totalDiscount += manualDiscount;
+
+    let pointsDiscount = 0;
+    let pointsUsed = 0;
+    if (pointsToUse && pointsToUse > 0 && userId) {
+        const availablePoints = user ? user.points : 0;
+        if (pointsToUse > availablePoints) throw new Error(`No tienes suficientes puntos. Puntos disponibles: ${availablePoints}`);
+        const pointsValue = config?.moneyPerPoint || 0; 
+        pointsDiscount = pointsToUse * Number(pointsValue);
+        totalDiscount += pointsDiscount;
+        pointsUsed = pointsToUse;
+    }
+
+    totalDiscount = Math.min(totalDiscount, subtotal);
+    let total = Math.max(0, subtotal - totalDiscount);
+
+    const branchAvailability = [];
+    if (!isPOS) {
+        for (const branch of branches) {
+            let isAvailable = true;
+            let missingItems = [];
+            
+            for (const item of enrichedItems) {
+                const skuIdInt = item.id;
+                const itemQty = item.quantity;
+
+                const inventory = allInventory.find(inv => inv.skuId === skuIdInt && inv.branchId === branch.id);
+
+                if (!inventory) {
+                    isAvailable = false;
+                    missingItems.push({ productName: item.product.name, requested: itemQty, available: 0 });
+                    continue;
+                }
+
+                const reservedQty = allReservations.filter(r => r.skuId === skuIdInt && r.branchInventoryId === inventory.id).reduce((sum, r) => sum + Number(r._sum.quantity || 0), 0);
+                const safetyBufferLocal = config ? Number(config.webSafetyStock) : 0;
+                const effectiveAvailable = Number(inventory.stock) - reservedQty - safetyBufferLocal;
+
+                if (effectiveAvailable < itemQty) {
+                    isAvailable = false;
+                    missingItems.push({ productName: item.product.name, requested: itemQty, available: Math.max(0, effectiveAvailable) });
+                }
+            }
+            branchAvailability.push({ branchId: branch.id, isAvailable, missingItems });
+        }
+    }
+
+    let shippingCost = 0;
+    if (deliveryType === 'DELIVERY') {
+        if (address || deliveryAddress) {
+            const addressObj = address || { address: deliveryAddress, city: customer?.city, state: customer?.state, zip: customer?.zipCode };
+            try {
+                shippingCost = await ShippingService.calculateShippingCost(addressObj, deliveryType, activeCurrencyCode);
+                if (shippingCost <= 0) {
+                    shippingCost = await ShippingService.getDefaultCost();
+                    if (activeCurrencyCode !== baseCurrencyCode) shippingCost = shippingCost * exchangeRateAtPurchase;
+                }
+            } catch (e) {
+                console.error('Error calculating shipping in preview, falling back to default:', e.message);
+                shippingCost = await ShippingService.getDefaultCost();
+                if (activeCurrencyCode !== baseCurrencyCode) shippingCost = shippingCost * exchangeRateAtPurchase;
+            }
+        } else {
+            shippingCost = inputShippingCost || await ShippingService.getDefaultCost();
+            if (activeCurrencyCode !== baseCurrencyCode && !inputShippingCost) shippingCost = shippingCost * exchangeRateAtPurchase;
+        }
+        total += shippingCost;
+    } else if (deliveryType === 'PICKUP') {
+        shippingCost = 0; 
+    } else if (inputShippingCost !== undefined) {
+        shippingCost = inputShippingCost; 
+        total += shippingCost;
+    }
+
+    let tax = 0;
+    const taxesEnabled = activeEvent ? (activeEvent.taxesEnabled !== false) : true;
+    if (taxesEnabled && config && Number(config.taxRate) > 0) {
+        tax = (subtotal - totalDiscount) * (Number(config.taxRate) / 100);
+        const oldTotal = total;
+        total += tax;
+        console.log(`[PREVIEW_SALE] Tax Calculation: (${subtotal} - ${totalDiscount}) * ${config.taxRate}% = ${tax}. Total: ${oldTotal} -> ${total}`);
+    }
+
+    subtotal = parseFloat(subtotal.toFixed(2));
+    totalDiscount = parseFloat(totalDiscount.toFixed(2));
+    shippingCost = parseFloat(shippingCost.toFixed(2));
+    tax = parseFloat(tax.toFixed(2));
+    return {
+        subtotal,
+        discount: parseFloat(totalDiscount.toFixed(2)),
+        pointsDiscount,
+        shipping: shippingCost,
+        tax,
+        total,
+        paymentType: paymentType || (employeeId ? 'CASH' : 'MERCADO_PAGO'),
+        totalPointsEarned: parseFloat(totalPointsEarned.toFixed(2)),
+        pointsUsed,
+        appliedDiscounts,
+        discountDetails,
+        currencyCode: activeCurrencyCode,
+        exchangeRateAtPurchase,
+        items: saleItemsData,
+        deliveryType,
+        deliveryMethod,
+        branchId: activeBranchId,
+        aggregateStockUsed: aggregateStock,
+        branchAvailability,
+        stockIssues,
+        warnings: [] 
+    };
+  }
+
   async createSale(userId, saleData) {
-      const { items, couponCode, paymentType, paymentStatus, deliveryType: inputDeliveryType, deliveryMethod, deliveryAddress, customer, employeeId, manualDiscount, pointsToUse, shippingCost: inputShippingCost, branchId, currency: requestedCurrency } = saleData;
+      const { items, couponCode, paymentType, paymentStatus, deliveryType: inputDeliveryType, deliveryMethod, deliveryAddress, customer, employeeId, manualDiscount, pointsToUse, shippingCost: inputShippingCost, branchId, currency: requestedCurrency, address } = saleData;
 
       // 0. Determinar Moneda y Tipo de Cambio - FIJAR MOMENTO DE COMPRA
       const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
@@ -107,9 +421,16 @@ class SaleService {
         const stockValidations = [];
         const storeConfigCached = await tx.storeConfig.findFirst({ where: { id: 1 } }); 
 
-        items.sort((a, b) => parseInt(a.skuId) - parseInt(b.skuId));
+        const aggregatedItemsMap = new Map();
+        items.forEach(item => {
+            if (!item.skuId) return;
+            const sid = String(item.skuId);
+            const qty = parseFloat((item.quantity || item.qty || 0).toString());
+            aggregatedItemsMap.set(sid, (aggregatedItemsMap.get(sid) || 0) + qty);
+        });
+        const aggregatedItems = Array.from(aggregatedItemsMap.entries()).map(([skuId, quantity]) => ({ skuId, quantity }));
 
-        for (const item of items) {
+        for (const item of aggregatedItems) {
           const itemQty = parseFloat((item.quantity || item.qty || 0).toString());
           if (!itemQty || itemQty <= 0) throw new Error('Falta la cantidad del item o es inválida');
           
@@ -258,15 +579,16 @@ class SaleService {
       if (inputShippingCost !== undefined && inputShippingCost !== null) {
            shippingCost = parseFloat(inputShippingCost);
       } else if (storeConfig && storeConfig.enableShipping && deliveryType === 'DELIVERY') {
-            // Regla: Umbral de Envío Gratis (Convertir de base a moneda activa)
+            
             const thresholdBase = storeConfig.freeShippingThreshold ? Number(storeConfig.freeShippingThreshold) : 0;
             const thresholdConverted = thresholdBase * exchangeRateAtPurchase;
 
             if (thresholdConverted > 0 && subtotal >= thresholdConverted) {
                 shippingCost = 0;
             } else {
+               const addressObj = address || { address: deliveryAddress };
                try {
-                   shippingCost = await ShippingService.calculateShippingCost({ address: deliveryAddress }, deliveryType, activeCurrencyCode);
+                   shippingCost = await ShippingService.calculateShippingCost(addressObj, deliveryType, activeCurrencyCode);
                   
                    if (shippingCost <= 0) {
                        shippingCost = await ShippingService.getDefaultCost();
@@ -375,13 +697,15 @@ class SaleService {
       const taxEvent = await EventService.getActiveEvent();
       const taxesEnabled = taxEvent ? (taxEvent.taxesEnabled !== false) : true;
       
+      const subtotalNeto = Math.max(0, subtotal - totalDiscount - pointsDiscount);
+
       if (isLocal && taxesEnabled && storeConfig && Number(storeConfig.taxRate) > 0) {
-          tax = (subtotal - totalDiscount - pointsDiscount) * (Number(storeConfig.taxRate) / 100);
+          tax = subtotalNeto * (Number(storeConfig.taxRate) / 100);
       }
       
       tax = parseFloat(tax.toFixed(2));
 
-      const finalTotal = parseFloat((subtotal - totalDiscount - pointsDiscount + shippingCost + tax).toFixed(2));
+      const finalTotal = parseFloat((subtotalNeto + shippingCost + tax).toFixed(2));
 
       // Conversión a moneda base para consolidación contable
       const totalInBaseCurrency = parseFloat((finalTotal / exchangeRateAtPurchase).toFixed(2));
@@ -390,9 +714,9 @@ class SaleService {
 
       let sale;
       try {
-        if (couponData && couponCode) {
+        if (couponId && couponCode) {
             const CouponService = require('./coupon.service');
-            await CouponService.incrementCouponUsage(couponData.id, tx);
+            await CouponService.incrementCouponUsage(couponId, tx);
         }
         
         sale = await tx.sale.create({
@@ -404,7 +728,7 @@ class SaleService {
             total: finalTotal,
             branchId: activeBranchId,
             shippingCost,
-            appliedDiscounts: (appliedDiscounts && appliedDiscounts.length > 0) ? appliedDiscounts : undefined, 
+            appliedDiscounts: (appliedDiscounts && appliedDiscounts.length > 0) ? appliedDiscounts : null, 
             couponId,
             pointsUsed: pointsToRedeem,
             pointsDiscount: pointsDiscount,
@@ -630,165 +954,6 @@ class SaleService {
     return { ...sale, checkoutUrl, user, ticketNumber };
   }
 
-  async previewSale(saleData, userId) {
-      const { items, paymentType = 'CARD', couponCode, manualDiscount = 0, deliveryMethod: inputDeliveryMethod, deliveryType, branchId, currency: requestedCurrency } = saleData;
-
-      const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-      const activeCurrencyCode = requestedCurrency || (storeConfig?.baseCurrency || 'USD');
-      const deliveryMethod = inputDeliveryMethod || (deliveryType === 'PICKUP' ? 'pickup' : deliveryType === 'DELIVERY' ? 'shipping' : deliveryType);
-      let activeBranchId = Number(branchId);
-      if (!(activeBranchId > 0)) {
-          const defaultBranch = await prisma.branch.findFirst({ where: { isHeadquarters: true } }) 
-                         || await prisma.branch.findFirst();
-          if (!defaultBranch) throw new Error('No hay sucursales configuradas para previsualizar stock');
-          activeBranchId = defaultBranch.id;
-      }
-
-      const user = userId ? await prisma.user.findUnique({ where: { id: parseInt(userId) }, include: { role: true } }) : null;
-
-      if (!items || items.length === 0) return { subtotal: 0, discount: 0, shipping: 0, tax: 0, total: 0, hasStockError: false, stockIssues: [] };
-
-      const skuIdsInt = items.map(item => parseInt(item.skuId)).filter(id => !isNaN(id));
-      if (skuIdsInt.length === 0) return { subtotal: 0, discount: 0, shipping: 0, tax: 0, total: 0, hasStockError: false, stockIssues: [] };
-
-      const t1 = Date.now();
-  
-      const [skus, inventories, reservations, pricesMap] = await Promise.all([
-          prisma.sKU.findMany({ where: { id: { in: skuIdsInt } }, include: { product: true } }),
-          prisma.branchInventory.findMany({ where: { skuId: { in: skuIdsInt }, branchId: activeBranchId } }),
-          prisma.stockReservation.groupBy({
-              by: ['skuId'],
-              where: { skuId: { in: skuIdsInt }, released: false, expiresAt: { gt: new Date() }, NOT: { sale: { userId: userId ? parseInt(userId) : -1 } } },
-              _sum: { quantity: true }
-          }),
-          PriceService.getMultipleSkuPrices(skuIdsInt, activeCurrencyCode)
-      ]);
-      const skusMap = new Map(skus.map(s => [s.id, s]));
-      const invMap = new Map(inventories.map(inv => [inv.skuId, inv]));
-      const resMap = new Map(reservations.map(r => [r.skuId, r._sum.quantity || 0]));
-
-      let subtotal = 0;
-      const enrichedItems = [];
-      const stockIssues = [];
-      let hasStockError = false;
-
-      for (const item of items) {
-          const skuIdInt = parseInt(item.skuId);
-          const sku = skusMap.get(skuIdInt);
-          if (!sku) continue;
-
-          const itemQty = parseFloat((item.quantity || item.qty || 0).toString());
-          const inventory = invMap.get(skuIdInt);
-
-          if (!inventory || !inventory.isActive) {
-              hasStockError = true;
-              stockIssues.push({ skuId: sku.id, skuCode: sku.code, productName: sku.product.name, available: 0, requested: itemQty, reason: 'Not available in branch' });
-          } else {
-              const reservedQty = Number(resMap.get(skuIdInt) || 0);
-              const isEmployee = user && ['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'].includes(user.role?.name);
-              const safetyBuffer = (!isEmployee && storeConfig) ? Number(storeConfig.webSafetyStock) : 0;
-              
-              const availableForUser = isEmployee 
-                ? Number(inventory.stock) 
-                : Number(inventory.stock) - reservedQty - safetyBuffer;
-
-              if (availableForUser < itemQty) {
-                  hasStockError = true;
-                  stockIssues.push({ 
-                      skuId: sku.id, 
-                      skuCode: sku.code, 
-                      productName: sku.product.name, 
-                      available: availableForUser < 0 ? 0 : availableForUser, 
-                      requested: itemQty,
-                      isSafetyBuffer: !isEmployee && (inventory.stock - reservedQty) >= itemQty 
-                  });
-              }
-
-              const unitPrice = pricesMap[skuIdInt] || parseFloat(sku.price.toString());
-              subtotal += unitPrice * itemQty;
-              enrichedItems.push({ skuId: sku.id, id: sku.id, quantity: itemQty, sku: {...sku, product: sku.product}, unitPrice, product: sku.product, availableStock: availableForUser < 0 ? 0 : availableForUser, currencyCode: activeCurrencyCode });
-          }
-      }
-
-      const currency = await prisma.currency.findUnique({ where: { code: activeCurrencyCode } });
-      const rate = currency ? parseFloat(currency.exchangeRateToBase.toString()) : 1;
-
-      const { appliedDiscounts, totalDiscountAmount } = await DiscountService.calculateDiscounts({ items: enrichedItems, user, paymentType: paymentType || 'CARD', currencyCode: activeCurrencyCode });
-
-      let shipping = 0;
-      if (storeConfig && deliveryMethod === 'shipping') {
-          if (storeConfig.enableShipping) {
-              const thresholdBase = storeConfig.freeShippingThreshold ? Number(storeConfig.freeShippingThreshold) : 0;
-              const thresholdConverted = thresholdBase * rate;
-
-              if (thresholdConverted > 0 && subtotal >= thresholdConverted) {
-                  shipping = 0;
-              } else {
-                  shipping = await ShippingService.calculateShippingCost(
-                      saleData.deliveryAddress || saleData.address || null,
-                      deliveryMethod === 'shipping' ? 'SHIPPING' : 'LOCAL',
-                      activeCurrencyCode
-                  );
-                  if (shipping <= 0) {
-                      shipping = await ShippingService.getDefaultCost();
-                      if (activeCurrencyCode !== (storeConfig?.baseCurrency || 'USD')) {
-                          shipping = shipping * rate;
-                      }
-                  }
-              }
-          }
-      }
-
-      let pointsDiscount = 0;
-      const pointsToRedeem = parseInt(saleData.pointsToUse) || 0;
-       if (pointsToRedeem > 0 && storeConfig?.enablePointsRedemption) {
-          const moneyPerPointBase = storeConfig.moneyPerPoint ? parseFloat(storeConfig.moneyPerPoint.toString()) : 0;
-          pointsDiscount = pointsToRedeem * (moneyPerPointBase * rate);
-      }
-
-      const subtotalAfterDiscounts = subtotal - totalDiscountAmount;
-      let discount = 0;
-      let couponData = null;
-      if (couponCode) {
-          const activeEvent = await EventService.getActiveEvent();
-          const couponsEnabled = activeEvent ? activeEvent.couponsEnabled : true;
-          
-          if (couponsEnabled) {
-              try {
-                  const couponResult = await CouponService.validateCoupon(couponCode, subtotalAfterDiscounts, activeCurrencyCode);
-                  if (couponResult) {
-                      discount = couponResult.discountAmount;
-                      couponData = { code: couponResult.code, type: couponResult.type, value: couponResult.value, amount: couponResult.discountAmount };
-                  }
-              } catch (e) {
-                  couponData = { error: e.message };
-              }
-          }
-      }
-
-      let tax = 0;
-      const isLocal = CurrencyService.isLocalTransaction(saleData.customerIpCountry, storeConfig?.baseCurrency);
-      const previewEvent = await EventService.getActiveEvent();
-      const previewTaxesEnabled = previewEvent ? (previewEvent.taxesEnabled !== false) : true;
-      
-      const manualDiscountAmount = parseFloat(manualDiscount) || 0;
-      let totalDiscount = totalDiscountAmount + discount + manualDiscountAmount;
-      
-      if (totalDiscount + pointsDiscount > subtotal) {
-          totalDiscount = Math.min(totalDiscount, subtotal);
-          pointsDiscount = Math.max(0, subtotal - totalDiscount);
-      }
-      
-      if (isLocal && previewTaxesEnabled && storeConfig && Number(storeConfig.taxRate) > 0) {
-          tax = (subtotal - totalDiscount - pointsDiscount) * (Number(storeConfig.taxRate) / 100);
-      }
-      
-      tax = parseFloat(tax.toFixed(2));
-      const total = subtotal - totalDiscount + shipping + tax - pointsDiscount;
-
-      return { subtotal, discount: totalDiscountAmount + discount, pointsDiscount, shipping, tax, total: total < 0 ? 0 : total, hasStockError, stockIssues, items: enrichedItems, discountDetails: couponData, appliedDiscounts, currencyCode: activeCurrencyCode };
-  }
-
   async getSaleById(id, userId, role) {
       const sale = await prisma.sale.findUnique({
           where: { id: parseInt(id) },
@@ -809,8 +974,9 @@ class SaleService {
   }
 
   async getAllSales(params = {}) {
-      const { branchId, branchIds, paymentStatus, isAbandoned } = params;
+      const { branchId, branchIds, paymentStatus, isAbandoned, isPendingPayment, deliveryType, paymentType, deliveryStatus } = params;
       const where = {};
+      
       if (branchId) {
           where.branchId = parseInt(branchId);
       } else if (branchIds && branchIds.length > 0) {
@@ -821,23 +987,29 @@ class SaleService {
           where.paymentStatus = paymentStatus;
       }
 
+      if (deliveryType) where.deliveryType = deliveryType;
+      if (paymentType) where.paymentType = paymentType;
+      if (deliveryStatus) where.deliveryStatus = deliveryStatus;
+
       if (isAbandoned === 'true') {
-          // Asumimos como abandonadas (o en proceso de pago) las órdenes PENDING de pasarelas digitales
+          // Abandonadas Reales: PENDING y SIN mpPaymentId (nunca intentó pagar) y NO Efectivo/Transferencia
           where.paymentStatus = 'PENDING';
           where.paymentType = { notIn: ['CASH', 'TRANSFER'] };
+          where.mpPaymentId = null;
+      } else if (isPendingPayment === 'true') {
+          // Pendientes de Pago: 
+          // 1. PENDING + Efectivo/Transferencia
+          // 2. PENDING + Digital (pero con mpPaymentId generado, ej Rapipago)
+          where.paymentStatus = 'PENDING';
+          where.OR = [
+              { paymentType: { in: ['CASH', 'TRANSFER'] } },
+              { mpPaymentId: { not: null } }
+          ];
       } else if (params.isCancelled === 'true') {
           where.paymentStatus = { in: ['CANCELLED', 'REJECTED'] };
       } else if (isAbandoned === 'false') {
-          // Confirmadas: Pagadas/Completadas, o pendientes de abono en efectivo/transferencia
-          where.AND = [
-              { paymentStatus: { notIn: ['CANCELLED', 'REJECTED'] } },
-              {
-                  OR: [
-                     { paymentStatus: { not: 'PENDING' } },
-                     { paymentType: { in: ['CASH', 'TRANSFER'] } }
-                  ]
-              }
-          ];
+          // Confirmadas: Pagadas/Completadas
+          where.paymentStatus = 'PAID';
       }
 
       return await prisma.sale.findMany({

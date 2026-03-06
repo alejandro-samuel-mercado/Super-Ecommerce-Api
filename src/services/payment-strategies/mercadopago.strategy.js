@@ -32,7 +32,7 @@ class MercadoPagoStrategy extends PaymentStrategy {
         const isForeignCurrency = sale.currencyCode && sale.currencyCode !== baseCurrency;
         const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 
-        const prisma = require('../config/prisma');
+        const prisma = require('../../config/prisma');
         const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
         const storeName = storeConfig?.storeName || 'TIENDA ONLINE';
 
@@ -104,7 +104,7 @@ class MercadoPagoStrategy extends PaymentStrategy {
         
         const { query, body, headers } = req;
         
-        // --- Signature Validation ---
+      
         const webhookSecret = this.config?.webhookSecret || process.env.MP_WEBHOOK_SECRET;
         if (webhookSecret) {
             const xSignature = headers['x-signature'];
@@ -115,7 +115,7 @@ class MercadoPagoStrategy extends PaymentStrategy {
                 throw new Error('Invalid signature');
             }
 
-            // MP Signature format: ts=...,v1=...
+           
             const parts = xSignature.split(',');
             let ts = '';
             let v1 = '';

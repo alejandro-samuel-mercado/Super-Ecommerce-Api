@@ -9,7 +9,7 @@ class SaleController {
   async preview(req, res, next){
     try {
       // Calcular totales sin crear la venta
-      const { items, couponCode, deliveryMethod, pointsToUse, paymentType, manualDiscount } = req.body;
+      const { items, couponCode, deliveryMethod, pointsToUse, paymentType, manualDiscount, address } = req.body;
       
      
       if (!items || items.length === 0) {
@@ -30,13 +30,12 @@ class SaleController {
           paymentType,
           manualDiscount,
           currency,
+          address,
           customerIpCountry: (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase()
       }, userId);
 
-      res.json({
-        success: true,
-        data
-      });
+      res.json({ success: true, data });
+
     } catch (error) {
       next(error);
     }
@@ -147,14 +146,18 @@ class SaleController {
              }
         }
 
-        const { paymentStatus, isAbandoned, isCancelled } = req.query;
+        const { paymentStatus, isAbandoned, isPendingPayment, isCancelled, deliveryType, paymentType, deliveryStatus } = req.query;
         
         const sales = await SaleService.getAllSales({ 
             branchId,
             branchIds,
             paymentStatus, 
             isAbandoned,
-            isCancelled
+            isPendingPayment,
+            isCancelled,
+            deliveryType,
+            paymentType,
+            deliveryStatus
         }); 
         res.json({ success: true, data: sales });
     } catch (error) {
