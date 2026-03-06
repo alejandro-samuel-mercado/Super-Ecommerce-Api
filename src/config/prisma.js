@@ -39,7 +39,7 @@ const prisma = new PrismaClient({
 });
 
 prisma.$on('warn', (e) => {
-  console.warn('⚠️ [Prisma]', e.message);
+  console.warn('  [Prisma]', e.message);
 });
 
 prisma.$on('error', (e) => {

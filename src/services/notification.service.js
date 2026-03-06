@@ -78,7 +78,7 @@ class NotificationService {
       if (paymentType === 'MERCADO_PAGO' || paymentType === 'TRANSFER') {
           instructions = `
             <div style="margin-top: 20px; padding: 15px; background-color: #fef3c7; border-radius: 8px; border: 1px solid #fcd34d;">
-                <p style="margin: 0; font-weight: bold; color: #92400e;">⚠️ Instrucciones de Pago:</p>
+                <p style="margin: 0; font-weight: bold; color: #92400e;">  Instrucciones de Pago:</p>
                 <p style="margin: 5px 0 0 0; font-size: 14px; color: #b45309;">
                     Si elegiste Pago Fácil, Rapipago o Transferencia, recuerda que debes enviar el comprobante de pago para que procesemos tu envío.
                     <br><br>

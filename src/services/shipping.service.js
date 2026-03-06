@@ -6,8 +6,30 @@ class ShippingService {
    * Calcula el costo de envío basado en la dirección.
    * Soporta objeto { city, province, country } o string simple.
    */
-  async calculateShippingCost(addressData, deliveryType, currencyCode) {
+  async calculateShippingCost(addressData, deliveryType, currencyCode, subtotal) {
     if (deliveryType === 'LOCAL') return 0;
+
+    // Verificar envío gratuito por umbral
+    const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+    if (subtotal !== undefined && config?.freeShippingThreshold) {
+        const thresholdBase = Number(config.freeShippingThreshold);
+        let exchangeRate = 1;
+        
+        if (currencyCode) {
+            const baseCurrencyCode = config.baseCurrency || 'ARS';
+            if (currencyCode !== baseCurrencyCode) {
+                const currency = await prisma.currency.findUnique({ where: { code: currencyCode } });
+                if (currency && currency.isActive) {
+                    exchangeRate = parseFloat(currency.exchangeRateToBase.toString());
+                }
+            }
+        }
+        
+        const thresholdConverted = thresholdBase * exchangeRate;
+        if (thresholdConverted > 0 && subtotal >= thresholdConverted) {
+            return 0;
+        }
+    }
     
     // Normalizar entrada
     let city = null;

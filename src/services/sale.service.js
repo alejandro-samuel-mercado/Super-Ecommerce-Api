@@ -301,8 +301,8 @@ class SaleService {
         if (address || deliveryAddress) {
             const addressObj = address || { address: deliveryAddress, city: customer?.city, state: customer?.state, zip: customer?.zipCode };
             try {
-                shippingCost = await ShippingService.calculateShippingCost(addressObj, deliveryType, activeCurrencyCode);
-                if (shippingCost <= 0) {
+                shippingCost = await ShippingService.calculateShippingCost(addressObj, deliveryType, activeCurrencyCode, subtotal);
+                if (shippingCost < 0) { 
                     shippingCost = await ShippingService.getDefaultCost();
                     if (activeCurrencyCode !== baseCurrencyCode) shippingCost = shippingCost * exchangeRateAtPurchase;
                 }
@@ -579,31 +579,23 @@ class SaleService {
       if (inputShippingCost !== undefined && inputShippingCost !== null) {
            shippingCost = parseFloat(inputShippingCost);
       } else if (storeConfig && storeConfig.enableShipping && deliveryType === 'DELIVERY') {
-            
-            const thresholdBase = storeConfig.freeShippingThreshold ? Number(storeConfig.freeShippingThreshold) : 0;
-            const thresholdConverted = thresholdBase * exchangeRateAtPurchase;
-
-            if (thresholdConverted > 0 && subtotal >= thresholdConverted) {
-                shippingCost = 0;
-            } else {
-               const addressObj = address || { address: deliveryAddress };
-               try {
-                   shippingCost = await ShippingService.calculateShippingCost(addressObj, deliveryType, activeCurrencyCode);
-                  
-                   if (shippingCost <= 0) {
-                       shippingCost = await ShippingService.getDefaultCost();
-                       if (activeCurrencyCode !== baseCurrencyCode) {
-                           shippingCost = shippingCost * exchangeRateAtPurchase;
-                       }
-                   }
-               } catch (e) {
-                   console.error('Error calculating shipping, falling back to default:', e.message);
-                   shippingCost = await ShippingService.getDefaultCost();
+            const addressObj = address || { address: deliveryAddress };
+            try {
+                shippingCost = await ShippingService.calculateShippingCost(addressObj, deliveryType, activeCurrencyCode, subtotal);
+               
+                if (shippingCost <= 0 && shippingCost !== 0) {
+                    shippingCost = await ShippingService.getDefaultCost();
                     if (activeCurrencyCode !== baseCurrencyCode) {
                         shippingCost = shippingCost * exchangeRateAtPurchase;
                     }
-               }
-           }
+                }
+            } catch (e) {
+                console.error('Error calculating shipping, falling back to default:', e.message);
+                shippingCost = await ShippingService.getDefaultCost();
+                 if (activeCurrencyCode !== baseCurrencyCode) {
+                     shippingCost = shippingCost * exchangeRateAtPurchase;
+                 }
+            }
       }
 
       // 3. Usuario y Motor de Descuentos

@@ -10,7 +10,7 @@ async function createSuperAdmin() {
     /** Verificar si ya existe */
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
-      console.log(`⚠️ El usuario ${email} ya existe.`);
+      console.log(`  El usuario ${email} ya existe.`);
       return;
     }
 

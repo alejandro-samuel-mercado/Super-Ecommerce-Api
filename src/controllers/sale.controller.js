@@ -3,6 +3,7 @@ const SaleService = require('../services/sale.service');
 const InvoiceService = require('../services/invoice.service');
 const CurrencyService = require('../services/currency.service');
 const UploadService = require('../services/upload.service');
+const InAppNotificationService = require('../services/in-app-notification.service');
 
 class SaleController {
 
@@ -168,7 +169,7 @@ class SaleController {
   async getMySales(req, res, next) {
       try {
           const { includePending } = req.query;
-          const sales = await SaleService.getUserSales(req.user.id, includePending === 'true');
+          const sales = await SaleService.getUserSales(req.user.id, includePending !== 'false');
           res.json({ success: true, data: sales });
       } catch (error) {
           next(error);
@@ -244,7 +245,8 @@ class SaleController {
       }
 
       const sale = await prisma.sale.findUnique({
-        where: { id: parseInt(id) }
+        where: { id: parseInt(id) },
+        include: { user: true }
       });
 
       if (!sale) {
@@ -255,9 +257,13 @@ class SaleController {
         return res.status(403).json({ success: false, message: 'No tienes permiso para subir el comprobante de esta venta' });
       }
 
+      if (sale.paymentStatus === 'PAID') {
+          return res.status(400).json({ success: false, message: 'No se puede modificar el comprobante de una venta ya pagada' });
+      }
+
       const url = await UploadService.uploadImage(req.file.buffer, 'comprobantes');
 
-      await prisma.sale.update({
+      const updatedSale = await prisma.sale.update({
         where: { id: parseInt(id) },
         data: {
           paymentProofUrl: url,
@@ -265,11 +271,54 @@ class SaleController {
         }
       });
 
+      // Notificar a los administradores
+      InAppNotificationService.emitAdminNotification(
+          'PAYMENT_PROOF',
+          'Nuevo Comprobante Recibido',
+          `El cliente ${sale.user?.name || 'Anónimo'} ha subido un comprobante para la orden #${id}.`,
+          { saleId: id, action: 'view_details' }
+      ).catch(err => console.error('Error emitting admin notification:', err));
+
       res.status(200).json({
         success: true,
         message: 'Comprobante subido con éxito',
         data: { url }
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async deletePaymentProof(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { id: userId } = req.user;
+
+      const sale = await prisma.sale.findUnique({
+        where: { id: parseInt(id) }
+      });
+
+      if (!sale) {
+        return res.status(404).json({ success: false, message: 'Venta no encontrada' });
+      }
+
+      if (sale.userId !== userId) {
+        return res.status(403).json({ success: false, message: 'No tienes permiso para modificar esta venta' });
+      }
+
+      if (sale.paymentStatus === 'PAID') {
+        return res.status(400).json({ success: false, message: 'No se puede eliminar el comprobante de una venta ya pagada' });
+      }
+
+      await prisma.sale.update({
+        where: { id: parseInt(id) },
+        data: {
+          paymentProofUrl: null,
+          paymentProofUploadedAt: null
+        }
+      });
+
+      res.json({ success: true, message: 'Comprobante eliminado con éxito' });
     } catch (error) {
       next(error);
     }

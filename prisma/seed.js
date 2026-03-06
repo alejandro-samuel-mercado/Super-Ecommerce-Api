@@ -24,7 +24,7 @@ async function main() {
     }
     console.log('✅ Base de datos truncada y limpiada.');
   } catch (err) {
-    console.error('⚠️ Advertencia: Error durante truncamiento. Ignorar si la tabla no existia.', err.message);
+    console.error('  Advertencia: Error durante truncamiento. Ignorar si la tabla no existia.', err.message);
   }
 
   // 2. CONFIGURACION BASE: Roles y Configuracion de Tienda

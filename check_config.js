@@ -1,0 +1,1 @@
+const { PrismaClient } = require("@prisma/client"); const prisma = new PrismaClient(); async function main() { const config = await prisma.storeConfig.findFirst(); console.log(JSON.stringify(config, null, 2)); } main();

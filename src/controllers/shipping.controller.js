@@ -41,11 +41,11 @@ const deleteZone = async (req, res) => {
 
 const calculateCost = async (req, res) => {
     try {
-        const { country, province, city } = req.body;
+        const { country, province, city, subtotal } = req.body;
         const addressData = { country, province, city };
         const currency = req.headers['x-currency'] || req.query.currency;
         
-        const cost = await ShippingService.calculateShippingCost(addressData, 'DOMICILIO', currency);
+        const cost = await ShippingService.calculateShippingCost(addressData, 'DOMICILIO', currency, subtotal);
         
         res.json({ cost, success: true });
     } catch (error) {

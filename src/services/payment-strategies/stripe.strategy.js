@@ -14,7 +14,7 @@ class StripeStrategy extends PaymentStrategy {
         if (secretKey) {
             this.client = new Stripe(secretKey);
         } else {
-            console.warn('⚠️ StripeStrategy: Secret Key not found.');
+            console.warn('  StripeStrategy: Secret Key not found.');
         }
     }
 

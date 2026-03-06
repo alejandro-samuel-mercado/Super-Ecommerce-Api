@@ -17,7 +17,7 @@ class MercadoPagoStrategy extends PaymentStrategy {
         if (accessToken) {
             this.client = new MercadoPagoConfig({ accessToken });
         } else {
-            console.warn('⚠️ MercadoPagoStrategy: Access Token not found.');
+            console.warn('  MercadoPagoStrategy: Access Token not found.');
         }
     }
 
@@ -138,7 +138,7 @@ class MercadoPagoStrategy extends PaymentStrategy {
                 throw new Error('Invalid signature');
             }
         } else {
-            console.warn('⚠️ [MercadoPago Webhook] Validation skipped: WEBHOOK_SECRET not configured.');
+            console.warn('  [MercadoPago Webhook] Validation skipped: WEBHOOK_SECRET not configured.');
         }
       
         

@@ -90,5 +90,6 @@ router.post('/:id/refund', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), Sal
  * @access Privado (Dueño de la venta)
  */
 router.post('/:id/payment-proof', upload.single('image'), SaleController.uploadPaymentProof);
+router.delete('/:id/payment-proof', SaleController.deletePaymentProof);
 
 module.exports = router;
