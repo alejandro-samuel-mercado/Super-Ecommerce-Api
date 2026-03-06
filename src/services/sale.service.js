@@ -957,8 +957,11 @@ class SaleService {
   }
 
   async getSaleById(id, userId, role) {
+      const saleId = parseInt(id);
+      if (isNaN(saleId)) throw new Error('Venta ID inválido (debe ser un número).');
+      
       const sale = await prisma.sale.findUnique({
-          where: { id: parseInt(id) },
+          where: { id: saleId },
           include: { 
             items: true, 
             coupon: true, 

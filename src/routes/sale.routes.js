@@ -48,6 +48,7 @@ router.post('/checkout', checkoutLimiter, [
  * @access Privado (Cliente)
  */
 router.get('/my-purchases', SaleController.getMySales);
+router.get('/my-sales', SaleController.getMySales);
 
 /**
  * @route GET /api/sales
