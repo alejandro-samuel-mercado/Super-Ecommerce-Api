@@ -1029,7 +1029,7 @@ class SaleService {
    * Obtiene las ventas de un usuario específico.
    * Por defecto FILTRA las ventas PENDING (abandonadas) para no ensuciar su historial.
    */
-  async getUserSales(userId, includePending = false) {
+  async getUserSales(userId, includePending = true) {
       const where = { userId: parseInt(userId) };
       
       if (!includePending) {

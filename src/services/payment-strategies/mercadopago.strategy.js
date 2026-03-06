@@ -67,6 +67,7 @@ class MercadoPagoStrategy extends PaymentStrategy {
                 failure: `${baseUrl}/checkout/failure`,
                 pending: `${baseUrl}/checkout/pending`
             },
+              auto_return: "approved",
             statement_descriptor: storeName.substring(0, 22)
         };
 
