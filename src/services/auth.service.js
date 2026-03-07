@@ -233,6 +233,9 @@ class AuthService {
     }
 
     if (!user) throw new AppError('El usuario ingresado no existe.', 400, 'INVALID_CREDENTIALS');
+    if (user.status === 'PENDING_VERIFICATION') {
+        throw new AppError('Debes verificar tu correo electrónico antes de iniciar sesión.', 403, 'EMAIL_NOT_VERIFIED');
+    }
     if (user.status !== 'ACTIVO' && user.status !== 'ACTIVE') {
         throw new AppError('Esta cuenta ha sido desactivada.', 403, 'ACCOUNT_DISABLED');
     }
