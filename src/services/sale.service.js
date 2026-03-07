@@ -942,7 +942,7 @@ class SaleService {
             try {
                 const NotificationService = require('./notification.service');
                 const emailSubject = `Confirmación de Pedido #${sale.id} - Pendiente de Pago`;
-                const emailHtml = NotificationService.getOrderConfirmationTemplate(sale.id, sale.total, sale.paymentType);
+                const emailHtml = await NotificationService.getOrderConfirmationTemplate(sale.id, sale.total, sale.paymentType);
                 await NotificationService.sendEmail(user.email, emailSubject, emailHtml);
             } catch (err) {
                 console.error('[SaleService] Error sending order confirmation email:', err);
@@ -1085,7 +1085,7 @@ class SaleService {
                  'ORDER', 
                  `¡Pedido #${sale.id} Confirmado!`,
                  `Tu pago ha sido acreditado exitosamente.`,
-                 { url: `/profile/orders/${sale.id}` }
+                 { url: `/profile` }
              );
 
              // Enviar Correo con Factura PDF

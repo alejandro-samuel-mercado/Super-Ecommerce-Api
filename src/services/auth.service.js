@@ -132,10 +132,13 @@ class AuthService {
     });
     
     // Enviar email de bienvenida con código
-    const subject = 'Verifica tu cuenta - Tienda Online';
+    const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+    const storeName = config?.storeName || 'Tienda Online';
+    
+    const subject = `Verifica tu cuenta - ${storeName}`;
     const htmlContent = `
       <h1>¡Bienvenido/a, ${name}!</h1>
-      <p>Gracias por registrarte. Para activar tu cuenta, por favor ingresa el siguiente código de verificación:</p>
+      <p>Gracias por registrarte en <strong>${storeName}</strong>. Para activar tu cuenta, por favor ingresa el siguiente código de verificación:</p>
       <div style="font-size: 24px; font-weight: bold; padding: 10px; background: #f3f4f6; text-align: center; margin: 20px 0;">
         ${verificationCode}
       </div>
@@ -208,8 +211,11 @@ class AuthService {
       data: { verificationCode }
     });
 
-    const subject = 'Código de Verificación - Super Ecommerce';
-    const htmlContent = `<h1>Verifica tu cuenta</h1><p>Tu nuevo código de verificación es: <strong>${verificationCode}</strong></p>`;
+    const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+    const storeName = config?.storeName || 'Tienda Online';
+
+    const subject = `Código de Verificación - ${storeName}`;
+    const htmlContent = `<h1>Verifica tu cuenta</h1><p>Tu nuevo código de verificación para <strong>${storeName}</strong> es: <strong>${verificationCode}</strong></p>`;
 
     await NotificationService.sendEmail(user.email, subject, htmlContent);
     return { message: 'Se ha enviado un nuevo código a tu correo.' };

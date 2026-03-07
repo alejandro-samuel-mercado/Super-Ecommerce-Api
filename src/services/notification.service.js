@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const prisma = require('../config/prisma');
 
 class NotificationService {
   constructor() {
@@ -47,8 +48,12 @@ class NotificationService {
     if (!this.transporter) await this.init();
 
     try {
+      const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+      const storeName = config?.storeName || 'Tienda Online';
+      const fromEmail = process.env.SMTP_USER || 'no-reply@ecommerce.com';
+
       const info = await this.transporter.sendMail({
-        from: '"Tienda Online" <no-reply@ecommerce.com>',
+        from: `"${storeName}" <${fromEmail}>`,
         to,
         subject,
         html: htmlContent,
@@ -68,12 +73,15 @@ class NotificationService {
     }
   }
 
-  // Templates simples
   getWelcomeTemplate(name) {
       return `<h1>¡Bienvenido/a, ${name}!</h1><p>Gracias por registrarte en nuestra plataforma.</p>`;
   }
 
-  getOrderConfirmationTemplate(orderId, total, paymentType = 'MERCADO_PAGO') {
+  async getOrderConfirmationTemplate(orderId, total, paymentType = 'MERCADO_PAGO') {
+      const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+      const whatsapp = config?.whatsapp || '';
+      const supportEmail = config?.supportEmail || '';
+
       let instructions = '';
       if (paymentType === 'MERCADO_PAGO' || paymentType === 'TRANSFER') {
           instructions = `
@@ -82,8 +90,8 @@ class NotificationService {
                 <p style="margin: 5px 0 0 0; font-size: 14px; color: #b45309;">
                     Si elegiste Pago Fácil, Rapipago o Transferencia, recuerda que debes enviar el comprobante de pago para que procesemos tu envío.
                     <br><br>
-                    <strong>WhatsApp:</strong> +54 9 11 1234-5678<br>
-                    <strong>Email:</strong> pagos@tienda.com
+                    <strong>WhatsApp:</strong> ${whatsapp}<br>
+                    <strong>Email:</strong> ${supportEmail}
                 </p>
             </div>
           `;

@@ -181,7 +181,7 @@ class PaymentWebhookService {
                 'ORDER',
                 `Problema con tu pedido #${result.saleId}`,
                 `Tu pago fue recibido exitosamente, pero algunos productos de tu pedido no tienen stock disponible en este momento. Nos pondremos en contacto contigo para ofrecerte una solución.`,
-                { url: `/profile/orders/${result.saleId}` }
+                { url: `/profile` }
               );
             }
 
