@@ -15,7 +15,20 @@ class CouponService {
     const existing = await prisma.coupon.findUnique({ where: { code: data.code } });
     if (existing) throw new Error('Coupon code already exists');
 
-    return await prisma.coupon.create({ data });
+    return await prisma.coupon.create({
+        data: {
+            code: data.code,
+            type: data.type,
+            value: data.value,
+            active: data.active,
+            maxUses: data.maxUses,
+            maxUsesPerUser: data.maxUsesPerUser,
+            maxDiscount: data.maxDiscount,
+            validFrom: data.validFrom,
+            validUntil: data.validUntil,
+            minPurchase: data.minPurchase
+        }
+    });
   }
 
   async getAllCoupons() {
@@ -24,10 +37,9 @@ class CouponService {
       });
   }
 
-  async validateCoupon(code, purchaseAmount, currencyCode) {
+  async validateCoupon(code, purchaseAmount, currencyCode, userId) {
       if (!code) return null;
       
-      // VERIFICACIÓN DE EVENTO
       const EventService = require('./event.service');
       const activeEvent = await EventService.getActiveEvent();
       if (activeEvent && activeEvent.couponsEnabled === false) {
@@ -44,6 +56,19 @@ class CouponService {
       if (now < coupon.validFrom) throw new Error('El cupón aún no es válido');
 
       if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) throw new Error('Límite de uso del cupón alcanzado');
+
+      if (coupon.maxUsesPerUser && userId) {
+          const userUsageCount = await prisma.sale.count({
+              where: {
+                  userId: parseInt(userId),
+                  couponId: coupon.id,
+                  paymentStatus: { in: ['PAID', 'PENDING'] }
+              }
+          });
+          if (userUsageCount >= coupon.maxUsesPerUser) {
+              throw new Error('Has alcanzado el límite de uso para este cupón');
+          }
+      }
 
       // Conversion de multi moneda para limites
       const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
@@ -116,6 +141,7 @@ class CouponService {
               value: data.value,
               active: data.active,
               maxUses: data.maxUses,
+              maxUsesPerUser: data.maxUsesPerUser,
               maxDiscount: data.maxDiscount,
               validFrom: data.validFrom,
               validUntil: data.validUntil,

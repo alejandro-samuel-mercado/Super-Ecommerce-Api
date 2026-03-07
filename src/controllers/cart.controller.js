@@ -14,6 +14,18 @@ class CartController {
         }
     }
 
+    async getCartByUserId(req, res) {
+        try {
+            const { userId } = req.params;
+            const currency = req.headers['x-currency'] || req.query.currency;
+            const cart = await CartService.getCart(userId, currency);
+            res.json(cart);
+        } catch (error) {
+            console.error('Error getting user cart by admin:', error);
+            res.status(500).json({ error: error.message });
+        }
+    }
+
     async addItem(req, res) {
         try {
             const userId = req.user.id;

@@ -1,16 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const CartController = require('../controllers/cart.controller');
-const { protect } = require('../middlewares/auth.middleware');
+const { protect, authorize } = require('../middlewares/auth.middleware');
 
-// Todas las rutas del carrito requieren autenticación
 router.use(protect);
 
-/**
- * @route GET /api/cart
- * @desc Obtener el carrito actual del usuario
- * @access Privado
- */
+router.get('/user/:userId', authorize('ADMIN', 'EMPLOYEE', 'SUPER_ADMIN'), CartController.getCartByUserId);
+
 router.get('/', CartController.getCart);
 
 /**
