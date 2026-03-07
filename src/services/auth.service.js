@@ -204,15 +204,10 @@ class AuthService {
       data: { verificationCode }
     });
 
-    const mailOptions = {
-      from: process.env.SMTP_USER,
-      to: user.email,
-      subject: 'Código de Verificación - Super Ecommerce',
-      text: `Tu nuevo código de verificación es: ${verificationCode}`,
-      html: `<h1>Verifica tu cuenta</h1><p>Tu nuevo código de verificación es: <strong>${verificationCode}</strong></p>`
-    };
+    const subject = 'Código de Verificación - Super Ecommerce';
+    const htmlContent = `<h1>Verifica tu cuenta</h1><p>Tu nuevo código de verificación es: <strong>${verificationCode}</strong></p>`;
 
-    await transporter.sendMail(mailOptions);
+    await NotificationService.sendEmail(user.email, subject, htmlContent);
     return { message: 'Se ha enviado un nuevo código a tu correo.' };
   }
 
