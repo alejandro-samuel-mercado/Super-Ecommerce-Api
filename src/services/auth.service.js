@@ -160,7 +160,10 @@ class AuthService {
 
   async verifyEmail(email, code) {
     const normalizedEmail = email.toLowerCase();
-    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    const user = await prisma.user.findUnique({ 
+      where: { email: normalizedEmail },
+      include: { role: true }
+    });
 
     if (!user) throw new Error('Usuario no encontrado.');
     if (user.status === 'ACTIVE') return { message: 'La cuenta ya está activa.' };
@@ -169,23 +172,24 @@ class AuthService {
       throw new Error('El código de verificación es incorrecto.');
     }
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: { id: user.id },
       data: {
         status: 'ACTIVE',
         emailVerified: true,
         verificationCode: null
-      }
+      },
+      include: { role: true }
     });
 
     // Generar tokens para que el usuario quede logueado tras verificar
-    const payload = { id: user.id, role: 'CUSTOMER' };
+    const payload = { id: user.id, role: updatedUser.role.name };
     const { accessToken, refreshToken } = AuthUtils.generateTokens(payload);
     await this.saveRefreshToken(user.id, refreshToken);
 
     return {
       message: 'Cuenta verificada exitosamente.',
-      user: AuthUtils.sanitizeUser(user),
+      user: AuthUtils.sanitizeUser(updatedUser),
       tokens: { accessToken, refreshToken }
     };
   }

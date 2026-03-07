@@ -362,6 +362,13 @@ class SaleService {
   }
 
   async createSale(userId, saleData) {
+      if (userId) {
+          const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
+          if (user && !user.emailVerified && user.status === 'PENDING_VERIFICATION') {
+              throw new Error('Debes verificar tu correo electrónico antes de realizar una compra.');
+          }
+      }
+
       const { items, couponCode, paymentType, paymentStatus, deliveryType: inputDeliveryType, deliveryMethod, deliveryAddress, customer, employeeId, manualDiscount, pointsToUse, shippingCost: inputShippingCost, branchId, currency: requestedCurrency, address } = saleData;
 
       // 0. Determinar Moneda y Tipo de Cambio - FIJAR MOMENTO DE COMPRA
