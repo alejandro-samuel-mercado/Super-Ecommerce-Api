@@ -28,6 +28,17 @@ class AuthController {
     }
   }
 
+  async resendVerificationCode(req, res, next) {
+    try {
+      const { email } = req.body;
+      if (!email) return res.status(400).json({ success: false, message: 'Email es obligatorio' });
+      const result = await AuthService.resendVerificationCode(email);
+      res.status(200).json({ success: true, ...result });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
+    }
+  }
+
   async login(req, res, next) {
     try {
       const { email, password } = req.body;

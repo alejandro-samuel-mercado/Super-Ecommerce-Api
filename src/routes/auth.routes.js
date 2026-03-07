@@ -46,6 +46,21 @@ router.post(
 );
 
 /**
+ * @route POST /api/auth/resend-verify
+ * @desc Reenviar código de verificación
+ * @access Público
+ */
+router.post(
+    '/resend-verify',
+    authLimiter,
+    [
+      body('email').isEmail().withMessage('Email inválido'),
+      validateRequest
+    ],
+    AuthController.resendVerificationCode
+);
+
+/**
  * @route POST /api/auth/login
  * @desc Iniciar sesión y obtener tokens
  * @access Público

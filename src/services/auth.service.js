@@ -190,6 +190,32 @@ class AuthService {
     };
   }
 
+  async resendVerificationCode(email) {
+    const normalizedEmail = email.toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+    if (!user) throw new Error('Usuario no encontrado.');
+    if (user.status === 'ACTIVE') throw new Error('La cuenta ya está activa.');
+
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { verificationCode }
+    });
+
+    const mailOptions = {
+      from: process.env.SMTP_USER,
+      to: user.email,
+      subject: 'Código de Verificación - Super Ecommerce',
+      text: `Tu nuevo código de verificación es: ${verificationCode}`,
+      html: `<h1>Verifica tu cuenta</h1><p>Tu nuevo código de verificación es: <strong>${verificationCode}</strong></p>`
+    };
+
+    await transporter.sendMail(mailOptions);
+    return { message: 'Se ha enviado un nuevo código a tu correo.' };
+  }
+
   async getProfile(userId) {
       const user = await prisma.user.findUnique({
           where: { id: userId },
