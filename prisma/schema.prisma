@@ -293,6 +293,7 @@ model Coupon {
   validFrom   DateTime  @default(now())
   validUntil  DateTime?
   maxUses     Int?
+  maxUsesPerUser Int?
   usedCount   Int       @default(0)
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now())

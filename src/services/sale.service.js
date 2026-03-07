@@ -241,7 +241,7 @@ class SaleService {
         if (couponsEnabled) {
             const subtotalAfterAutoDiscounts = subtotal - autoDiscountAmount;
             if (subtotalAfterAutoDiscounts > 0) {
-                const couponResult = await CouponService.validateCoupon(couponCode, subtotalAfterAutoDiscounts, activeCurrencyCode);
+                const couponResult = await CouponService.validateCoupon(couponCode, subtotalAfterAutoDiscounts, activeCurrencyCode, userId);
                 couponDiscount = couponResult.discountAmount;
                 totalDiscount += couponDiscount;
                 discountDetails = { code: couponResult.code, type: couponResult.type, value: couponResult.value, amount: couponDiscount };
