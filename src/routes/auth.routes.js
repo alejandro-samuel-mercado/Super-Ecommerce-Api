@@ -30,6 +30,22 @@ router.post(
 );
 
 /**
+ * @route POST /api/auth/verify
+ * @desc Verificar correo electrónico con código
+ * @access Público
+ */
+router.post(
+    '/verify',
+    authLimiter,
+    [
+      body('email').isEmail().withMessage('Email inválido'),
+      body('code').isLength({ min: 6, max: 6 }).withMessage('El código debe tener 6 dígitos'),
+      validateRequest
+    ],
+    AuthController.verifyEmail
+);
+
+/**
  * @route POST /api/auth/login
  * @desc Iniciar sesión y obtener tokens
  * @access Público

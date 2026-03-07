@@ -304,7 +304,7 @@ class SaleService {
                 shippingCost = await ShippingService.calculateShippingCost(addressObj, deliveryType, activeCurrencyCode, subtotal);
                 if (shippingCost < 0) { 
                     shippingCost = await ShippingService.getDefaultCost();
-                    if (activeCurrencyCode !== baseCurrencyCode) shippingCost = shippingCost * exchangeRateAtPurchase;
+                    if (activeCurrencyCode !== baseCurrencyCode) shippingCost = shippingCost * exchangeRateAtPurchase; 
                 }
             } catch (e) {
                 console.error('Error calculating shipping in preview, falling back to default:', e.message);

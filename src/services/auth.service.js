@@ -114,34 +114,79 @@ class AuthService {
 
     const hashedPassword = await AuthUtils.hashPassword(password);
 
-    // Crear Usuario
+    // Generar código de verificación de 6 dígitos
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Crear Usuario con estado PENDING_VERIFICATION
     const newUser = await prisma.user.create({
       data: {
         email: normalizedEmail,
         password: hashedPassword,
         name,
         roleId: customerRole.id,
+        status: 'PENDING_VERIFICATION',
+        emailVerified: false,
+        verificationCode,
         ...profileData
       }
     });
     
-    // Generar los tokens iniciales
-    const payload = { id: newUser.id, role: 'CUSTOMER' };
-    const { accessToken, refreshToken } = AuthUtils.generateTokens(payload);
+    // Enviar email de bienvenida con código
+    const subject = 'Verifica tu cuenta - Tienda Online';
+    const htmlContent = `
+      <h1>¡Bienvenido/a, ${name}!</h1>
+      <p>Gracias por registrarte. Para activar tu cuenta, por favor ingresa el siguiente código de verificación:</p>
+      <div style="font-size: 24px; font-weight: bold; padding: 10px; background: #f3f4f6; text-align: center; margin: 20px 0;">
+        ${verificationCode}
+      </div>
+      <p>Si no creaste esta cuenta, puedes ignorar este mensaje.</p>
+    `;
     
-    // Guardar token hash de refresco
-    await this.saveRefreshToken(newUser.id, refreshToken);
+    // El envío es asíncrono para no bloquear la respuesta
+    NotificationService.sendEmail(normalizedEmail, subject, htmlContent).catch(err => {
+        console.error('[AuthService] Error sending verification email:', err);
+    });
 
     return { 
       user: { 
         id: newUser.id, 
         email: newUser.email, 
         name: newUser.name,
-        dni: newUser.dni,
-        phone: newUser.phone,
-        address: newUser.address
-      }, 
-      tokens: { accessToken, refreshToken } 
+        status: newUser.status
+      },
+      message: 'Usuario registrado. Por favor verifica tu correo electrónico con el código enviado.'
+    };
+  }
+
+  async verifyEmail(email, code) {
+    const normalizedEmail = email.toLowerCase();
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+    if (!user) throw new Error('Usuario no encontrado.');
+    if (user.status === 'ACTIVE') return { message: 'La cuenta ya está activa.' };
+    
+    if (user.verificationCode !== code) {
+      throw new Error('El código de verificación es incorrecto.');
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        status: 'ACTIVE',
+        emailVerified: true,
+        verificationCode: null
+      }
+    });
+
+    // Generar tokens para que el usuario quede logueado tras verificar
+    const payload = { id: user.id, role: 'CUSTOMER' };
+    const { accessToken, refreshToken } = AuthUtils.generateTokens(payload);
+    await this.saveRefreshToken(user.id, refreshToken);
+
+    return {
+      message: 'Cuenta verificada exitosamente.',
+      user: AuthUtils.sanitizeUser(user),
+      tokens: { accessToken, refreshToken }
     };
   }
 

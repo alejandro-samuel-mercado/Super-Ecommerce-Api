@@ -6,12 +6,25 @@ class AuthController {
   async register(req, res, next) {
     try {
       const result = await AuthService.register(req.body);
-      res.status(201).json({ success: true, message: 'Usuario registrado exitosamente', data: result });
+      res.status(201).json({ success: true, message: result.message, data: result.user });
     } catch (error) {
-       if (error.message.includes('Email already')) {
+       if (error.message.includes('Email already') || error.message.includes('ya está registrado')) {
            return res.status(409).json({ success: false, message: error.message });
        }
        next(error);
+    }
+  }
+
+  async verifyEmail(req, res, next) {
+    try {
+      const { email, code } = req.body;
+      if (!email || !code) {
+          return res.status(400).json({ success: false, message: 'Email y código son obligatorios' });
+      }
+      const result = await AuthService.verifyEmail(email, code);
+      res.status(200).json({ success: true, ...result });
+    } catch (error) {
+      res.status(400).json({ success: false, message: error.message });
     }
   }
 
