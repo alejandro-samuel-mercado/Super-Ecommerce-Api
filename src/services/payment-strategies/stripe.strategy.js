@@ -94,8 +94,8 @@ class StripeStrategy extends PaymentStrategy {
             metadata: {
                 saleId: String(sale.id),
             },
-            success_url: `${baseUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${baseUrl}/checkout/failure`,
+            success_url: `${baseUrl}/checkout/success?gateway=stripe&session_id={CHECKOUT_SESSION_ID}&saleId=${sale.id}`,
+            cancel_url: `${baseUrl}/checkout/failure?gateway=stripe&saleId=${sale.id}`,
         });
 
         return session.url;

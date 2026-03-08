@@ -113,7 +113,7 @@ async function main() {
     }
   });
 
-  console.log('✅ Stripe vinculado a USD y EUR');
+
 
   /** 5. Crear PayPal (Respaldo Global) */
   const paypal = await prisma.paymentGateway.upsert({
@@ -127,7 +127,6 @@ async function main() {
     }
   });
 
-  console.log('✅ PayPal creado como Respaldo Global');
 }
 
 main()
