@@ -74,6 +74,7 @@ class PayPalStrategy extends PaymentStrategy {
         });
 
         try {
+            const response = await this.client.execute(request);
             const links = response.result.links;
             const approvalUrl = (links.find(link => link.rel === 'approve') || 
                                  links.find(link => link.rel === 'payer-action'))?.href;
