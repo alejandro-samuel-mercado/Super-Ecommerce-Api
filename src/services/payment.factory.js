@@ -88,47 +88,43 @@ class PaymentGatewayFactory {
       const options = [];
 
       // 1. Obtener moneda y servicio para validación
+      // 1. Obtener moneda y servicio para validación
       const CurrencyService = require('./currency.service');
       const isLocal = await CurrencyService.isLocalCountry(customerCountry);
 
-      if (isLocal) {
-          // Si el cliente es LOCAL, mostramos la pasarela principal (isGlobalFallback: true)
-          const fallbackGateway = await prisma.paymentGateway.findFirst({
-              where: { isGlobalFallback: true, isActive: true }
-          });
-
-          if (fallbackGateway) {
-              options.push({
-                  id: fallbackGateway.id,
-                  name: fallbackGateway.name,
-                  slug: fallbackGateway.slug,
-                  type: 'PRIMARY',
-                  isFallback: true
-              });
-          }
-      } else {
-          // Si el cliente es INTERNACIONAL, mostramos las otras pasarelas (Stripe, PayPal)
-          // que NO sean la principal fallback y soporten esta moneda (ej: USD)
-          const internationalGateways = await prisma.paymentGateway.findMany({
-              where: {
-                  isActive: true,
-                  isGlobalFallback: false,
-                  supportedCurrencies: {
-                      some: { currencyCode: currencyCode }
-                  }
+      // 2. Obtener TODAS las pasarelas que soportan esta moneda
+      const gateways = await prisma.paymentGateway.findMany({
+          where: {
+              isActive: true,
+              supportedCurrencies: {
+                  some: { currencyCode: currencyCode }
               }
-          });
+          }
+      });
 
-          internationalGateways.forEach(gw => {
+      gateways.forEach(gw => {
+          if (isLocal) {
+              // Local: Mostrar fallback como PRIMARY y otros como INTERNATIONAL
               options.push({
                   id: gw.id,
                   name: gw.name,
                   slug: gw.slug,
-                  type: 'INTERNATIONAL',
-                  isFallback: false
+                  type: gw.isGlobalFallback ? 'PRIMARY' : 'INTERNATIONAL',
+                  isFallback: gw.isGlobalFallback
               });
-          });
-      }
+          } else {
+              // Internacional: Solo mostrar pasarelas que NO sean el fallback local
+              if (!gw.isGlobalFallback) {
+                  options.push({
+                      id: gw.id,
+                      name: gw.name,
+                      slug: gw.slug,
+                      type: 'INTERNATIONAL',
+                      isFallback: false
+                  });
+              }
+          }
+      });
 
       return options;
   }
