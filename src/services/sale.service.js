@@ -273,7 +273,7 @@ class SaleService {
             sku.id,
             activeCurrencyCode,
           );
-          const itemTotal = unitPrice * itemQty;
+          const itemTotal = parseFloat((unitPrice * itemQty).toFixed(2));
           subtotal += itemTotal;
 
           const activeEvent = await EventService.getActiveEvent();
@@ -365,7 +365,7 @@ class SaleService {
             if (shippingCost <= 0 && shippingCost !== 0) {
               shippingCost = await ShippingService.getDefaultCost();
               if (activeCurrencyCode !== baseCurrencyCode) {
-                shippingCost = shippingCost * exchangeRateAtPurchase;
+                shippingCost = parseFloat((shippingCost * exchangeRateAtPurchase).toFixed(2));
               }
             }
           } catch (e) {
@@ -375,9 +375,10 @@ class SaleService {
             );
             shippingCost = await ShippingService.getDefaultCost();
             if (activeCurrencyCode !== baseCurrencyCode) {
-              shippingCost = shippingCost * exchangeRateAtPurchase;
+              shippingCost = parseFloat((shippingCost * exchangeRateAtPurchase).toFixed(2));
             }
           }
+          shippingCost = parseFloat(shippingCost.toFixed(2));
         }
 
         // 3. Usuario y Motor de Descuentos
@@ -1044,13 +1045,14 @@ class SaleService {
       }
     }
 
-    const { appliedDiscounts, totalDiscountAmount } =
+    const { appliedDiscounts, totalDiscountAmount: rawTotalDiscountAmount } =
       await DiscountService.calculateDiscounts({
         items: enrichedItems,
         user,
         paymentType: paymentType || "CARD",
         currencyCode: activeCurrencyCode,
       });
+    const totalDiscountAmount = parseFloat(rawTotalDiscountAmount.toFixed(2));
 
     let shipping = 0;
     if (storeConfig && deliveryMethod === "shipping") {
@@ -1074,6 +1076,7 @@ class SaleService {
               shipping = shipping * rate;
             }
           }
+          shipping = parseFloat(shipping.toFixed(2));
         }
       }
     }
@@ -1084,7 +1087,7 @@ class SaleService {
       const moneyPerPointBase = storeConfig.moneyPerPoint
         ? parseFloat(storeConfig.moneyPerPoint.toString())
         : 0;
-      pointsDiscount = pointsToRedeem * (moneyPerPointBase * rate);
+      pointsDiscount = parseFloat((pointsToRedeem * (moneyPerPointBase * rate)).toFixed(2));
     }
 
     const subtotalAfterDiscounts = subtotal - totalDiscountAmount;
@@ -1103,7 +1106,7 @@ class SaleService {
             userId,
           );
           if (couponResult) {
-            discount = couponResult.discountAmount;
+            discount = parseFloat(couponResult.discountAmount.toFixed(2));
             couponData = {
               code: couponResult.code,
               type: couponResult.type,
@@ -1131,7 +1134,7 @@ class SaleService {
 
     if (totalDiscount + pointsDiscount > subtotal) {
       totalDiscount = Math.min(totalDiscount, subtotal);
-      pointsDiscount = Math.max(0, subtotal - totalDiscount);
+      pointsDiscount = parseFloat(Math.max(0, subtotal - totalDiscount).toFixed(2));
     }
 
     if (
