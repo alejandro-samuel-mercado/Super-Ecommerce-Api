@@ -20,14 +20,29 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
  * ------------------------------------------------------------------
  */
 
-// 1. Seguridad: Setea headers HTTP seguros
-app.use(helmet());
+// 1. CORS: Permite peticiones de otros dominios (frontend)
+// Debe ir antes de Helmet para que los headers de CORS no sean sobrescritos o bloqueados
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : ['https://superx-ecommerce.unixxtech.online','https://superx-ecommerce-admin.unixxtech.online',"https://super-ecommerce-administrador.vercel.app",'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'];
 
-// 2. CORS: Permite peticiones de otros dominios (frontend)
 app.use(cors({
-  origin: ['https://superx-ecommerce.unixxtech.online','https://superx-ecommerce-admin.unixxtech.online',"https://super-ecommerce-administrador.vercel.app",'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'],
+  origin: (origin, callback) => {
+    // Permitir peticiones sin origen (como apps móviles o curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-branch-id', 'x-currency', 'x-idempotency-key', 'x-silence-toast', 'x-test-country', 'x-client-country']
+}));
+
+// 2. Seguridad: Setea headers HTTP seguros
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // 3. Logger: Registra peticiones en consola (formato 'dev' para colores y tiempos)
