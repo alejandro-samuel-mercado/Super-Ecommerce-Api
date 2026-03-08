@@ -79,14 +79,22 @@ class PaymentGatewayFactory {
   }
 
   /**
-   * Devuelve todas las pasarelas activas
+   * Devuelve todas las pasarelas activas filtradas por país
    * @param {string} currencyCode 
+   * @param {string} customerCountry (Opcional) País del cliente
    * @returns {Promise<Array>} Lista de las meta datas de todos los gateways
    */
-  async getAvailableGateways(currencyCode) {
+  async getAvailableGateways(currencyCode, customerCountry) {
       const options = [];
 
-      // 1. Primaria por moneda
+      // 1. Obtener configuración de la tienda (país del negocio)
+      const storeConfig = await prisma.storeConfig.findFirst({
+          where: { id: 1 },
+          select: { country: true }
+      });
+      const businessCountry = storeConfig?.country || 'Argentina';
+
+      // 2. Primaria por moneda
       const primarySupport = await prisma.gatewayCurrencySupport.findFirst({
           where: {
               currencyCode: currencyCode,
@@ -96,34 +104,61 @@ class PaymentGatewayFactory {
           include: { gateway: true }
       });
 
-      if (primarySupport) {
-          options.push({
-              id: primarySupport.gateway.id,
-              name: primarySupport.gateway.name,
-              slug: primarySupport.gateway.slug,
-              type: 'PRIMARY',
-              isFallback: false
-          });
-      }
-
-      // 2. Apoyo Global (si estrictamente hay la necesidad por una segunda version)
+      // 3. Pasarela Principal (Local)
       const fallbackGateway = await prisma.paymentGateway.findFirst({
           where: {
               isGlobalFallback: true,
-              isActive: true,
-              // Excluir es una primaria (ej: caso de que paypal sea el principal USD, ignorarlo la proxima)
-              id: primarySupport ? { not: primarySupport.gateway.id } : undefined
+              isActive: true
           }
       });
 
-      if (fallbackGateway) {
-          options.push({
-              id: fallbackGateway.id,
-              name: fallbackGateway.name,
-              slug: fallbackGateway.slug,
-              type: 'FALLBACK',
-              isFallback: true
+      const isLocal = customerCountry && 
+                      customerCountry.toLowerCase().trim() === businessCountry.toLowerCase().trim();
+
+      if (isLocal) {
+          // Si el cliente es LOCAL, mostramos la pasarela principal (ej: Mercado Pago)
+          if (fallbackGateway) {
+              options.push({
+                  id: fallbackGateway.id,
+                  name: fallbackGateway.name,
+                  slug: fallbackGateway.slug,
+                  type: 'PRIMARY',
+                  isFallback: true
+              });
+          }
+      } else {
+          // Si el cliente es INTERNACIONAL, mostramos las otras pasarelas (Stripe, PayPal)
+          // que soporten esta moneda y NO sean la principal fallback
+          const internationalGateways = await prisma.paymentGateway.findMany({
+              where: {
+                  isActive: true,
+                  isGlobalFallback: false,
+                  supportedCurrencies: {
+                      some: { currencyCode: currencyCode }
+                  }
+              }
           });
+
+          internationalGateways.forEach(gw => {
+              options.push({
+                  id: gw.id,
+                  name: gw.name,
+                  slug: gw.slug,
+                  type: 'INTERNATIONAL',
+                  isFallback: false
+              });
+          });
+
+          // Si no hay pasarelas internacionales específicas, podemos mostrar la primaria de la moneda
+          if (options.length === 0 && primarySupport && primarySupport.gateway.id !== fallbackGateway?.id) {
+            options.push({
+                id: primarySupport.gateway.id,
+                name: primarySupport.gateway.name,
+                slug: primarySupport.gateway.slug,
+                type: 'PRIMARY',
+                isFallback: false
+            });
+          }
       }
 
       return options;

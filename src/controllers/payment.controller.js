@@ -8,12 +8,18 @@ class PaymentController {
    */
   async getPaymentOptions(req, res) {
     try {
-      const { currency } = req.query;
+      let { currency, country } = req.query;
       if (!currency) {
         return res.status(400).json({ error: 'Código de moneda es requerido' });
       }
 
-      const options = await PaymentGatewayFactory.getAvailableGateways(currency);
+      // Si no viene país por query, intentar detectar por IP
+      if (!country) {
+        const CurrencyService = require('../services/currency.service');
+        country = CurrencyService.getCountryByContext(req);
+      }
+
+      const options = await PaymentGatewayFactory.getAvailableGateways(currency, country);
       
       return res.json({
         success: true,
@@ -81,8 +87,12 @@ class PaymentController {
           const data = {};
           if (name !== undefined) data.name = name;
           if (isActive !== undefined) data.isActive = isActive;
-          if (isGlobalFallback !== undefined) data.isGlobalFallback = isGlobalFallback;
-          if (config !== undefined) data.config = config;
+          if (isGlobalFallback === true) {
+              await prisma.paymentGateway.updateMany({
+                  where: { id: { not: parseInt(id) } },
+                  data: { isGlobalFallback: false }
+              });
+          }
           
           const updated = await prisma.paymentGateway.update({
               where: { id: parseInt(id) },

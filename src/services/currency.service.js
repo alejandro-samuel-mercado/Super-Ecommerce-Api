@@ -75,6 +75,13 @@ class CurrencyService {
   }
 
   /**
+   * Obtener el código de país del cliente basado en headers de IP (Vercel/CF)
+   */
+  getCountryByContext(req) {
+    return (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase();
+  }
+
+  /**
    * Determina la moneda a usar basado en el contexto (header o predeterminado).
    * REGLA: País de Origen -> Moneda Base. Otros -> USD.
    */
@@ -88,7 +95,7 @@ class CurrencyService {
       if (exists && exists.isActive) return exists.code;
     }
 
-    const countryCode = (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase();
+    const countryCode = this.getCountryByContext(req);
     
     if (countryCode) {
        const originCountry = this.currencyToCountry[baseCurrency];

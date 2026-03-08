@@ -192,7 +192,7 @@ async createProduct(data) {
     // 1. Destructure parameters
     const {
       page = 1,
-      limit = 15,
+      limit = 20,
       search,
       category,
       subcategory,
@@ -220,7 +220,7 @@ async createProduct(data) {
 
     // Sanitizar la paginación
     const pageNum = Math.max(1, Number(page) || 1);
-    const limitNum = Math.max(1, Number(limit) || 15);
+    const limitNum = Math.max(1, Number(limit) || 20);
     const offset = (pageNum - 1) * limitNum;
     const take = limitNum;
 

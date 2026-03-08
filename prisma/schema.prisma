@@ -422,6 +422,7 @@ model StoreConfig {
   marqueeText            Json?
   bannerImage            Json?
   secondaryAds           Json?
+  country                String   @default("Argentina")
 }
 
 model Currency {

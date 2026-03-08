@@ -128,7 +128,8 @@ class AuthService {
         emailVerified: false,
         verificationCode,
         ...profileData
-      }
+      },
+      include: { role: true }
     });
     
     // Enviar email de bienvenida con código
@@ -151,12 +152,7 @@ class AuthService {
     });
 
     return { 
-      user: { 
-        id: newUser.id, 
-        email: newUser.email, 
-        name: newUser.name,
-        status: newUser.status
-      },
+      user: AuthUtils.sanitizeUser(newUser),
       message: 'Usuario registrado. Por favor verifica tu correo electrónico con el código enviado.'
     };
   }
