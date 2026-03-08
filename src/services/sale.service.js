@@ -1100,7 +1100,7 @@ class SaleService {
       }
 
       let tax = 0;
-      const isLocal = CurrencyService.isLocalTransaction(saleData.customerIpCountry, storeConfig?.baseCurrency);
+      const isLocal = await CurrencyService.isLocalCountry(saleData.customerIpCountry);
       const previewEvent = await EventService.getActiveEvent();
       const previewTaxesEnabled = previewEvent ? (previewEvent.taxesEnabled !== false) : true;
       

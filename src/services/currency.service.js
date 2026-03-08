@@ -113,25 +113,13 @@ class CurrencyService {
   }
 
   /**
-   * Valida si el cliente es local para aplicar impuestos usando IP de Vercel/Cloudflare
-   * validando que la IP coincida con el país asignado a la Moneda Base.
+   * Responde si un país dado es el mismo que el país configurado en la tienda.
    */
-  isLocalTransaction(ipCountryCode, baseCurrencyCode) {
-      if (!baseCurrencyCode) return true;
-      
-      const originCountry = this.currencyToCountry[baseCurrencyCode];
-      if (!originCountry) return true;
-
-      const cleanIp = (ipCountryCode || '').toUpperCase().trim();
-      
-      if (cleanIp) {
-          const isLocal = Array.isArray(originCountry) 
-              ? originCountry.includes(cleanIp) 
-              : cleanIp === originCountry;
-          if (!isLocal) return false;
-      }
-
-      return true;
+  async isLocalCountry(countryCode) {
+    if (!countryCode) return true;
+    const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+    const businessCountry = (config?.country || 'AR').toUpperCase().trim();
+    return countryCode.toUpperCase().trim() === businessCountry;
   }
 }
 
