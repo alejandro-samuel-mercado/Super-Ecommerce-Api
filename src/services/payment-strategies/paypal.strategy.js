@@ -73,8 +73,14 @@ class PayPalStrategy extends PaymentStrategy {
         });
 
         try {
-            const response = await this.client.execute(request);
-            const approvalUrl = response.result.links.find(link => link.rel === 'approve').href;
+            const links = response.result.links;
+            const approvalUrl = (links.find(link => link.rel === 'approve') || 
+                                 links.find(link => link.rel === 'payer-action'))?.href;
+            
+            if (!approvalUrl) {
+                console.error('[PayPal] No approval URL found in response:', JSON.stringify(links));
+                throw new Error('PayPal Error: No approval URL found');
+            }
             return approvalUrl;
         } catch (err) {
             console.error('[PayPal] Error creating order:', err);

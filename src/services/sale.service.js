@@ -796,7 +796,7 @@ class SaleService {
             gatewaySlug,
           );
         } catch (error) {
-          console.error("[SaleService] Error creating MP preference:", error);
+          console.error("[SaleService] Error creating checkout preference:", error);
           throw new Error(
             `Venta creada (#${ticketNumber}) pero falló inicio de pago: ${error.message}`,
           );
