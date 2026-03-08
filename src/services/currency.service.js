@@ -1,29 +1,6 @@
 const prisma = require('../config/prisma');
 
 class CurrencyService {
-  currencyToCountry = {
-    'ARS': 'AR',
-    'MXN': 'MX',
-    'CLP': 'CL',
-    'COP': 'CO',
-    'UYU': 'UY',
-    'PEN': 'PE',
-    'BOB': 'BO',
-    'PYG': 'PY',
-    'VES': 'VE',
-    'CRC': 'CR',
-    'DOP': 'DO',
-    'GTQ': 'GT',
-    'HNL': 'HN',
-    'NIO': 'NI',
-    'PAB': 'PA',
-    'USD': 'US',
-    'CAD': 'CA',
-    'EUR': ['ES', 'FR', 'DE', 'IT', 'PT', 'NL', 'BE', 'AT', 'IE', 'FI', 'GR', 'LU', 'MT', 'CY', 'SK', 'SI', 'EE', 'LV', 'LT'],
-    'GBP': 'GB',
-    'CHF': 'CH',
-    'BRL': 'BR'
-  };
   async getAllCurrencies(onlyActive = true) {
     return await prisma.currency.findMany({
       where: onlyActive ? { isActive: true } : {},
@@ -78,50 +55,60 @@ class CurrencyService {
    * Obtener el código de país del cliente basado en headers de IP (Vercel/CF)
    */
   getCountryByContext(req) {
-    return (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase();
+    // 1. Prioridad: Header de prueba (manual del usuario)
+    const testCountry = req.headers['x-test-country'];
+    if (testCountry) return testCountry.toUpperCase();
+
+    // 2. Header enviado por el cliente (si existe)
+    const clientCountry = req.headers['x-client-country'];
+    if (clientCountry) return clientCountry.toUpperCase();
+
+    // 3. Headers de infraestructura (Vercel/Cloudflare)
+    const geoCountry = req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'];
+    if (geoCountry) return geoCountry.toUpperCase();
+
+    // 4. Fallback: Loguear para diagnóstico en VPS si no hay headers de geo
+    return '';
   }
 
   /**
    * Determina la moneda a usar basado en el contexto (header o predeterminado).
-   * REGLA: País de Origen -> Moneda Base. Otros -> USD.
+   * REGLA: País de Origen -> Moneda Base. Otros -> USD (Internacional).
    */
   async getCurrencyByContext(req) {
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+    const businessCountry = (config?.country || 'AR').toUpperCase().trim();
     const baseCurrency = config?.baseCurrency || 'ARS';
     
+    const countryCode = this.getCountryByContext(req);
+    
+    // Prioridad 1: Test de país (Simulación)
+    const isTest = req.headers['x-test-country'] || req.headers['x-client-country'];
+
+    // Prioridad 2: Header de moneda manual (SOLO si NO es un test de país)
     const headerCurrency = req.headers['x-currency'];
-    if (headerCurrency) {
+    if (headerCurrency && !isTest) {
       const exists = await this.getCurrencyByCode(headerCurrency);
       if (exists && exists.isActive) return exists.code;
     }
 
-    const countryCode = this.getCountryByContext(req);
-    
+    // Prioridad 3: Lógica Binaria (Local vs Internacional)
     if (countryCode) {
-       const originCountry = this.currencyToCountry[baseCurrency];
-       const isOriginCountry = Array.isArray(originCountry) 
-           ? originCountry.includes(countryCode) 
-           : countryCode === originCountry;
+       const normalizedClientCountry = countryCode.toUpperCase();
+       const normalizedBusinessCountry = businessCountry.toUpperCase();
+       
+       // Si el país de la base de datos es un código ISO (2 letras), la comparación es directa y universal
+       const isOriginCountry = normalizedClientCountry === normalizedBusinessCountry;
 
        if (isOriginCountry) {
          return baseCurrency;
        }
-
-       for (const [code, countries] of Object.entries(this.currencyToCountry)) {
-           const match = Array.isArray(countries) 
-               ? countries.includes(countryCode) 
-               : countries === countryCode;
-           if (match && code !== baseCurrency) {
-               const curr = await this.getCurrencyByCode(code);
-               if (curr && curr.isActive) return curr.code;
-           }
-       }
        
+       // Si no es el país de origen, forzamos USD para el resto del mundo
        const usdExists = await this.getCurrencyByCode('USD');
        if (usdExists && usdExists.isActive) return 'USD';
     }
 
- 
     return baseCurrency;
   }
 

@@ -284,20 +284,20 @@ model SaleItem {
 }
 
 model Coupon {
-  id          Int       @id @default(autoincrement())
-  code        String    @unique
-  type        String
-  value       Decimal   @db.Decimal(10, 2)
-  minPurchase Decimal?  @db.Decimal(10, 2)
-  maxDiscount Decimal?  @db.Decimal(10, 2)
-  validFrom   DateTime  @default(now())
-  validUntil  DateTime?
-  maxUses     Int?
+  id             Int       @id @default(autoincrement())
+  code           String    @unique
+  type           String
+  value          Decimal   @db.Decimal(10, 2)
+  minPurchase    Decimal?  @db.Decimal(10, 2)
+  maxDiscount    Decimal?  @db.Decimal(10, 2)
+  validFrom      DateTime  @default(now())
+  validUntil     DateTime?
+  maxUses        Int?
   maxUsesPerUser Int?
-  usedCount   Int       @default(0)
-  active      Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  sales       Sale[]
+  usedCount      Int       @default(0)
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  sales          Sale[]
 }
 
 model PaymentTransaction {

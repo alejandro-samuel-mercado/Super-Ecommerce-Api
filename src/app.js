@@ -27,7 +27,7 @@ app.use(helmet());
 app.use(cors({
   origin: ['https://superx-ecommerce.unixxtech.online','https://superx-ecommerce-admin.unixxtech.online',"https://super-ecommerce-administrador.vercel.app",'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'],
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-branch-id', 'x-currency', 'x-idempotency-key', 'x-silence-toast']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-branch-id', 'x-currency', 'x-idempotency-key', 'x-silence-toast', 'x-test-country', 'x-client-country']
 }));
 
 // 3. Logger: Registra peticiones en consola (formato 'dev' para colores y tiempos)

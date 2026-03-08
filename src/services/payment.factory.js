@@ -92,31 +92,18 @@ class PaymentGatewayFactory {
           where: { id: 1 },
           select: { country: true }
       });
-      const businessCountry = storeConfig?.country || 'Argentina';
+      const businessCountryISO = (storeConfig?.country || 'AR').toUpperCase().trim();
 
-      // 2. Primaria por moneda
-      const primarySupport = await prisma.gatewayCurrencySupport.findFirst({
-          where: {
-              currencyCode: currencyCode,
-              isPrimary: true,
-              gateway: { isActive: true }
-          },
-          include: { gateway: true }
-      });
-
-      // 3. Pasarela Principal (Local)
-      const fallbackGateway = await prisma.paymentGateway.findFirst({
-          where: {
-              isGlobalFallback: true,
-              isActive: true
-          }
-      });
-
+      // 2. Determinar si es Local o Internacional
       const isLocal = customerCountry && 
-                      customerCountry.toLowerCase().trim() === businessCountry.toLowerCase().trim();
+                      customerCountry.toUpperCase().trim() === businessCountryISO;
 
       if (isLocal) {
-          // Si el cliente es LOCAL, mostramos la pasarela principal (ej: Mercado Pago)
+          // Si el cliente es LOCAL, mostramos la pasarela principal (isGlobalFallback: true)
+          const fallbackGateway = await prisma.paymentGateway.findFirst({
+              where: { isGlobalFallback: true, isActive: true }
+          });
+
           if (fallbackGateway) {
               options.push({
                   id: fallbackGateway.id,
@@ -128,7 +115,7 @@ class PaymentGatewayFactory {
           }
       } else {
           // Si el cliente es INTERNACIONAL, mostramos las otras pasarelas (Stripe, PayPal)
-          // que soporten esta moneda y NO sean la principal fallback
+          // que NO sean la principal fallback y soporten esta moneda (ej: USD)
           const internationalGateways = await prisma.paymentGateway.findMany({
               where: {
                   isActive: true,
@@ -148,17 +135,6 @@ class PaymentGatewayFactory {
                   isFallback: false
               });
           });
-
-          // Si no hay pasarelas internacionales específicas, podemos mostrar la primaria de la moneda
-          if (options.length === 0 && primarySupport && primarySupport.gateway.id !== fallbackGateway?.id) {
-            options.push({
-                id: primarySupport.gateway.id,
-                name: primarySupport.gateway.name,
-                slug: primarySupport.gateway.slug,
-                type: 'PRIMARY',
-                isFallback: false
-            });
-          }
       }
 
       return options;

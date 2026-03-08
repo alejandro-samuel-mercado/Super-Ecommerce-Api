@@ -84,7 +84,19 @@ class AuthService {
           name: name,
           password: await AuthUtils.hashPassword(crypto.randomBytes(32).toString('hex')),
           roleId: role?.id,
-          isActive: true
+          status: 'ACTIVE',
+          emailVerified: true
+        },
+        include: { role: true }
+      });
+    } else if (user.status === 'PENDING_VERIFICATION') {
+      // Si el usuario existía pero no estaba verificado, Google sirve como verificación
+      user = await prisma.user.update({
+        where: { id: user.id },
+        data: { 
+          status: 'ACTIVE',
+          emailVerified: true,
+          verificationCode: null
         },
         include: { role: true }
       });
