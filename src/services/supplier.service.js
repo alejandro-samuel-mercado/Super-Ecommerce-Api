@@ -113,7 +113,9 @@ class SupplierService {
                          ? parseFloat(basePurchasePrice) 
                          : parseFloat(sku.price);
                          
-      const finalCurrency = currency || 'ARS';
+      const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+      const finalCurrency = currency || config?.baseCurrency;
+      if (!finalCurrency) throw new Error('No currency provided and base currency not configured.');
 
       return await prisma.supplierSKU.create({
           data: {

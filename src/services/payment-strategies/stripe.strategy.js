@@ -23,8 +23,14 @@ class StripeStrategy extends PaymentStrategy {
 
         const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-        const targetCurrency = (this.config?.currencyCode || sale.currencyCode || 'usd').toLowerCase();
-        const saleCurrency = (sale.currencyCode || 'USD').toUpperCase();
+        const prisma = require('../../config/prisma');
+        const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+        const baseCurrency = config?.baseCurrency;
+        if (!baseCurrency) throw new Error('Store base currency not configured.');
+
+        const targetCurrency = (this.config?.currencyCode || sale.currencyCode).toLowerCase();
+        const saleCurrency = (sale.currencyCode).toUpperCase();
+
         const isForeignCurrency = saleCurrency !== (this.config?.currencyCode || saleCurrency);
         const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 

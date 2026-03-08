@@ -28,13 +28,16 @@ class MercadoPagoStrategy extends PaymentStrategy {
         const items = [];
 
        
-        const baseCurrency = this.config?.currencyCode || 'ARS';
-        const isForeignCurrency = sale.currencyCode && sale.currencyCode !== baseCurrency;
-        const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
-
         const prisma = require('../../config/prisma');
         const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
         const storeName = storeConfig?.storeName || 'TIENDA ONLINE';
+
+        const baseCurrency = this.config?.currencyCode || storeConfig?.baseCurrency;
+        if (!baseCurrency) throw new Error('Payment Gateway currency not configured and Store base currency missing.');
+        
+        const targetCurrency = (sale.currencyCode || baseCurrency).toUpperCase();
+        const isForeignCurrency = targetCurrency !== baseCurrency;
+        const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 
         const convertToTarget = (amount) => {
             if (!isForeignCurrency) return Number(amount);

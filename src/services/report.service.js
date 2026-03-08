@@ -83,7 +83,8 @@ class ReportService {
     });
 
     const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = storeConfig?.baseCurrency || 'USD';
+    const baseCurrency = storeConfig?.baseCurrency;
+    if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
     const currencies = await prisma.currency.findMany();
 
     let totalCostBase = 0;
@@ -181,7 +182,8 @@ class ReportService {
 
     const currencies = await prisma.currency.findMany();
     const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = storeConfig?.baseCurrency || 'USD';
+    const baseCurrency = storeConfig?.baseCurrency;
+    if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
 
     const inventory = await prisma.branchInventory.findMany({
         where,

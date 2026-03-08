@@ -8,10 +8,10 @@ class PayPalStrategy extends PaymentStrategy {
     }
 
     async createPreference(sale, user) {
-        console.log(`[PayPal] Creating Payment for Sale #${sale.id} in ${sale.currencyCode || 'USD'}`);
+        console.log(`[PayPal] Creating Payment for Sale #${sale.id} in ${sale.currencyCode}`);
         
-        const targetCurrency = (this.config?.currencyCode || sale.currencyCode || 'USD').toUpperCase();
-        const saleCurrency = (sale.currencyCode || 'USD').toUpperCase();
+        const targetCurrency = (this.config?.currencyCode || sale.currencyCode).toUpperCase();
+        const saleCurrency = (sale.currencyCode).toUpperCase();
         const isForeignCurrency = saleCurrency !== targetCurrency;
         const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 

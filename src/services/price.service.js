@@ -9,7 +9,8 @@ class PriceService {
    */
   async getProductPrice(productId, currencyCode) {
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = config?.baseCurrency || 'USD';
+    const baseCurrency = config?.baseCurrency;
+    if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
 
     // 1. Intentar obtener precio manual
     const manualPrice = await prisma.productPrice.findUnique({
@@ -62,7 +63,8 @@ class PriceService {
     if (!sku) throw new Error('SKU not found');
 
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = config?.baseCurrency || 'USD';
+    const baseCurrency = config?.baseCurrency;
+    if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
 
     // 1. Buscar precio manual para el producto padre
     const manualPrice = await prisma.productPrice.findUnique({
@@ -111,7 +113,8 @@ class PriceService {
 
     const productIds = [...new Set(skus.map(s => s.productId))];
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = config?.baseCurrency || 'USD';
+    const baseCurrency = config?.baseCurrency;
+    if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
 
     // 1. Obtener todos los precios manuales de una vez
     const manualPrices = await prisma.productPrice.findMany({
@@ -158,7 +161,8 @@ class PriceService {
    */
   async getMultipleProductPrices(productIds, currencyCode) {
      const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-     const baseCurrency = config?.baseCurrency || 'USD';
+     const baseCurrency = config?.baseCurrency;
+     if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
 
      // 1. Obtener todos los precios manuales de una vez
      const manualPrices = await prisma.productPrice.findMany({

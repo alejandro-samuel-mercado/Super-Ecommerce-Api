@@ -87,16 +87,9 @@ class PaymentGatewayFactory {
   async getAvailableGateways(currencyCode, customerCountry) {
       const options = [];
 
-      // 1. Obtener configuración de la tienda (país del negocio)
-      const storeConfig = await prisma.storeConfig.findFirst({
-          where: { id: 1 },
-          select: { country: true }
-      });
-      const businessCountryISO = (storeConfig?.country || 'AR').toUpperCase().trim();
-
-      // 2. Determinar si es Local o Internacional
-      const isLocal = customerCountry && 
-                      customerCountry.toUpperCase().trim() === businessCountryISO;
+      // 1. Obtener moneda y servicio para validación
+      const CurrencyService = require('./currency.service');
+      const isLocal = await CurrencyService.isLocalCountry(customerCountry);
 
       if (isLocal) {
           // Si el cliente es LOCAL, mostramos la pasarela principal (isGlobalFallback: true)

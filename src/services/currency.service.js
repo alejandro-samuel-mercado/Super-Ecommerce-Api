@@ -1,16 +1,16 @@
-const prisma = require('../config/prisma');
+const prisma = require("../config/prisma");
 
 class CurrencyService {
   async getAllCurrencies(onlyActive = true) {
     return await prisma.currency.findMany({
       where: onlyActive ? { isActive: true } : {},
-      orderBy: { code: 'asc' }
+      orderBy: { code: "asc" },
     });
   }
 
   async getCurrencyByCode(code) {
     return await prisma.currency.findUnique({
-      where: { code: code.toUpperCase() }
+      where: { code: code.toUpperCase() },
     });
   }
 
@@ -20,34 +20,37 @@ class CurrencyService {
         code: data.code.toUpperCase(),
         symbol: data.symbol,
         exchangeRateToBase: parseFloat(data.exchangeRateToBase),
-        isActive: data.isActive !== undefined ? data.isActive : true
-      }
+        isActive: data.isActive !== undefined ? data.isActive : true,
+      },
     });
   }
 
   async updateCurrency(id, data) {
     const updateData = {};
     if (data.symbol) updateData.symbol = data.symbol;
-    if (data.exchangeRateToBase !== undefined) updateData.exchangeRateToBase = parseFloat(data.exchangeRateToBase);
+    if (data.exchangeRateToBase !== undefined)
+      updateData.exchangeRateToBase = parseFloat(data.exchangeRateToBase);
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
     return await prisma.currency.update({
       where: { id: parseInt(id) },
-      data: updateData
+      data: updateData,
     });
   }
 
   async deleteCurrency(id) {
     // No permitir borrar si es la moneda base de StoreConfig
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const currency = await prisma.currency.findUnique({ where: { id: parseInt(id) } });
-    
+    const currency = await prisma.currency.findUnique({
+      where: { id: parseInt(id) },
+    });
+
     if (currency && config && currency.code === config.baseCurrency) {
-      throw new Error('Cannot delete the base currency');
+      throw new Error("Cannot delete the base currency");
     }
 
     return await prisma.currency.delete({
-      where: { id: parseInt(id) }
+      where: { id: parseInt(id) },
     });
   }
 
@@ -56,19 +59,20 @@ class CurrencyService {
    */
   getCountryByContext(req) {
     // 1. Prioridad: Header de prueba (manual del usuario)
-    const testCountry = req.headers['x-test-country'];
+    const testCountry = req.headers["x-test-country"];
     if (testCountry) return testCountry.toUpperCase();
 
     // 2. Header enviado por el cliente (si existe)
-    const clientCountry = req.headers['x-client-country'];
+    const clientCountry = req.headers["x-client-country"];
     if (clientCountry) return clientCountry.toUpperCase();
 
     // 3. Headers de infraestructura (Vercel/Cloudflare)
-    const geoCountry = req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'];
+    const geoCountry =
+      req.headers["x-vercel-ip-country"] || req.headers["cf-ipcountry"];
     if (geoCountry) return geoCountry.toUpperCase();
 
     // 4. Fallback: Loguear para diagnóstico en VPS si no hay headers de geo
-    return '';
+    return "";
   }
 
   /**
@@ -77,16 +81,21 @@ class CurrencyService {
    */
   async getCurrencyByContext(req) {
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const businessCountry = (config?.country || 'AR').toUpperCase().trim();
-    const baseCurrency = config?.baseCurrency || 'ARS';
-    
+    const businessCountry = config?.country?.toUpperCase().trim();
+    if (!businessCountry)
+      throw new Error("Store country configuration is missing.");
+    const baseCurrency = config?.baseCurrency;
+    if (!baseCurrency)
+      throw new Error("Base currency not configured in StoreConfig.");
+
     const countryCode = this.getCountryByContext(req);
-    
+
     // Prioridad 1: Test de país (Simulación)
-    const isTest = req.headers['x-test-country'] || req.headers['x-client-country'];
+    const isTest =
+      req.headers["x-test-country"] || req.headers["x-client-country"];
 
     // Prioridad 2: Header de moneda manual (SOLO si NO es un test de país)
-    const headerCurrency = req.headers['x-currency'];
+    const headerCurrency = req.headers["x-currency"];
     if (headerCurrency && !isTest) {
       const exists = await this.getCurrencyByCode(headerCurrency);
       if (exists && exists.isActive) return exists.code;
@@ -94,19 +103,27 @@ class CurrencyService {
 
     // Prioridad 3: Lógica Binaria (Local vs Internacional)
     if (countryCode) {
-       const normalizedClientCountry = countryCode.toUpperCase();
-       const normalizedBusinessCountry = businessCountry.toUpperCase();
-       
-       // Si el país de la base de datos es un código ISO (2 letras), la comparación es directa y universal
-       const isOriginCountry = normalizedClientCountry === normalizedBusinessCountry;
+      const normalizedClientCountry = countryCode.toUpperCase();
+      const normalizedBusinessCountry = businessCountry.toUpperCase();
 
-       if (isOriginCountry) {
-         return baseCurrency;
-       }
-       
-       // Si no es el país de origen, forzamos USD para el resto del mundo
-       const usdExists = await this.getCurrencyByCode('USD');
-       if (usdExists && usdExists.isActive) return 'USD';
+      // Si el país de la base de datos es un código ISO (2 letras), la comparación es directa y universal
+      const isOriginCountry =
+        normalizedClientCountry === normalizedBusinessCountry;
+
+      if (isOriginCountry) {
+        return baseCurrency;
+      }
+
+      // Si no es el país de origen, intentamos usar USD como estándar internacional
+      const usdExists = await this.getCurrencyByCode("USD");
+      if (usdExists && usdExists.isActive) return "USD";
+    }
+
+    // Prioridad 4: Fallback a x-currency header (seguridad ante fallas de resolución por país)
+    const fallbackCurrency = req.headers["x-currency"];
+    if (fallbackCurrency) {
+      const exists = await this.getCurrencyByCode(fallbackCurrency);
+      if (exists && exists.isActive) return exists.code;
     }
 
     return baseCurrency;
@@ -118,8 +135,15 @@ class CurrencyService {
   async isLocalCountry(countryCode) {
     if (!countryCode) return true;
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const businessCountry = (config?.country || 'AR').toUpperCase().trim();
-    return countryCode.toUpperCase().trim() === businessCountry;
+    const businessCountry = (config?.country || "AR").toUpperCase().trim();
+    const clientCountry = countryCode.toUpperCase().trim();
+
+    // Normalización básica para Argentina (caso común en este proyecto)
+    const isArgentina = (c) => c === "AR" || c === "ARGENTINA";
+
+    if (isArgentina(businessCountry) && isArgentina(clientCountry)) return true;
+
+    return clientCountry === businessCountry;
   }
 }
 

@@ -7,7 +7,8 @@ class SupplierPaymentService {
       
       // 0. Determinar Moneda y Tipo de Cambio
       const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-      const baseCurrencyCode = storeConfig?.baseCurrency || 'USD';
+      const baseCurrencyCode = storeConfig?.baseCurrency;
+      if (!baseCurrencyCode) throw new Error('Store base currency not configured.');
       const activeCurrencyCode = requestedCurrency || baseCurrencyCode;
       
       const currency = await prisma.currency.findUnique({ where: { code: activeCurrencyCode } });

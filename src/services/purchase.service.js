@@ -76,8 +76,10 @@ class PurchaseService {
       
       // 0. Determinar Moneda y Tipo de Cambio
       const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-      const baseCurrencyCode = storeConfig?.baseCurrency || 'USD';
-      const activeCurrencyCode = requestedCurrency || baseCurrencyCode;
+      const baseCurrency = storeConfig?.baseCurrency;
+    if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
+      if (!baseCurrency) throw new Error('Store base currency not configured.');
+      const activeCurrencyCode = requestedCurrency || baseCurrency;
       
       const currency = await prisma.currency.findUnique({ where: { code: activeCurrencyCode } });
       if (!currency || !currency.isActive) throw new Error(`Currency ${activeCurrencyCode} is not active or not found`);

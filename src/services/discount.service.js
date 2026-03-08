@@ -388,7 +388,8 @@ class DiscountService {
               
               let minAmountConverted = parseFloat(cond.value);
               
-              const baseCurrency = config?.baseCurrency || 'USD';
+              const baseCurrency = config?.baseCurrency;
+              if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
               const currencyCode = context?.currencyCode || baseCurrency;
               
               if (currencyCode && currencyCode !== baseCurrency) {
@@ -415,7 +416,8 @@ class DiscountService {
       const type = action.type || discount.type;
       let value = parseFloat(action.value || discount.value);
 
-      const baseCurrency = config?.baseCurrency || 'USD';
+      const baseCurrency = config?.baseCurrency;
+      if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
 
       if (currencyCode && currencyCode !== baseCurrency) {
           if (type === 'FIXED_AMOUNT' || type === 'FIXED_PRICE') {
