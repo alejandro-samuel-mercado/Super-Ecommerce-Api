@@ -71,7 +71,6 @@ class DiscountService {
 
     const validDiscounts = allDiscounts.filter(d => {
        // Defensa extra: Si hay un evento activo, saltar cualquier descuento que no le pertenezca
-       // (Aunque el findMany ya debería haberlo filtrado)
        if (activeEvent && d.eventId !== activeEvent.id) return false;
        // Si no hay evento activo, saltar cualquier descuento que tenga un eventId
        if (!activeEvent && d.eventId !== null) return false;
@@ -100,16 +99,13 @@ class DiscountService {
 
         if (matchedItems.length === 0) continue;
 
-        // Paso B: Verificar Condiciones sobre los items afectados
-        if (await this.checkConditions(config.conditions, matchedItems, context, storeConfig)) {
+        if (await this.checkConditions(config.conditions, matchedItems, { ...context, items }, storeConfig)) {
             // Paso C: Calcular Monto
-            const amount = await this.calculateAmount(config.action || {}, matchedItems, discount, currencyCode, storeConfig);
+            const amount = await this.calculateAmount(config.action || {}, matchedItems, discount, context.currencyCode, storeConfig);
 
             if (amount > 0) {
                 candidates.push({ discount, amount, config });
             }
-        } else {
-
         }
     }
 
@@ -215,8 +211,10 @@ class DiscountService {
     const validDiscounts = allDiscounts.filter(d => {
        if (activeEvent && d.eventId !== activeEvent.id) return false;
        if (!activeEvent && d.eventId !== null) return false;
+       
        const eventStart = d.event ? d.event.startDate : null;
        const eventEnd = d.event ? d.event.endDate : null;
+       
        if (eventStart && now < eventStart) return false;
        if (eventEnd && now > eventEnd) return false;
        if (d.validFrom && now < d.validFrom) return false;

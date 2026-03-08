@@ -9,11 +9,16 @@ class PayPalStrategy extends PaymentStrategy {
     }
 
     init() {
-        const clientId = this.config?.clientId || process.env.PAYPAL_CLIENT_ID;
-        const clientSecret = this.config?.clientSecret || process.env.PAYPAL_CLIENT_SECRET;
-        const mode = (this.config?.mode || process.env.PAYPAL_MODE || 'sandbox').toLowerCase();
+        let clientId = (this.config?.clientId || process.env.PAYPAL_CLIENT_ID || '').trim();
+        let clientSecret = (this.config?.clientSecret || process.env.PAYPAL_CLIENT_SECRET || '').trim();
+        const rawMode = (this.config?.mode || process.env.PAYPAL_MODE || 'sandbox').toLowerCase();
+        const mode = (rawMode === 'production' || rawMode === 'live') ? 'live' : 'sandbox';
 
         if (clientId && clientSecret) {
+            console.log(`[PayPal] Initializing in ${mode} mode`);
+            console.log(`[PayPal] Client ID: ${clientId.substring(0, 5)}...${clientId.substring(clientId.length - 5)}`);
+            console.log(`[PayPal] Secret: ${clientSecret.substring(0, 5)}...${clientSecret.substring(clientSecret.length - 5)}`);
+
             const environment = mode === 'live'
                 ? new paypal.core.LiveEnvironment(clientId, clientSecret)
                 : new paypal.core.SandboxEnvironment(clientId, clientSecret);
