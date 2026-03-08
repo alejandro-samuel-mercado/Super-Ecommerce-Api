@@ -409,8 +409,9 @@ class SaleService {
           paymentType: dbPaymentType,
           currencyCode: activeCurrencyCode,
         };
-        const { appliedDiscounts, totalDiscountAmount } =
+        const { appliedDiscounts, totalDiscountAmount: rawTotalDiscountAmount } =
           await DiscountService.calculateDiscounts(discountContext);
+        const totalDiscountAmount = parseFloat(rawTotalDiscountAmount.toFixed(2));
 
         const subtotalAfterDiscounts = subtotal - totalDiscountAmount;
 
@@ -437,7 +438,7 @@ class SaleService {
                 activeCurrencyCode,
                 userId,
               );
-              couponDiscount = couponResult.discountAmount;
+              couponDiscount = parseFloat(couponResult.discountAmount.toFixed(2));
               couponId = couponResult.id;
             }
           } catch (error) {
@@ -464,7 +465,7 @@ class SaleService {
             ? parseFloat(storeConfig.moneyPerPoint.toString())
             : 0;
           const moneyPerPoint = moneyPerPointBase * exchangeRateAtPurchase;
-          pointsDiscount = pointsToRedeem * moneyPerPoint;
+          pointsDiscount = parseFloat((pointsToRedeem * moneyPerPoint).toFixed(2));
         }
 
         const manualDiscountAmount = parseFloat(manualDiscount) || 0;
@@ -497,10 +498,10 @@ class SaleService {
         const taxEvent = await EventService.getActiveEvent();
         const taxesEnabled = taxEvent ? taxEvent.taxesEnabled !== false : true;
 
-        const subtotalNeto = Math.max(
+        const subtotalNeto = parseFloat(Math.max(
           0,
           subtotal - totalDiscount - pointsDiscount,
-        );
+        ).toFixed(2));
 
         if (
           isLocal &&

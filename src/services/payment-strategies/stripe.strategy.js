@@ -34,12 +34,14 @@ class StripeStrategy extends PaymentStrategy {
         const isForeignCurrency = saleCurrency !== (this.config?.currencyCode || saleCurrency);
         const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 
-        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency)
+        // Sólo usar totalInBaseCurrency si la moneda de la pasarela coincide con la moneda base
+        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency && targetCurrency === baseCurrency.toLowerCase())
             ? Number(sale.totalInBaseCurrency)
             : (isForeignCurrency ? Number(sale.total) / exchangeRate : Number(sale.total));
 
         const convertToTarget = (amount) => {
             if (!isForeignCurrency) return Number(amount);
+            if (Number(sale.total) === 0) return 0;
             return (Number(amount) / Number(sale.total)) * targetTotal;
         };
 

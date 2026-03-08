@@ -45,7 +45,8 @@ class MercadoPagoStrategy extends PaymentStrategy {
             return Number(amount) / exchangeRate;
         };
 
-        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency) 
+        // Sólo usar totalInBaseCurrency si la moneda de la pasarela coincide con la moneda base
+        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency && targetCurrency === baseCurrency) 
               ? Number(sale.totalInBaseCurrency) 
               : convertToTarget(sale.total);
 

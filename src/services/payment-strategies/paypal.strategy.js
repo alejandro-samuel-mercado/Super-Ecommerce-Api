@@ -33,9 +33,9 @@ class PayPalStrategy extends PaymentStrategy {
 
         console.log(`[PayPal] Creating Payment for Sale #${sale.id} in ${sale.currencyCode}`);
         
-        const targetCurrency = (this.config?.currencyCode || sale.currencyCode).toUpperCase();
-        const saleCurrency = (sale.currencyCode).toUpperCase();
-        const isForeignCurrency = saleCurrency !== targetCurrency;
+        const baseCurrency = (this.config?.baseCurrency || process.env.BASE_CURRENCY || 'USD').toUpperCase();
+        const targetCurrency = (sale.currencyCode || baseCurrency).toUpperCase();
+        const isForeignCurrency = targetCurrency !== baseCurrency;
         const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 
         const convertToTarget = (amount) => {
@@ -43,9 +43,10 @@ class PayPalStrategy extends PaymentStrategy {
             return Number(amount) / exchangeRate;
         };
 
-        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency)
-            ? Number(sale.totalInBaseCurrency)
-            : convertToTarget(sale.total);
+        // Sólo usar totalInBaseCurrency si la moneda de la pasarela coincide con la moneda base
+        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency && targetCurrency === baseCurrency) 
+              ? Number(sale.totalInBaseCurrency) 
+              : convertToTarget(sale.total);
 
         console.log(`[PayPal] Final Target Amount: ${targetTotal} ${targetCurrency}`);
         
