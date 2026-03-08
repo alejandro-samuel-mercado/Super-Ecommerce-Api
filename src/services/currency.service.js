@@ -106,9 +106,13 @@ class CurrencyService {
       const normalizedClientCountry = countryCode.toUpperCase();
       const normalizedBusinessCountry = businessCountry.toUpperCase();
 
-      // Si el país de la base de datos es un código ISO (2 letras), la comparación es directa y universal
+      // Normalización básica para Argentina (caso común en este proyecto)
+      const isArgentina = (c) => c === "AR" || c === "ARGENTINA";
+
       const isOriginCountry =
-        normalizedClientCountry === normalizedBusinessCountry;
+        normalizedClientCountry === normalizedBusinessCountry ||
+        (isArgentina(normalizedClientCountry) &&
+          isArgentina(normalizedBusinessCountry));
 
       if (isOriginCountry) {
         return baseCurrency;
