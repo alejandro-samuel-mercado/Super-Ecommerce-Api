@@ -692,7 +692,7 @@ class SaleService {
       totalDiscount = parseFloat(totalDiscount.toFixed(2));
 
       let tax = 0;
-      const isLocal = CurrencyService.isLocalTransaction(saleData.customerIpCountry, baseCurrencyCode);
+      const isLocal = await CurrencyService.isLocalCountry(saleData.customerIpCountry);
       const taxEvent = await EventService.getActiveEvent();
       const taxesEnabled = taxEvent ? (taxEvent.taxesEnabled !== false) : true;
       
