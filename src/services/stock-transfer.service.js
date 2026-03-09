@@ -124,7 +124,7 @@ class StockTransferService {
       const transferRow = locked[0];
       if (transferRow.status !== 'PENDING') throw new Error('La transferencia no está en estado PENDING');
 
-      const items = await tx.stockTransferItem.findMany({ where: { stockTransferId: transferRow.id } });
+      const items = await tx.stockTransferItem.findMany({ where: { transferId: transferRow.id } });
 
       for (const item of items) {
            const originStock = await tx.branchInventory.findUnique({
@@ -175,7 +175,7 @@ class StockTransferService {
       const transferRow = locked[0];
       if (transferRow.status !== 'IN_TRANSIT') throw new Error('La transferencia no está en estado IN_TRANSIT');
 
-      const items = await tx.stockTransferItem.findMany({ where: { stockTransferId: transferRow.id } });
+      const items = await tx.stockTransferItem.findMany({ where: { transferId: transferRow.id } });
 
       for (const item of items) {
            const sku = await tx.sKU.findUnique({ where: { id: item.skuId } });
@@ -232,7 +232,7 @@ class StockTransferService {
                   data: { status: 'CANCELLED' }
               });
           } else if (transferRow.status === 'IN_TRANSIT') {
-               const items = await tx.stockTransferItem.findMany({ where: { stockTransferId: transferRow.id } });
+               const items = await tx.stockTransferItem.findMany({ where: { transferId: transferRow.id } });
                for (const item of items) {
                    const updatedInv = await tx.branchInventory.update({
                        where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.originBranchId } },
