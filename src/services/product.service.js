@@ -90,6 +90,7 @@ async createProduct(data) {
         action: 'CREATE_PRODUCT',
         entityType: 'PRODUCT',
         entityId: product.id,
+        branchId: data.branchId || null,
         changes: data,
         ip: data.ip
       });
@@ -645,6 +646,28 @@ async createProduct(data) {
             include: { category: true }
         });
 
+        if (data.adminId) {
+            const changes = {};
+            Object.keys(data).forEach(k => {
+                if (['adminId', 'ip', 'branchId', 'variants', 'skus'].includes(k)) return;
+                if (product[k] !== data[k]) {
+                    changes[k] = { prev: product[k], new: data[k] };
+                }
+            });
+
+            if (Object.keys(changes).length > 0) {
+                await AuditService.logAction({
+                    adminId: data.adminId,
+                    action: 'UPDATE_PRODUCT',
+                    entityType: 'PRODUCT',
+                    entityId: id,
+                    branchId: data.branchId || null,
+                    changes,
+                    ip: data.ip
+                });
+            }
+        }
+
         // 2. Administrar Nuevas Variantes (Si fueron proveidas)
         if (data.variants && Array.isArray(data.variants) && data.variants.length > 0) {
             for (const variant of data.variants) {
@@ -679,7 +702,7 @@ async createProduct(data) {
    * Eliminar un producto
    * Regla: No borrar si tiene ventas asociadas (cantidadVendida > 0 en algún SKU)
    */
-  async deleteProduct(id) {
+  async deleteProduct(id, adminId = null, ip = null, branchId = null) {
     return await prisma.$transaction(async (tx) => {
        const skusConVentas = await tx.sKU.count({
           where: {
@@ -702,17 +725,28 @@ async createProduct(data) {
        });
        if (transferenciasActivas > 0) throw new Error('No se puede eliminar el producto porque está en una transferencia.');
 
-       // 2. Si no hay ventas, eliminar (Cascade se encarga de SKUs y Variantes)
-       // Pero verificamos existencia primero
+       let deletedProduct;
        try {
-         // Fix: use delete where id, previously idProducto which is wrong
-         return await tx.product.delete({
+         deletedProduct = await tx.product.delete({
             where: { id: parseInt(id) }
          });
        } catch (e) {
          if (e.code === 'P2025') throw new Error('Producto no encontrado');
          throw e;
        }
+
+       if (adminId) {
+           await AuditService.logAction({
+               adminId,
+               action: 'DELETE_PRODUCT',
+               entityType: 'PRODUCT',
+               entityId: id,
+               branchId: branchId || null,
+               changes: { status: 'DELETED' },
+               ip
+           });
+       }
+       return deletedProduct;
     });
   }
 

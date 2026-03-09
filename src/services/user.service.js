@@ -108,6 +108,7 @@ class UserService {
           action: 'UPDATE_USER_PROFILE',
           entityType: 'USER',
           entityId: userId,
+          branchId: data.branchId || user.branchId || null,
           changes,
           ip: data.ip
         });
@@ -169,6 +170,7 @@ class UserService {
             action: 'DELETE_USER',
             entityType: 'USER',
             entityId: userId,
+            branchId: null, // Global user deletion
             changes: { status: 'DELETED' },
             ip
         });

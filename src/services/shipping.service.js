@@ -209,7 +209,7 @@ class ShippingService {
     });
 
     if (combinationExists) {
-      console.error("Duplicado encontrado:", combinationExists);
+     
       throw new Error(
         `Ya existe una zona de envío para ${city || province || country || "General"}`,
       );

@@ -8,16 +8,17 @@ class AuditService {
    * @param {number} params.adminId - ID del usuario admin que realiza la acción
    * @param {string} params.action - name de la acción (ej: 'UPDATE_PRODUCT', 'BAN_USER')
    * @param {string} params.entityType - Tipo de entidad afectada ('PRODUCT', 'USER', 'SALE')
-   * @param {string|number} params.entityId - ID de la entidad afectada
+   * @param {number} [params.branchId] - ID de la sucursal donde ocurre la acción
    * @param {Object} [params.changes] - JSON con los cambios (oldValue, newValue)
    * @param {string} [params.ip] - IP del cliente
    * @param {string} [params.userAgent] - User Agent del cliente
    */
-  async logAction({ adminId, action, entityType, entityId, changes, ip, userAgent }) {
+  async logAction({ adminId, action, entityType, entityId, branchId, changes, ip, userAgent }) {
     try {
       await prisma.auditLog.create({
         data: {
           adminId: adminId || null,
+          branchId: branchId || null,
           action,
           entityType,
           entityId: String(entityId),
@@ -33,7 +34,7 @@ class AuditService {
   }
 
   async getLogs(filters = {}) {
-      const { search, entityType, adminId, startDate, endDate, page = 1, limit = 20 } = filters;
+      const { search, entityType, adminId, branchId, startDate, endDate, page = 1, limit = 20 } = filters;
       
       const p = parseInt(page);
       const l = parseInt(limit);
@@ -41,6 +42,9 @@ class AuditService {
 
       const where = {};
       
+      if (branchId) {
+          where.branchId = parseInt(branchId);
+      }
       if (search) {
           where.OR = [
               { action: { contains: search, mode: 'insensitive' } },

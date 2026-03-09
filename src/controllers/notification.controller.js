@@ -4,7 +4,17 @@ class NotificationController {
   
   async getNotifications(req, res, next) {
     try {
-      const notifications = await NotificationService.getNotifications(req.user.id);
+      let { branchId } = req.query;
+      const roleName = req.user.role.name || req.user.role;
+
+      if (roleName === 'EMPLOYEE') {
+          const userProfile = await require('../services/user.service').getProfile(req.user.id);
+          if (userProfile && userProfile.branchId) {
+              branchId = userProfile.branchId;
+          }
+      }
+
+      const notifications = await NotificationService.getNotifications(req.user.id, 20, branchId);
       res.status(200).json({ success: true, data: notifications });
     } catch (error) {
       next(error);

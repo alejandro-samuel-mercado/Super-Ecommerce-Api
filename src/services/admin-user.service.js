@@ -17,6 +17,7 @@ class AdminUserService {
       action: 'VERIFY_IDENTITY',
       entityType: 'USER',
       entityId: userId,
+      branchId: user.branchId, // Use user's branch
       changes: { prev: user.dniVerified, new: true },
       ip
     });
@@ -46,6 +47,7 @@ class AdminUserService {
           action: 'CHANGE_STATUS',
           entityType: 'USER',
           entityId: userId,
+          branchId: user.branchId, // Use user's branch
           changes: { prev: user.status, new: status },
           ip
       });
@@ -84,6 +86,7 @@ class AdminUserService {
           action: 'ADJUST_POINTS',
           entityType: 'USER',
           entityId: userId,
+          branchId: user.branchId, // Use user's branch
           changes: { prev: user.points, change: amount, reason },
           ip
       });

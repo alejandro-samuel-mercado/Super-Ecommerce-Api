@@ -1,8 +1,0 @@
-[
-  {
-    "id": 1,
-    "trigger": "Hola",
-    "response": "Hola Cliente",
-    "isActive": true
-  }
-]

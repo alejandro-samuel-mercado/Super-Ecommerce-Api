@@ -69,8 +69,8 @@ class CategoryController {
       if (!name) {
         return res.status(400).json({ success: false, message: 'El name es obligatorio' });
       }
-
-      const newCategory = await CategoryService.createCategory({ name, description, slug, parentId, adminId: req.user.id, ip: req.ip });
+      const { branchId } = req.query;
+      const newCategory = await CategoryService.createCategory({ name, description, slug, parentId, adminId: req.user.id, ip: req.ip, branchId });
 
       res.status(201).json({
 
@@ -93,8 +93,8 @@ class CategoryController {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const { name, description, slug, parentId } = req.body;
-      const updatedCategory = await CategoryService.updateCategory(id, { name, description, slug, parentId, adminId: req.user.id, ip: req.ip });
+      const { branchId } = req.query;
+      const updatedCategory = await CategoryService.updateCategory(id, { name, description, slug, parentId, adminId: req.user.id, ip: req.ip, branchId });
 
       res.status(200).json({
 
@@ -116,7 +116,8 @@ class CategoryController {
   async delete(req, res, next) {
     try {
       const { id } = req.params;
-      await CategoryService.deleteCategory(id, req.user.id, req.ip);
+      const { branchId } = req.query;
+      await CategoryService.deleteCategory(id, req.user.id, req.ip, branchId);
 
       res.status(200).json({
 

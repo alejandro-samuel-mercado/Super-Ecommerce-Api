@@ -43,7 +43,6 @@ prisma.$on('warn', (e) => {
 });
 
 prisma.$on('error', (e) => {
-  console.error('❌ [Prisma]', e.message);
 });
 
 module.exports = prisma;

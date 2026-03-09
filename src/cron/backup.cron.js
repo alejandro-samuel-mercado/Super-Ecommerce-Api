@@ -41,7 +41,7 @@ const initializeBackupCron = () => {
         }
     });
 
-    console.log('[Cron] Configured database backup cron job.');
+
 };
 
 module.exports = {

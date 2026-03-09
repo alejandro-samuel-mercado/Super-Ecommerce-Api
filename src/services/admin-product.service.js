@@ -25,6 +25,7 @@ class AdminProductService {
               action: 'UPDATE_PRODUCT',
               entityType: 'PRODUCT',
               entityId: productId,
+              branchId: data.branchId || null,
               changes,
               ip
           });

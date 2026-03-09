@@ -586,12 +586,12 @@ class SaleService {
         }
 
         // Gestión de Stock
-        if (employeeId) {
           await AuditService.logAction({
             adminId: employeeId,
             action: "CREATE_SALE_POS",
             entityType: "SALE",
             entityId: sale.id,
+            branchId: sale.branchId,
             changes: {
               total: sale.total,
               paymentType: sale.paymentType,
@@ -599,7 +599,6 @@ class SaleService {
             },
             ip: saleData.ip,
           });
-        }
 
         if (requiresOnlinePayment) {
           const expiresAt = new Date(Date.now() + reservationTTL * 60000);

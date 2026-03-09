@@ -179,6 +179,7 @@ model CartItem {
 model Notification {
   id        Int      @id @default(autoincrement())
   userId    Int
+  branchId  Int?
   type      String
   title     String
   message   String
@@ -186,9 +187,11 @@ model Notification {
   data      Json?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch    Branch?  @relation(fields: [branchId], references: [id])
 
   @@index([userId])
   @@index([read])
+  @@index([branchId])
 }
 
 model RefreshToken {
@@ -483,11 +486,15 @@ model AuditLog {
   entityType String
   entityId   String
   adminId    Int?
+  branchId   Int?
   changes    Json?
   ip         String?
   userAgent  String?
   createdAt  DateTime @default(now())
   admin      User?    @relation("AdminActions", fields: [adminId], references: [id])
+  branch     Branch?  @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
 }
 
 model AccessLog {
@@ -546,6 +553,8 @@ model Branch {
   bankTransfers    Transfer[]
   employees        User[]
   administrators   UserBranch[]
+  auditLogs        AuditLog[]
+  notifications    Notification[]
 }
 
 model SaleReceipt {

@@ -102,6 +102,7 @@ class StockCleanupService {
                   action: 'AUTO_CANCEL_EXPIRED_SALE',
                   entityType: 'SALE',
                   entityId: sale.id,
+                  branchId: sale.branchId,
                   changes: {
                       paymentStatus: { old: 'PENDING', new: 'CANCELLED' },
                       reason: 'Expiration of stock reservation'

@@ -123,7 +123,7 @@ const initSocket = (server) => {
                 socket.emit('chat_history', { conversationId: null, messages: [] });
             }
         } catch (error) {
-            console.error("Error resuming chat:", error);
+        
         }
     });
 
@@ -144,7 +144,7 @@ const initSocket = (server) => {
         });
 
       } catch (error) {
-         console.error("Socket error admin_message:", error);
+        
       }
     });
 

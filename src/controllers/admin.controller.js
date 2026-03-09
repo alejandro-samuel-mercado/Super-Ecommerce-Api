@@ -41,8 +41,25 @@ class AdminController {
 
   async getAuditLogs(req, res, next) {
       try {
-          
-          const result = await AuditService.getLogs(req.query);
+          let { branchId } = req.query;
+          const roleName = req.user.role.name || req.user.role;
+
+          if (roleName === 'EMPLOYEE') {
+              const userProfile = await require('../services/user.service').getProfile(req.user.id);
+              if (userProfile && userProfile.branchId) {
+                  branchId = userProfile.branchId;
+              }
+          } else if (roleName === 'ADMIN') {
+              const adminBranches = await require('../config/prisma').userBranch.findMany({ where: { userId: req.user.id } });
+              const allowedBranchIds = adminBranches.map(b => b.branchId);
+              if (branchId) {
+                  if (!allowedBranchIds.includes(parseInt(branchId))) {
+                      branchId = allowedBranchIds.length > 0 ? allowedBranchIds[0] : null;
+                  }
+              }
+          }
+
+          const result = await AuditService.getLogs({ ...req.query, branchId: branchId ? parseInt(branchId) : undefined });
           res.json({ success: true, data: result });
       } catch (error) {
           next(error);

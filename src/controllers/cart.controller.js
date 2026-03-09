@@ -9,7 +9,7 @@ class CartController {
             const cart = await CartService.getCart(userId, currency);
             res.json(cart);
         } catch (error) {
-            console.error('Error getting cart:', error);
+           
             res.status(500).json({ error: error.message });
         }
     }
@@ -21,7 +21,7 @@ class CartController {
             const cart = await CartService.getCart(userId, currency);
             res.json(cart);
         } catch (error) {
-            console.error('Error getting user cart by admin:', error);
+           
             res.status(500).json({ error: error.message });
         }
     }
@@ -33,7 +33,7 @@ class CartController {
             const result = await CartService.addToCart(userId, skuId, quantity);
             res.json(result);
         } catch (error) {
-            console.error('Error adding to cart:', error);
+           
             res.status(500).json({ error: error.message });
         }
     }
@@ -45,7 +45,7 @@ class CartController {
             const result = await CartService.removeFromCart(userId, skuId);
             res.json(result);
         } catch (error) {
-            console.error('Error removing from cart:', error);
+     
             res.status(500).json({ error: error.message });
         }
     }
@@ -57,7 +57,7 @@ class CartController {
             const result = await CartService.updateItem(userId, skuId, quantity);
             res.json(result);
         } catch (error) {
-            console.error('Error updating cart item:', error);
+          
             res.status(500).json({ error: error.message });
         }
     }
@@ -70,7 +70,7 @@ class CartController {
             const cart = await CartService.mergeCart(userId, items, currency);
             res.json(cart);
         } catch (error) {
-            console.error('Error merging cart:', error);
+          
             res.status(500).json({ error: error.message });
         }
     }
@@ -81,7 +81,7 @@ class CartController {
             const result = await CartService.clearCart(userId);
             res.json(result);
          } catch (error) {
-             console.error('Error clearing cart:', error);
+            
              res.status(500).json({ error: error.message });
          }
     }

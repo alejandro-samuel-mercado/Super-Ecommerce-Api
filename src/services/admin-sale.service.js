@@ -35,6 +35,7 @@ class AdminSaleService {
           action: 'UPDATE_DELIVERY_STATUS',
           entityType: 'SALE',
           entityId: saleId,
+          branchId: updatedSale.branchId,
           changes: { prev: sale.deliveryStatus, new: newStatus },
           ip
       });
@@ -195,6 +196,7 @@ class AdminSaleService {
               action: 'REFUND_SALE',
               entityType: 'SALE',
               entityId: saleId,
+              branchId: sale.branchId,
               changes: { 
                   reason, 
                   prevStatus: sale.paymentStatus, 
@@ -302,6 +304,7 @@ class AdminSaleService {
           action: 'UPDATE_PAYMENT_STATUS',
           entityType: 'SALE',
           entityId: saleId,
+          branchId: sale.branchId,
           changes: { prev: sale.paymentStatus, new: newStatus },
           ip
       });

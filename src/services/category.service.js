@@ -102,6 +102,7 @@ class CategoryService {
         action: 'CREATE_CATEGORY',
         entityType: 'CATEGORY',
         entityId: category.id,
+        branchId: data.branchId || null,
         changes: data,
         ip: data.ip
       });
@@ -152,6 +153,7 @@ class CategoryService {
           action: 'UPDATE_CATEGORY',
           entityType: 'CATEGORY',
           entityId: catId,
+          branchId: data.branchId || null,
           changes,
           ip: data.ip
         });
@@ -166,7 +168,7 @@ class CategoryService {
    * @param {number} id 
    * @returns {Promise<Object>}
    */
-  async deleteCategory(id) {
+  async deleteCategory(id, adminId, ip, branchId = null) {
     // Validar si tiene productos asociados antes de borrar
     const category = await prisma.category.findUnique({
         where: { id: parseInt(id) },
@@ -188,6 +190,7 @@ class CategoryService {
         action: 'DELETE_CATEGORY',
         entityType: 'CATEGORY',
         entityId: parseInt(id),
+        branchId: branchId || null,
         changes: { name: category.name },
         ip
       });

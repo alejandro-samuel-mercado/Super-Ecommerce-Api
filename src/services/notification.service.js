@@ -32,7 +32,7 @@ class NotificationService {
             },
           });
       } catch (err) {
-          console.error('📧 NotificationService Error: Could not create Ethereal account', err);
+         
       }
     }
   }
@@ -62,12 +62,10 @@ class NotificationService {
 
       // La URL de vista previa solo está disponible cuando se envía a través de Ethereal
       const previewUrl = nodemailer.getTestMessageUrl(info);
-      if (previewUrl) {
-          console.log('📧 Email enviado (Simulado):', previewUrl);
-      }
+      
       return info;
     } catch (error) {
-      console.error('📧 Error sending email:', error);
+      
    
       return null;
     }

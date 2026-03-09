@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const AuditService = require('./audit.service');
 
 class BranchService {
 
@@ -84,6 +85,18 @@ class BranchService {
       });
     }
 
+    if (data.adminId) {
+      await AuditService.logAction({
+        adminId: data.adminId,
+        action: 'CREATE_BRANCH',
+        entityType: 'BRANCH',
+        entityId: branch.id,
+        branchId: branch.id,
+        changes: branch,
+        ip: data.ip
+      });
+    }
+
     return branch;
   });
 }
@@ -97,7 +110,7 @@ class BranchService {
          if (existing) throw new Error('Código en uso por otra sucursal');
     }
 
-    return await prisma.branch.update({
+    const updatedBranch = await prisma.branch.update({
       where: { id: parseInt(id) },
       data: {
           name: data.name,
@@ -114,6 +127,30 @@ class BranchService {
           operatingHours: data.operatingHours
       }
     });
+
+    if (data.adminId) {
+        const changes = {};
+        Object.keys(data).forEach(k => {
+            if (['adminId', 'ip'].includes(k)) return;
+            if (JSON.stringify(branch[k]) !== JSON.stringify(data[k])) {
+                changes[k] = { prev: branch[k], new: data[k] };
+            }
+        });
+
+        if (Object.keys(changes).length > 0) {
+            await AuditService.logAction({
+                adminId: data.adminId,
+                action: 'UPDATE_BRANCH',
+                entityType: 'BRANCH',
+                entityId: id,
+                branchId: id,
+                changes,
+                ip: data.ip
+            });
+        }
+    }
+
+    return updatedBranch;
   }
 
   async delete(id) {
@@ -131,6 +168,25 @@ class BranchService {
     const result = await prisma.branch.delete({
       where: { id: branchId }
     });
+
+    // Note: adminId and ip should be passed to delete if we want to log it
+    // For now, if they are not provided, we won't log the action or we log with nulls
+    // The controller should be updated to pass these
+    const adminId = arguments[1]; 
+    const ip = arguments[2];
+
+    if (adminId) {
+        await AuditService.logAction({
+            adminId,
+            action: 'DELETE_BRANCH',
+            entityType: 'BRANCH',
+            entityId: branchId,
+            branchId: branchId,
+            changes: result,
+            ip
+        });
+    }
+
     return result;
   }
 
@@ -165,10 +221,23 @@ class BranchService {
       if (!user) throw new Error('Usuario no encontrado');
 
       if (user.role.name === 'EMPLOYEE') {
-          return await prisma.user.update({
+          const result = await prisma.user.update({
               where: { id: parsedUserId },
               data: { branchId: parsedBranchId }
           });
+
+          if (assignedBy) {
+              await AuditService.logAction({
+                  adminId: parseInt(assignedBy),
+                  action: 'ASSIGN_USER_TO_BRANCH',
+                  entityType: 'USER',
+                  entityId: parsedUserId,
+                  branchId: parsedBranchId,
+                  changes: { branchId: parsedBranchId },
+                  ip: arguments[3]
+              });
+          }
+          return result;
       } else {
           const exists = await prisma.userBranch.findUnique({
               where: { userId_branchId: { userId: parsedUserId, branchId: parsedBranchId } }
@@ -176,13 +245,26 @@ class BranchService {
           
           if (exists) return exists;
           
-          return await prisma.userBranch.create({
+          const result = await prisma.userBranch.create({
               data: {
                   userId: parsedUserId,
                   branchId: parsedBranchId,
                   assignedBy: assignedBy ? parseInt(assignedBy) : null
               }
           });
+
+          if (assignedBy) {
+              await AuditService.logAction({
+                  adminId: parseInt(assignedBy),
+                  action: 'ASSIGN_USER_TO_BRANCH',
+                  entityType: 'USER',
+                  entityId: parsedUserId,
+                  branchId: parsedBranchId,
+                  changes: { branchId: parsedBranchId },
+                  ip: arguments[3]
+              });
+          }
+          return result;
       }
   }
 
@@ -195,16 +277,46 @@ class BranchService {
 
       if (user.role.name === 'EMPLOYEE') {
           if (user.branchId === parsedBranchId) {
-               return await prisma.user.update({
+               const result = await prisma.user.update({
                   where: { id: parsedUserId },
                   data: { branchId: null }
               });
+
+              const adminId = arguments[2];
+              const ip = arguments[3];
+              if (adminId) {
+                  await AuditService.logAction({
+                      adminId: parseInt(adminId),
+                      action: 'REMOVE_USER_FROM_BRANCH',
+                      entityType: 'USER',
+                      entityId: parsedUserId,
+                      branchId: parsedBranchId,
+                      changes: { removedFromBranchId: parsedBranchId },
+                      ip
+                  });
+              }
+              return result;
           }
       } else {
           try {
-              return await prisma.userBranch.delete({
+              const result = await prisma.userBranch.delete({
                   where: { userId_branchId: { userId: parsedUserId, branchId: parsedBranchId } }
               });
+
+              const adminId = arguments[2];
+              const ip = arguments[3];
+              if (adminId) {
+                  await AuditService.logAction({
+                      adminId: parseInt(adminId),
+                      action: 'REMOVE_USER_FROM_BRANCH',
+                      entityType: 'USER',
+                      entityId: parsedUserId,
+                      branchId: parsedBranchId,
+                      changes: { removedFromBranchId: parsedBranchId },
+                      ip
+                  });
+              }
+              return result;
           } catch (e) {
               if (e.code === 'P2025') return;
               throw e;

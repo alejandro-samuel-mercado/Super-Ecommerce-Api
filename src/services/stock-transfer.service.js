@@ -1,4 +1,5 @@
 const prisma = require('../config/prisma');
+const AuditService = require('./audit.service');
 
 class StockTransferService {
 
@@ -96,7 +97,7 @@ class StockTransferService {
          }
       }
 
-      return await tx.stockTransfer.create({
+      const transfer = await tx.stockTransfer.create({
         data: {
           originBranchId,
           destinationBranchId,
@@ -112,6 +113,18 @@ class StockTransferService {
         },
         include: { items: true }
       });
+
+      await AuditService.logAction({
+        adminId: userId,
+        action: 'CREATE_STOCK_TRANSFER_REQUEST',
+        entityType: 'STOCK_TRANSFER',
+        entityId: transfer.id,
+        branchId: originBranchId,
+        changes: transfer,
+        ip: data.ip
+      });
+
+      return transfer;
     });
   }
 
@@ -159,10 +172,22 @@ class StockTransferService {
            });
       }
 
-      return await tx.stockTransfer.update({
+      const result = await tx.stockTransfer.update({
           where: { id: transferRow.id },
           data: { status: 'IN_TRANSIT' }
       });
+
+      await AuditService.logAction({
+          adminId: userId,
+          action: 'SHIP_STOCK_TRANSFER',
+          entityType: 'STOCK_TRANSFER',
+          entityId: result.id,
+          branchId: transferRow.originBranchId,
+          changes: { from: transferRow.status, to: result.status },
+          ip: arguments[2]
+      });
+
+      return result;
     });
   }
 
@@ -211,10 +236,22 @@ class StockTransferService {
            });
       }
 
-      return await tx.stockTransfer.update({
+      const result = await tx.stockTransfer.update({
           where: { id: transferRow.id },
           data: { status: 'COMPLETED' }
       });
+
+      await AuditService.logAction({
+          adminId: userId,
+          action: 'RECEIVE_STOCK_TRANSFER',
+          entityType: 'STOCK_TRANSFER',
+          entityId: result.id,
+          branchId: transferRow.destinationBranchId,
+          changes: { from: transferRow.status, to: result.status },
+          ip: arguments[2]
+      });
+
+      return result;
     });
   }
 
@@ -257,10 +294,21 @@ class StockTransferService {
                        }
                    });
                }
-               return await tx.stockTransfer.update({
+               const result = await tx.stockTransfer.update({
                   where: { id: transferRow.id },
                   data: { status: 'CANCELLED' }
               });
+
+              await AuditService.logAction({
+                  adminId: userId,
+                  action: 'CANCEL_STOCK_TRANSFER',
+                  entityType: 'STOCK_TRANSFER',
+                  entityId: result.id,
+                  branchId: transferRow.originBranchId,
+                  changes: { from: transferRow.status, to: result.status },
+                  ip: arguments[2]
+              });
+              return result;
           } else {
               throw new Error('No se puede cancelar una transferencia completada o ya cancelada');
           }

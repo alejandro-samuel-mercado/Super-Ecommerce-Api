@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const StockMovementService = require('./stock-movement.service');
+const AuditService = require('./audit.service');
 
 class PurchaseService {
   
@@ -101,7 +102,7 @@ class PurchaseService {
           estimatedTotal += (item.quantity * item.unitPrice);
       });
 
-      return await prisma.purchase.create({
+      const purchase = await prisma.purchase.create({
           data: {
               branchId: activeBranchId,
               supplierId: parseInt(supplierId),
@@ -123,6 +124,18 @@ class PurchaseService {
               }
           }
       });
+
+      await AuditService.logAction({
+          adminId: userId,
+          action: 'CREATE_PURCHASE_ORDER_DRAFT',
+          entityType: 'PURCHASE_ORDER',
+          entityId: purchase.id,
+          branchId: activeBranchId,
+          changes: purchase,
+          ip: data.ip
+      });
+
+      return purchase;
   }
 
   async confirm(id, userId) {
@@ -130,10 +143,22 @@ class PurchaseService {
       const purchase = await this.getById(id);
       if (purchase.status !== 'DRAFT') throw new Error('Solo se pueden confirmar ordenes en borrador');
       
-      return await prisma.purchase.update({
+      const result = await prisma.purchase.update({
           where: { id: parseInt(id) },
           data: { status: 'CONFIRMED' }
       });
+
+      await AuditService.logAction({
+          adminId: userId,
+          action: 'CONFIRM_PURCHASE_ORDER',
+          entityType: 'PURCHASE_ORDER',
+          entityId: id,
+          branchId: purchase.branchId,
+          changes: { from: 'DRAFT', to: 'CONFIRMED' },
+          ip: arguments[2]
+      });
+
+      return result;
   }
 
   async receive(id, userId) {
@@ -204,7 +229,7 @@ class PurchaseService {
           }
           
           // Actualizar Estado de Compra
-          return await tx.purchase.update({
+          const result = await tx.purchase.update({
               where: { id: purchase.id },
               data: {
                   status: 'RECEIVED',
@@ -212,6 +237,18 @@ class PurchaseService {
                   receivedBy: userId
               }
           });
+
+          await AuditService.logAction({
+              adminId: userId,
+              action: 'RECEIVE_PURCHASE_ORDER',
+              entityType: 'PURCHASE_ORDER',
+              entityId: purchase.id,
+              branchId: purchase.branchId,
+              changes: { from: purchase.status, to: 'RECEIVED' },
+              ip: arguments[2]
+          });
+
+          return result;
       });
   }
 
@@ -221,10 +258,22 @@ class PurchaseService {
       if (purchase.status === 'RECEIVED') throw new Error('No se puede cancelar una orden ya recibida');
       if (purchase.payment) throw new Error('No se puede cancelar una orden que ya tiene un pago registrado');
       
-      return await prisma.purchase.update({
+      const result = await prisma.purchase.update({
           where: { id: parseInt(id) },
           data: { status: 'CANCELLED' }
       });
+
+      await AuditService.logAction({
+          adminId: userId,
+          action: 'CANCEL_PURCHASE_ORDER',
+          entityType: 'PURCHASE_ORDER',
+          entityId: id,
+          branchId: purchase.branchId,
+          changes: { from: purchase.status, to: 'CANCELLED' },
+          ip: arguments[2]
+      });
+
+      return result;
   }
 }
 

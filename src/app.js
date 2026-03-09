@@ -202,10 +202,10 @@ app.use(async (err, req, res, next) => {
           body: req.body
       }, severity);
   } catch (loggingError) {
-      console.error('Error logging to DB:', loggingError);
+     
   }
 
-  console.error(`❌ [Error ${logId || '?'}]`, err.stack); 
+ 
 
   // 3. Send Sanitized Response
   // Si es un error educacional/operacional (trae statusCode o isOperational), enviamos el mensaje real

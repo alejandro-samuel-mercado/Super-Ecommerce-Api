@@ -209,7 +209,7 @@ class AuthController {
                           updateDebug();
                           try {
                               if (window.opener) {
-                                  console.log('[Auth] Opener found, sending postMessage');
+                                 
                                   window.opener.postMessage(data, '${process.env.FRONTEND_URL || "*"}');
                                   
                                   title.innerText = '¡Todo listo!';
