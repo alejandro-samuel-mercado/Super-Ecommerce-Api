@@ -20,22 +20,22 @@ router.get('/:code', CurrencyController.getOne);
 /**
  * @route POST /api/currencies
  * @desc Crear una nueva moneda
- * @access Admin/Super Admin
+ * @access Super Admin
  */
-router.post('/', authenticate, authorize(['ADMIN', 'SUPER_ADMIN']), CurrencyController.create);
+router.post('/', authenticate, authorize(['SUPER_ADMIN']), CurrencyController.create);
 
 /**
  * @route PUT /api/currencies/:id
  * @desc Actualizar una moneda existente
- * @access Admin/Super Admin
+ * @access Super Admin
  */
-router.put('/:id', authenticate, authorize(['ADMIN', 'SUPER_ADMIN']), CurrencyController.update);
+router.put('/:id', authenticate, authorize(['SUPER_ADMIN']), CurrencyController.update);
 
 /**
  * @route DELETE /api/currencies/:id
  * @desc Eliminar una moneda
- * @access Admin/Super Admin
+ * @access Super Admin
  */
-router.delete('/:id', authenticate, authorize(['ADMIN', 'SUPER_ADMIN']), CurrencyController.delete);
+router.delete('/:id', authenticate, authorize(['SUPER_ADMIN']), CurrencyController.delete);
 
 module.exports = router;

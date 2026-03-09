@@ -14,7 +14,7 @@ router.get('/public', getPublicConfig);
 
 // Rutas protegidas
 router.use(protect);
-router.use(restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'));
+router.use(restrictTo('SUPER_ADMIN'));
 
 /**
  * @route GET /api/config

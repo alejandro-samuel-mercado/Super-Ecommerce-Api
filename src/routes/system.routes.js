@@ -29,15 +29,15 @@ router.post('/report-error', reportLimiter, SystemController.reportError);
 /**
  * @route GET /api/system/alerts
  * @desc Obtener alertas del sistema
- * @access Admin/Super Admin
+ * @access Admin/Super Admin/Employee
  */
-router.get('/alerts', protect, restrictTo(['ADMIN', 'SUPER_ADMIN']), SystemController.getAlerts);
+router.get('/alerts', protect, restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), SystemController.getAlerts);
 
 /**
  * @route PATCH /api/system/alerts/:id/resolve
  * @desc Marcar una alerta como resuelta
- * @access Admin/Super Admin
+ * @access Admin/Super Admin/Employee
  */
-router.patch('/alerts/:id/resolve', protect, restrictTo(['ADMIN', 'SUPER_ADMIN']), SystemController.resolveAlert);
+router.patch('/alerts/:id/resolve', protect, restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), SystemController.resolveAlert);
 
 module.exports = router;

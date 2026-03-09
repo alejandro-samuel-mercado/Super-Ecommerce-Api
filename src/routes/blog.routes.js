@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const blogController = require('../controllers/blog.controller');
-const { authenticate } = require('../middlewares/auth.middleware');
+const { authenticate, authorize } = require('../middlewares/auth.middleware');
 
 /**
  * @route GET /api/blog
@@ -31,25 +31,28 @@ router.get('/:slug', blogController.getBySlug);
  */
 router.get('/:slug/related', blogController.getRelated);
 
+// Rutas protegidas para gestión de contenido
+router.use(authenticate, authorize(['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']));
+
 /**
  * @route POST /api/blog
  * @desc Crear una nueva publicación en el blog
  * @access Admin/Auth
  */
-router.post('/', authenticate, blogController.create);
+router.post('/', blogController.create);
 
 /**
  * @route PUT /api/blog/:id
  * @desc Actualizar una publicación existente
  * @access Admin/Auth
  */
-router.put('/:id', authenticate, blogController.update);
+router.put('/:id', blogController.update);
 
 /**
  * @route DELETE /api/blog/:id
  * @desc Eliminar una publicación del blog
  * @access Admin/Auth
  */
-router.delete('/:id', authenticate, blogController.delete);
+router.delete('/:id', blogController.delete);
 
 module.exports = router;

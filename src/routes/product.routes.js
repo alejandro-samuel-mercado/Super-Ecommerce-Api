@@ -67,15 +67,15 @@ router.delete('/:id', restrictTo('ADMIN', 'SUPER_ADMIN'), ProductController.dele
 /**
  * @route GET /api/products/:id/prices
  * @desc Obtener historial o lista de precios manuales
- * @access Admin/Super Admin
+ * @access Admin/Super Admin/Employee
  */
-router.get('/:id/prices', restrictTo('ADMIN', 'SUPER_ADMIN'), ProductController.getPrices);
+router.get('/:id/prices', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), ProductController.getPrices);
 
 /**
  * @route PUT /api/products/:id/prices
  * @desc Actualizar precios manuales
  * @access Admin/Super Admin
  */
-router.put('/:id/prices', restrictTo('ADMIN', 'SUPER_ADMIN'), ProductController.updatePrices);
+router.put('/:id/prices', restrictTo(['ADMIN', 'SUPER_ADMIN']), ProductController.updatePrices);
 
 module.exports = router;

@@ -3,9 +3,17 @@ const router = express.Router();
 const adminStockController = require('../controllers/admin-stock.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 
-// Todas las rutas requieren autenticación y rol de admin
+// Todas las rutas requieren autenticación
 router.use(authMiddleware.authenticate);
 
+// Rutas de consulta accesibles para empleados
+router.get('/reservations/stats', authMiddleware.authorize('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), adminStockController.getReservationStats);
+router.get('/reservations', authMiddleware.authorize('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), adminStockController.getActiveReservations);
+router.get('/inconsistencies', authMiddleware.authorize('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), adminStockController.getStockInconsistencies);
+router.get('/payment-transactions', authMiddleware.authorize('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), adminStockController.getPaymentTransactions);
+router.get('/inventory', authMiddleware.authorize('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), adminStockController.getInventory);
+
+// Rutas de modificación exclusivas de Administradores
 router.use(authMiddleware.authorize('ADMIN', 'SUPER_ADMIN'));
 
 /**

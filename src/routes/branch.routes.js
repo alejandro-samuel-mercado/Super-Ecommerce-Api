@@ -30,9 +30,9 @@ router.post('/', restrictTo('SUPER_ADMIN'), BranchController.create);
 /**
  * @route PUT /api/branches/:id
  * @desc Actualizar una sucursal existente
- * @access Super Admin/Admin
+ * @access Super Admin
  */
-router.put('/:id', restrictTo('SUPER_ADMIN', 'ADMIN'), BranchController.update);
+router.put('/:id', restrictTo('SUPER_ADMIN'), BranchController.update);
 
 /**
  * @route DELETE /api/branches/:id
@@ -44,9 +44,9 @@ router.delete('/:id', restrictTo('SUPER_ADMIN'), BranchController.delete);
 /**
  * @route GET /api/branches/:id/users
  * @desc Obtener usuarios de una sucursal
- * @access Super Admin/Admin
+ * @access Super Admin
  */
-router.get('/:id/users', restrictTo('SUPER_ADMIN', 'ADMIN'), BranchController.getUsers);
+router.get('/:id/users', restrictTo('SUPER_ADMIN'), BranchController.getUsers);
 
 /**
  * @route POST /api/branches/:id/users

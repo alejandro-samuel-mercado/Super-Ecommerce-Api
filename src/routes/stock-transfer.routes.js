@@ -24,23 +24,23 @@ router.get('/:id', StockTransferController.getOne);
 /**
  * @route POST /api/stock-transfers
  * @desc Crear una nueva transferencia de inventario
- * @access Admin/Employee
+ * @access Admin
  */
-router.post('/', restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), StockTransferController.create);
+router.post('/', restrictTo(['ADMIN', 'SUPER_ADMIN']), StockTransferController.create);
 
 /**
  * @route PUT /api/stock-transfers/:id/ship
  * @desc Marcar transferencia como enviada
- * @access Admin/Employee
+ * @access Admin
  */
-router.put('/:id/ship', restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), StockTransferController.ship);
+router.put('/:id/ship', restrictTo(['ADMIN', 'SUPER_ADMIN']), StockTransferController.ship);
 
 /**
  * @route PUT /api/stock-transfers/:id/receive
  * @desc Marcar transferencia como recibida y actualizar stock en destino
- * @access Admin/Employee
+ * @access Admin
  */
-router.put('/:id/receive', restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), StockTransferController.receive);
+router.put('/:id/receive', restrictTo(['ADMIN', 'SUPER_ADMIN']), StockTransferController.receive);
 
 /**
  * @route PUT /api/stock-transfers/:id/cancel

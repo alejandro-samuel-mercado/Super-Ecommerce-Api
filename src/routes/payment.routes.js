@@ -21,30 +21,30 @@ router.post('/initiate', authenticate, PaymentController.initiatePayment);
 /**
  * @route GET /api/payments/admin/gateways
  * @desc Obtener pasarelas de pago configuradas
- * @access Admin
+ * @access Super Admin
  */
-router.get('/admin/gateways', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), PaymentController.getAllGateways);
+router.get('/admin/gateways', authenticate, authorize('SUPER_ADMIN'), PaymentController.getAllGateways);
 
 /**
  * @route PUT /api/payments/admin/gateways/:id
  * @desc Actualizar configuración de una pasarela de pago
- * @access Admin
+ * @access Super Admin
  */
-router.put('/admin/gateways/:id', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), PaymentController.updateGateway);
+router.put('/admin/gateways/:id', authenticate, authorize('SUPER_ADMIN'), PaymentController.updateGateway);
 
 /**
  * @route GET /api/payments/admin/gateways/currency-support
  * @desc Obtener soporte de monedas por pasarela
- * @access Admin
+ * @access Super Admin
  */
-router.get('/admin/gateways/currency-support', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), PaymentController.getCurrencySupport);
+router.get('/admin/gateways/currency-support', authenticate, authorize('SUPER_ADMIN'), PaymentController.getCurrencySupport);
 
 /**
  * @route POST /api/payments/admin/gateways/currency-support
  * @desc Actualizar soporte de monedas por pasarela
- * @access Admin
+ * @access Super Admin
  */
-router.post('/admin/gateways/currency-support', authenticate, authorize('ADMIN', 'SUPER_ADMIN'), PaymentController.updateCurrencySupport);
+router.post('/admin/gateways/currency-support', authenticate, authorize('SUPER_ADMIN'), PaymentController.updateCurrencySupport);
 
 /**
  * @route POST /api/payments/webhooks/:gatewaySlug

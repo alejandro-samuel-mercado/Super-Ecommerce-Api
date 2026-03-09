@@ -138,7 +138,7 @@ class UserService {
       });
   }
 
-  async deleteUser(id) {
+  async deleteUser(id, adminId, ip) {
     const userId = parseInt(id);
     const salesCount = await prisma.sale.count({ where: { userId } });
     
