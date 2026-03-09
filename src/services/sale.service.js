@@ -602,6 +602,16 @@ class SaleService {
         }
 
         if (requiresOnlinePayment) {
+          const expiresAt = new Date(Date.now() + reservationTTL * 60000);
+          await tx.stockReservation.createMany({
+            data: stockValidations.map((v) => ({
+              skuId: v.skuId,
+              branchInventoryId: v.branchInventoryId,
+              saleId: sale.id,
+              quantity: v.quantity,
+              expiresAt: expiresAt,
+            })),
+          });
         } else {
           // Venta POS / Instantánea: Deducir stock y gestionar reservas preventivas si es necesario
           for (const validation of stockValidations) {
@@ -1516,48 +1526,50 @@ class SaleService {
 
     // Disparar acciones post-pago si el estado cambió a PAID
     if (updateData.paymentStatus === "PAID" && sale.paymentStatus !== "PAID") {
-      if (updatedSale.stockReservations.length > 0) {
-        await prisma.$transaction(async (tx) => {
-          const freshSaleRows = await tx.$queryRaw`
-                       SELECT "paymentStatus" FROM "Sale" WHERE id = ${parseInt(id)} FOR UPDATE
-                   `;
-          if (freshSaleRows[0]?.paymentStatus !== "PAID") return;
+      await prisma.$transaction(async (tx) => {
+        const freshSaleRows = await tx.$queryRaw`
+                     SELECT "paymentStatus" FROM "Sale" WHERE id = ${parseInt(id)} FOR UPDATE
+                 `;
+        if (freshSaleRows[0]?.paymentStatus !== "PAID") return;
 
-          const activeReservations = await tx.stockReservation.findMany({
-            where: { saleId: parseInt(id), released: false },
+        // 1. Deducir stock basado en ITEMS de la venta
+        for (const item of (updatedSale.items || [])) {
+          if (!item.skuId || item.quantity <= 0) continue;
+
+          await tx.$executeRaw`
+                         UPDATE "SKU" SET stock = stock - ${item.quantity}, "soldQuantity" = "soldQuantity" + ${item.quantity}, "updatedAt" = NOW()
+                         WHERE id = ${item.skuId}
+                     `;
+          await tx.$executeRaw`
+                         UPDATE "BranchInventory" SET stock = stock - ${item.quantity}, "soldQuantity" = "soldQuantity" + ${item.quantity}, "updatedAt" = NOW()
+                         WHERE "skuId" = ${item.skuId} AND "branchId" = ${sale.branchId}
+                     `;
+          
+          const inv = await tx.branchInventory.findUnique({
+            where: { skuId_branchId: { skuId: item.skuId, branchId: sale.branchId } },
           });
+          
+          await tx.stockMovement.create({
+            data: {
+              skuId: item.skuId,
+              branchId: sale.branchId,
+              type: "SALE",
+              quantity: -Number(item.quantity),
+              resultingStock: inv ? Number(inv.stock) : 0,
+              referenceId: `SALE-${sale.id}`,
+              userId: userId,
+              notes: `Pago confirmado via updateSale - Venta #${sale.id}`,
+            },
+          });
+        }
 
-          for (const res of activeReservations) {
-            await tx.$executeRaw`
-                           UPDATE "SKU" SET stock = stock - ${res.quantity}, "soldQuantity" = "soldQuantity" + ${res.quantity}, "updatedAt" = NOW()
-                           WHERE id = ${res.skuId}
-                       `;
-            await tx.$executeRaw`
-                           UPDATE "BranchInventory" SET stock = stock - ${res.quantity}, "soldQuantity" = "soldQuantity" + ${res.quantity}, "updatedAt" = NOW()
-                           WHERE id = ${res.branchInventoryId}
-                       `;
-            await tx.stockReservation.update({
-              where: { id: res.id },
-              data: { released: true },
-            });
-            const inv = await tx.branchInventory.findUnique({
-              where: { id: res.branchInventoryId },
-            });
-            await tx.stockMovement.create({
-              data: {
-                skuId: res.skuId,
-                branchId: sale.branchId,
-                type: "SALE",
-                quantity: -Number(res.quantity),
-                resultingStock: inv ? Number(inv.stock) : 0,
-                referenceId: `SALE-${sale.id}`,
-                userId: userId,
-                notes: `Pago confirmado via updateSale - Venta #${sale.id}`,
-              },
-            });
-          }
+        // 2. Liberar CUALQUIER reserva pendiente
+        await tx.stockReservation.updateMany({
+          where: { saleId: parseInt(id), released: false },
+          data: { released: true }
         });
-      }
+      });
+
       await this.processPostPaymentActions(id);
     }
 
