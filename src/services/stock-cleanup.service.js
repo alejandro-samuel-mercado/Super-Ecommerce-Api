@@ -95,13 +95,7 @@ class StockCleanupService {
                   }
               }
 
-              if (sale.couponId) {
-                  await tx.$executeRaw`
-                      UPDATE "Coupon"
-                      SET "usedCount" = GREATEST("usedCount" - 1, 0)
-                      WHERE id = ${sale.couponId}
-                  `;
-              }
+              // No devolvemos el cupón por petición del usuario
 
               await AuditService.logAction({
                   adminId: null,

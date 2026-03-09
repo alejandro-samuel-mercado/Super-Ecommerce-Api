@@ -249,9 +249,13 @@ class PaymentWebhookService {
         }
       });
 
-      if (sale.couponId) {
-          await tx.$executeRaw`UPDATE "Coupon" SET "usedCount" = GREATEST("usedCount" - 1, 0) WHERE id = ${sale.couponId}`;
-      }
+      // Liberar reservas de stock para esta venta
+      await tx.stockReservation.updateMany({
+        where: { saleId: saleId, released: false },
+        data: { released: true }
+      });
+
+      // No devolvemos el cupón por petición del usuario: "que se gaste apenas el usuario lo ponga"
 
       if (sale.pointsUsed > 0) {
           const alreadyRefunded = await tx.pointsHistory.findFirst({
