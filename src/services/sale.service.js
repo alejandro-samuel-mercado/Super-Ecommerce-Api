@@ -1726,7 +1726,7 @@ class SaleService {
    * También libera las reservas de stock asociadas.
    */
   async cleanupAbandonedSales() {
-    const oneHourAgo = new Date(Date.now() - 1 * 60 * 1000);
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
     const oneHundredNinetyTwoHoursAgo = new Date(
       Date.now() - 192 * 60 * 60 * 1000,
     ); // 8 dias. Para que coincida con lo estalecido en mercado Pago

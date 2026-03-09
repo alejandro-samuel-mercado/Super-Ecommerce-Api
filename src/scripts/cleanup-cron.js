@@ -26,7 +26,7 @@ cron.schedule('*/30 * * * *', async () => {
  * 2. Limpieza de ventas abandonadas
  * Se ejecuta cada hora
  */
-cron.schedule('*/1 * * * *', async () => {
+cron.schedule('0 * * * *', async () => {
     console.log('[Cron] 🛒 Iniciando limpieza de ventas abandonadas...');
     try {
         const SaleService = require('../services/sale.service');
