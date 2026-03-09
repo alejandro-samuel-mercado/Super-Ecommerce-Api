@@ -6,9 +6,13 @@ const archiver = require('archiver');
 
 class BackupService {
     constructor() {
-        this.backupsDir = path.join(process.cwd(), 'Backups');
-        if (!fs.existsSync(this.backupsDir)) {
-            fs.mkdirSync(this.backupsDir, { recursive: true });
+        this.backupsDir = process.env.BACKUP_PATH || path.join(process.cwd(), 'Backups');
+        try {
+            if (!fs.existsSync(this.backupsDir)) {
+                fs.mkdirSync(this.backupsDir, { recursive: true });
+            }
+        } catch (error) {
+            console.error(`[BackupService] Warning: Could not initialize backups directory at ${this.backupsDir}:`, error.message);
         }
     }
 
