@@ -93,6 +93,7 @@ class CategoryController {
   async update(req, res, next) {
     try {
       const { id } = req.params;
+      const { name, description, slug, parentId } = req.body;
       const { branchId } = req.query;
       const updatedCategory = await CategoryService.updateCategory(id, { name, description, slug, parentId, adminId: req.user.id, ip: req.ip, branchId });
 

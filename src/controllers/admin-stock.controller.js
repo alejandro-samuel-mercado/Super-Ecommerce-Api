@@ -467,6 +467,7 @@ class AdminStockController {
             action: "UPDATE_INVENTORY",
             entityType: "STOCK",
             entityId: updatedInventory.id.toString(),
+            branchId: targetBranchId,
             changes: { prevStock: currentStock, newStock: stock, diff },
             ip: req.ip,
           });
