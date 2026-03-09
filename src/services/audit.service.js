@@ -43,7 +43,11 @@ class AuditService {
       const where = {};
       
       if (branchId) {
-          where.branchId = parseInt(branchId);
+          if (Array.isArray(branchId)) {
+              where.branchId = { in: branchId.map(id => parseInt(id)) };
+          } else {
+              where.branchId = parseInt(branchId);
+          }
       }
       if (search) {
           where.OR = [

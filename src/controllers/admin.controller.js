@@ -10,8 +10,8 @@ class AdminController {
       try {
           let { timeRange, branchId } = req.query;
           let branchIds = null;
-          const roleName = req.user.role.name || req.user.role;
-
+          const roleName = req.user.role?.name || req.user.role;
+          
           if (roleName === 'EMPLOYEE') {
               const userProfile = await require('../services/user.service').getProfile(req.user.id);
               if (userProfile && userProfile.branchId) {
@@ -27,6 +27,9 @@ class AdminController {
               } else {
                   branchIds = allowedBranchIds;
               }
+          } else if (roleName === 'SUPER_ADMIN') {
+              // Si es SUPER_ADMIN y no hay filtro de branchId, ver todo (branchIds = null)
+              if (!branchId) branchIds = null;
           }
 
           const stats = await AdminSaleService.getDashboardStats(timeRange, branchId ? parseInt(branchId) : null, branchIds);
@@ -42,7 +45,7 @@ class AdminController {
   async getAuditLogs(req, res, next) {
       try {
           let { branchId } = req.query;
-          const roleName = req.user.role.name || req.user.role;
+          const roleName = req.user.role?.name || req.user.role;
 
           if (roleName === 'EMPLOYEE') {
               const userProfile = await require('../services/user.service').getProfile(req.user.id);
@@ -53,13 +56,18 @@ class AdminController {
               const adminBranches = await require('../config/prisma').userBranch.findMany({ where: { userId: req.user.id } });
               const allowedBranchIds = adminBranches.map(b => b.branchId);
               if (branchId) {
-                  if (!allowedBranchIds.includes(parseInt(branchId))) {
+                  const bId = parseInt(branchId);
+                  if (!allowedBranchIds.includes(bId)) {
                       branchId = allowedBranchIds.length > 0 ? allowedBranchIds[0] : null;
                   }
+              } else {
+                  branchId = allowedBranchIds;
               }
+          } else if (roleName === 'SUPER_ADMIN') {
+              // SUPER_ADMIN puede ver todo si no hay branchId especificado
           }
 
-          const result = await AuditService.getLogs({ ...req.query, branchId: branchId ? parseInt(branchId) : undefined });
+          const result = await AuditService.getLogs({ ...req.query, branchId });
           res.json({ success: true, data: result });
       } catch (error) {
           next(error);
