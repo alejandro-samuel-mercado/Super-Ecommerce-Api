@@ -231,11 +231,23 @@ class UserController {
   async getPointsHistory(req, res, next) {
       try {
           const user = await UserService.getProfile(req.user.id);
+          const history = user.pointsHistory || [];
+          
+          const earned = history
+            .filter(h => h.type === 'EARNED')
+            .reduce((sum, h) => sum + Number(h.amount), 0);
+            
+          const used = history
+            .filter(h => h.type === 'USED')
+            .reduce((sum, h) => sum + Number(h.amount), 0);
+
           res.status(200).json({ 
               success: true, 
               data: {
                   balance: user.points || 0,
-                  history: user.pointsHistory || []
+                  earned,
+                  used,
+                  history
               } 
           });
       } catch (error) {
