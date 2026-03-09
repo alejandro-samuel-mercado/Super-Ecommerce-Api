@@ -228,37 +228,51 @@ class AdminSaleService {
           }
 
           await prisma.$transaction(async (tx) => {
-              for (const reservation of (sale.stockReservations || [])) {
-                  if (reservation.released) continue;
+              // 1. Deducir stock basado en los ITEMS de la venta
+              for (const item of (sale.items || [])) {
+                  if (!item.skuId || item.quantity <= 0) continue;
+
+                  // Actualizar SKU
                   await tx.$executeRaw`
                       UPDATE "SKU" 
-                      SET stock = stock - ${reservation.quantity},
-                          "soldQuantity" = "soldQuantity" + ${reservation.quantity},
+                      SET stock = stock - ${item.quantity},
+                          "soldQuantity" = "soldQuantity" + ${item.quantity},
                           "updatedAt" = NOW()
-                      WHERE id = ${reservation.skuId}
+                      WHERE id = ${item.skuId}
                   `;
+                  
+                  // Actualizar Inventario de Sucursal
                   await tx.$executeRaw`
                       UPDATE "BranchInventory"
-                      SET stock = stock - ${reservation.quantity},
-                          "soldQuantity" = "soldQuantity" + ${reservation.quantity},
+                      SET stock = stock - ${item.quantity},
+                          "soldQuantity" = "soldQuantity" + ${item.quantity},
                           "updatedAt" = NOW()
-                      WHERE id = ${reservation.branchInventoryId}
+                      WHERE "skuId" = ${item.skuId} AND "branchId" = ${sale.branchId}
                   `;
-                  const inv = await tx.branchInventory.findUnique({ where: { id: reservation.branchInventoryId } });
+
+                  // Registrar Movimiento de Stock
+                  const inv = await tx.branchInventory.findUnique({ 
+                      where: { skuId_branchId: { skuId: item.skuId, branchId: sale.branchId } } 
+                  });
+                  
                   await tx.stockMovement.create({
                       data: {
-                          skuId: reservation.skuId,
+                          skuId: item.skuId,
                           branchId: sale.branchId,
                           type: 'SALE',
-                          quantity: -Number(reservation.quantity),
+                          quantity: -Number(item.quantity),
                           resultingStock: inv ? Number(inv.stock) : 0,
                           referenceId: `SALE-${sale.id}`,
                           userId: adminId,
                           notes: `Pago confirmado manualmente - Venta #${sale.id}`
                       }
                   });
-                  await tx.stockReservation.update({
-                      where: { id: reservation.id },
+              }
+
+              // 2. Liberar CUALQUIER reserva que pudiese haber quedado (aunque esté expirada)
+              if (sale.stockReservations && sale.stockReservations.length > 0) {
+                  await tx.stockReservation.updateMany({
+                      where: { saleId: sale.id, released: false },
                       data: { released: true }
                   });
               }
