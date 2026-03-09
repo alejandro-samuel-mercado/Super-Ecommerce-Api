@@ -31,22 +31,22 @@ router.use(protect);
 /**
  * @route POST /api/categories
  * @desc Crear una nueva categoría
- * @access Admin/Super Admin
+ * @access Admin/Employee
  */
-router.post('/', restrictTo('ADMIN', 'SUPER_ADMIN'), CategoryController.create);
+router.post('/', restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), CategoryController.create);
 
 /**
  * @route PUT /api/categories/:id
  * @desc Actualizar una categoría existente
- * @access Admin/Super Admin
+ * @access Admin/Employee
  */
-router.put('/:id', restrictTo('ADMIN', 'SUPER_ADMIN'), CategoryController.update);
+router.put('/:id', restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), CategoryController.update);
 
 /**
  * @route DELETE /api/categories/:id
  * @desc Eliminar una categoría
- * @access Admin/Super Admin
+ * @access Admin/Employee
  */
-router.delete('/:id', restrictTo('ADMIN', 'SUPER_ADMIN'), CategoryController.delete);
+router.delete('/:id', restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), CategoryController.delete);
 
 module.exports = router;

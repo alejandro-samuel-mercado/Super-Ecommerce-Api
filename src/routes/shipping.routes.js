@@ -19,7 +19,16 @@ router.post('/calculate-cost', ShippingController.calculateCost);
 router.get('/available-zones', ShippingController.getAvailableZones);
 
 // Rutas de administración accesibles para empleados
-router.use(protect, restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'));
+router.use(protect);
+
+/**
+ * @route GET /api/shipping
+ * @desc Obtener todas las zonas de envío
+ * @access Admin/Employee
+ */
+router.get('/', restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'), ShippingController.getZones);
+
+router.use(restrictTo('ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'));
 
 /**
  * @route POST /api/shipping
