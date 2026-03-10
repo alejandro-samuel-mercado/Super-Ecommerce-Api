@@ -4,7 +4,7 @@ class ReportController {
 
   async getFinancialStats(req, res, next) {
     try {
-      const stats = await ReportService.getFinancialStats(req.query);
+      const stats = await ReportService.getFinancialStats({ ...req.query, branchId: req.branchId });
       res.json({ success: true, data: stats });
     } catch (error) {
       next(error);
@@ -13,7 +13,7 @@ class ReportController {
 
   async getStockValuation(req, res, next) {
     try {
-      const valuation = await ReportService.getStockValuation(req.query);
+      const valuation = await ReportService.getStockValuation({ ...req.query, branchId: req.branchId });
       res.json({ success: true, data: valuation });
     } catch (error) {
       next(error);

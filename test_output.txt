@@ -1,0 +1,149 @@
+[dotenv@17.3.1] injecting env (20) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+(node:12348) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
+In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
+
+To prepare for this change:
+- If you want the current behavior, explicitly use 'sslmode=verify-full'
+- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
+
+See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[AuthService] No branches found in system to assign.
+[0mPOST /api/auth/login [32m200[0m 4432.930 ms - 640[0m
+[0mPOST /api/auth/login [32m200[0m 1694.537 ms - 635[0m
+[0mPOST /api/products [32m201[0m 5163.213 ms - 803[0m
+ [AUDIT ERROR] Failed to log action: PrismaClientValidationError: 
+Invalid `prisma.auditLog.create()` invocation in
+/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/src/services/audit.service.js:18:29
+
+  15  */
+  16 async logAction({ adminId, action, entityType, entityId, branchId, changes, ip, userAgent }) {
+  17   try {
+→ 18     await prisma.auditLog.create({
+           data: {
+             admin: {
+               connect: {
+                 id: 43
+               }
+             },
+             branch: {
+             ~~~~~~
+               connect: {
+                 id: 1
+               }
+             },
+             action: "CREATE_PURCHASE_ORDER_DRAFT",
+             entityType: "PURCHASE_ORDER",
+             entityId: "2",
+             changes: {
+               id: 2,
+               branchId: 1,
+               supplierId: 4,
+               userId: 43,
+               status: "DRAFT",
+               estimatedTotal: new Prisma.Decimal("5000"),
+               deliveryDate: null,
+               notes: null,
+               receivedAt: null,
+               receivedBy: null,
+               createdAt: new Date("2026-03-09T22:20:13.028Z"),
+               updatedAt: new Date("2026-03-09T22:20:13.028Z"),
+               currencyCode: "ARS",
+               exchangeRateAtPurchase: new Prisma.Decimal("1"),
+               totalInBaseCurrency: new Prisma.Decimal("5000")
+             },
+             ip: undefined,
+             userAgent: undefined,
+         ?   createdAt?: DateTime
+           }
+         })
+
+Unknown argument `branch`. Available options are marked with ?.
+    at ar (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:10:1379)
+    at zr.handleRequestError (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:65:7929)
+    at zr.handleAndLogRequestError (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:65:7581)
+    at zr.request (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:65:7288)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async a (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:75:5816)
+    at async AuditService.logAction (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/src/services/audit.service.js:18:7)
+    at async PurchaseService.create (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/src/services/purchase.service.js:128:7)
+    at async create (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/src/controllers/purchase.controller.js:25:30) {
+  clientVersion: '7.4.1'
+}
+[0mPOST /api/purchases [32m201[0m 3055.015 ms - 339[0m
+[0mPOST /api/supplier-payments [32m201[0m 2100.759 ms - 329[0m
+ [AUDIT ERROR] Failed to log action: PrismaClientValidationError: 
+Invalid `prisma.auditLog.create()` invocation in
+/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/src/services/audit.service.js:18:29
+
+  15  */
+  16 async logAction({ adminId, action, entityType, entityId, branchId, changes, ip, userAgent }) {
+  17   try {
+→ 18     await prisma.auditLog.create({
+           data: {
+             admin: {
+               connect: {
+                 id: 43
+               }
+             },
+             branch: {
+             ~~~~~~
+               connect: {
+                 id: 1
+               }
+             },
+             action: "RECEIVE_PURCHASE_ORDER",
+             entityType: "PURCHASE_ORDER",
+             entityId: "2",
+             changes: {
+               from: "DRAFT",
+               to: "RECEIVED"
+             },
+             ip: undefined,
+             userAgent: undefined,
+         ?   createdAt?: DateTime
+           }
+         })
+
+Unknown argument `branch`. Available options are marked with ?.
+    at ar (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:10:1379)
+    at zr.handleRequestError (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:65:7929)
+    at zr.handleAndLogRequestError (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:65:7581)
+    at zr.request (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:65:7288)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async a (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:75:5816)
+    at async AuditService.logAction (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/src/services/audit.service.js:18:7)
+    at async /home/ale/Documentos/PROJECT/Super-Ecommerce-Api/src/services/purchase.service.js:241:11
+    at async Proxy._transactionWithCallback (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/node_modules/@prisma/client/runtime/client.js:75:4390)
+    at async PurchaseService.receive (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/src/services/purchase.service.js:166:14) {
+  clientVersion: '7.4.1'
+}
+[0mPOST /api/purchases/2/receive [32m200[0m 3713.055 ms - 362[0m
+[0mPOST /api/sales/checkout [33m400[0m 4587.381 ms - 109[0m
+Sale ARS Failed: {
+  "success": false,
+  "message": "Stock insuficiente para Financial Test Product (Online). Disponible para web: 0"
+}
+▶ Financial System Comprehensive Verification
+  ✖ End-to-End Financial Flow Simulation (18722.007031ms)
+✖ Financial System Comprehensive Verification (45524.3136ms)
+ℹ tests 1
+ℹ suites 1
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 46952.089563
+
+✖ failing tests:
+
+test at tests/functional/financial.test.js:143:5
+✖ End-to-End Financial Flow Simulation (18722.007031ms)
+  Error: Sale ARS Failed with status 400
+      at TestContext.<anonymous> (/home/ale/Documentos/PROJECT/Super-Ecommerce-Api/tests/functional/financial.test.js:206:19)
+      at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+      at async Test.run (node:internal/test_runner/test:1113:7)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:1518:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3)

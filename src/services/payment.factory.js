@@ -88,7 +88,7 @@ class PaymentGatewayFactory {
       const options = [];
 
       // 1. Obtener moneda y servicio para validación
-      // 1. Obtener moneda y servicio para validación
+
       const CurrencyService = require('./currency.service');
       const isLocal = await CurrencyService.isLocalCountry(customerCountry);
 

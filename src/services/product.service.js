@@ -524,7 +524,7 @@ async createProduct(data) {
             branchInventory: {
                // Necesitamos contexto aquí. Si no se provee, podríamos obtener todas?
                // Idealmente getProductById debería aceptar contexto.
-               // Por ahora, si no hay contexto, buscamos HQ (1) para ser consistente.
+             
                where: { branchId: 1 } 
             }
           }

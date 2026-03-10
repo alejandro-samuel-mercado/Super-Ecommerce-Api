@@ -1,74 +1,37 @@
-const prisma = require('../config/prisma');
+const prisma = require("../config/prisma");
 
 class ReportService {
-  
   /**
-   * Obtener Estadísticas Financieras (Ingresos vs Gastos)
-   * @param {object} params { startDate, endDate, branchId, timeRange }
+   * Obtiene estadísticas financieras detalladas consolidadas en la moneda base.
+   * Analiza Ingresos Brutos, Netos, Costo de Mercadería (COGS) y Utilidad Bruta.
+   * Separa el flujo de caja (Pagos a Proveedores) para evitar duplicidad de costos.
    */
   async getFinancialStats(params = {}) {
-    const { startDate, endDate, branchId, timeRange } = params;
+    const { startDate, endDate, branchId } = params;
 
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    // 1. INGRESOS (Ventas)
+    const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+    const baseCurrency = config?.baseCurrency || 'ARS';
+
+    // Tasas de cambio actuales para fallbacks
+    const currencies = await prisma.currency.findMany({ where: { isActive: true } });
+    const currencyMap = new Map();
+    currencies.forEach(c => {
+        currencyMap.set(c.code, Number(c.exchangeRateToBase));
+    });
+
+    // 1. Obtener Ventas Pagadas en el periodo
     const saleWhere = {
         paymentStatus: 'PAID',
         createdAt: { gte: start, lte: end }
     };
     if (branchId && Number(branchId) > 0) saleWhere.branchId = Number(branchId);
 
-    const revenueAgg = await prisma.sale.aggregate({
-        _sum: { 
-            total: true,
-            totalInBaseCurrency: true,
-            taxAmount: true,
-            shippingCost: true
-        },
-        where: saleWhere
-    });
-    
-    // Revenue Neto = Total - Impuestos - Envío
-    const sumGross = Number(revenueAgg._sum.total || 0);
-    const sumTax = Number(revenueAgg._sum.taxAmount || 0);
-    const sumShip = Number(revenueAgg._sum.shippingCost || 0);
-    const totalRevenue = sumGross - sumTax - sumShip;
-
-    const ratio = sumGross > 0 ? totalRevenue / sumGross : 1;
-    const totalRevenueBase = Number(revenueAgg._sum.totalInBaseCurrency || 0) * ratio;
-
-    // 2. GASTOS (Pagos a Proveedores)
-    // Solo contamos pagos vinculados a compras para filtrado de sucursal específica
-    // Si branchId es nulo (Global), contamos TODOS los pagos.
-    
-    const paymentWhere = {
-        paymentDate: { gte: start, lte: end }
-    };
-
-    if (branchId) {
-        const sid = Number(branchId);
-        if (sid > 0) paymentWhere.purchase = { branchId: sid };
-    }
-
-    const expenseAgg = await prisma.supplierPayment.aggregate({
-        _sum: { 
-            amount: true,
-            amountInBaseCurrency: true
-        },
-        where: paymentWhere
-    });
-    const totalExpenses = Number(expenseAgg._sum.amount || 0);
-    const totalExpensesBase = Number(expenseAgg._sum.amountInBaseCurrency || 0);
-
     const sales = await prisma.sale.findMany({
         where: saleWhere,
-        select: { 
-            createdAt: true, 
-            total: true, 
-            totalInBaseCurrency: true,
-            taxAmount: true,
-            shippingCost: true,
+        include: { 
             items: {
                 include: {
                     sku: {
@@ -82,33 +45,22 @@ class ReportService {
         }
     });
 
-    const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = storeConfig?.baseCurrency;
-    if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
-    const currencies = await prisma.currency.findMany();
-
-    let totalCostBase = 0;
-    sales.forEach(s => {
-        s.items.forEach(item => {
-            let cost = 0;
-            if (item.unitCostBase !== null && item.unitCostBase !== undefined) {
-                cost = Number(item.unitCostBase);
-            } else if (item.branchInventory && item.branchInventory.costPrice) {
-                cost = Number(item.branchInventory.costPrice);
-            } else if (item.sku && item.sku.supplierSkus && item.sku.supplierSkus.length > 0) {
-                cost = Number(item.sku.supplierSkus[0].basePurchasePrice);
-            }
-            totalCostBase += cost * Number(item.quantity);
-        });
-    });
+    // 2. Obtener Pagos a Proveedores (Egresos de Caja)
+    const paymentWhere = {
+        paymentDate: { gte: start, lte: end }
+    };
+    if (branchId && Number(branchId) > 0) {
+        paymentWhere.purchase = { branchId: Number(branchId) };
+    }
 
     const payments = await prisma.supplierPayment.findMany({
         where: paymentWhere,
         select: { paymentDate: true, amount: true, amountInBaseCurrency: true }
     });
 
-    const netProfit = totalRevenueBase - totalCostBase - totalExpensesBase;
-
+    let totalGrossRevenueBase = 0; // Total cobrado (incluye Tax/Envío) - Coincide con Dashboard
+    let totalNetRevenueBase = 0;   // Ingreso real del negocio (Excluye Tax/Envío)
+    let totalCOGSBase = 0;         // Costo de Mercadería Vendida
     const map = new Map();
 
     const getKey = (date) => {
@@ -119,146 +71,157 @@ class ReportService {
         return date.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
     };
 
+    // 3. Procesar Ventas
     sales.forEach(s => {
         const key = getKey(s.createdAt);
-        if (!map.has(key)) map.set(key, { revenueBase: 0, costOfGoods: 0, supplierPayments: 0 });
+        if (!map.has(key)) map.set(key, { grossRevenue: 0, netRevenue: 0, cogs: 0, cashOutflow: 0 });
         const entry = map.get(key);
         
-        const saleGross = Number(s.total);
-        const saleNet = saleGross - Number(s.taxAmount || 0) - Number(s.shippingCost || 0);
-
-        const saleRatio = saleGross > 0 ? saleNet / saleGross : 1;
-        entry.revenueBase += Number(s.totalInBaseCurrency || s.total) * saleRatio;
+        const rateAtPurchase = Number(s.exchangeRateAtPurchase || 1);
         
+        // Ingreso Bruto (Total de la factura convertido a Base)
+        const saleGrossBase = Number(s.total) * rateAtPurchase;
+        totalGrossRevenueBase += saleGrossBase;
+        entry.grossRevenue += saleGrossBase;
+
+        // Ingreso Neto (Subtotal neto de impuestos y envíos que son costos externos)
+        const saleNetBase = (Number(s.total) - Number(s.taxAmount || 0) - Number(s.shippingCost || 0)) * rateAtPurchase;
+        totalNetRevenueBase += saleNetBase;
+        entry.netRevenue += saleNetBase;
+        
+        // COGS (Costo de Mercadería)
         s.items.forEach(item => {
-            let cost = 0;
+            let itemCostBase = 0;
             if (item.unitCostBase !== null && item.unitCostBase !== undefined) {
-                cost = Number(item.unitCostBase);
+                itemCostBase = Number(item.unitCostBase);
             } else if (item.branchInventory && item.branchInventory.costPrice) {
-                cost = Number(item.branchInventory.costPrice);
+                itemCostBase = Number(item.branchInventory.costPrice);
             } else if (item.sku && item.sku.supplierSkus && item.sku.supplierSkus.length > 0) {
-                cost = Number(item.sku.supplierSkus[0].basePurchasePrice);
+                const sSku = item.sku.supplierSkus[0];
+                const sPrice = Number(sSku.basePurchasePrice);
+                const sCurrency = sSku.currency;
+                
+                if (sCurrency === baseCurrency) {
+                    itemCostBase = sPrice;
+                } else {
+                    const sRate = currencyMap.get(sCurrency) || 1;
+                    itemCostBase = sRate > 0 ? sPrice * sRate : sPrice;
+                }
             }
-            entry.costOfGoods += cost * Number(item.quantity);
+            const itemTotalCost = itemCostBase * Number(item.quantity);
+            totalCOGSBase += itemTotalCost;
+            entry.cogs += itemTotalCost;
         });
     });
 
+    // 4. Procesar Salidas de Caja
+    let totalCashOutflowBase = 0;
     payments.forEach(p => {
         const key = getKey(p.paymentDate);
-        if (!map.has(key)) map.set(key, { revenueBase: 0, costOfGoods: 0, supplierPayments: 0 });
+        if (!map.has(key)) map.set(key, { grossRevenue: 0, netRevenue: 0, cogs: 0, cashOutflow: 0 });
         const entry = map.get(key);
-        entry.supplierPayments += Number(p.amount);
+        
+        const pBase = Number(p.amountInBaseCurrency || p.amount);
+        totalCashOutflowBase += pBase;
+        entry.cashOutflow += pBase;
     });
+
+    // 5. Consolidar Estadísticas Finales (Contables)
+    const grossProfitBase = totalNetRevenueBase - totalCOGSBase;
+    const netMargin = totalNetRevenueBase > 0 ? (grossProfitBase / totalNetRevenueBase) * 100 : 0;
 
     const chartData = Array.from(map.entries()).map(([name, data]) => ({
         name,
-        revenue: data.revenueBase,
-        expenses: data.costOfGoods + data.supplierPayments,
-        profit: data.revenueBase - data.costOfGoods - data.supplierPayments
+        revenue: data.netRevenue,
+        cogs: data.cogs,
+        profit: data.netRevenue - data.cogs,
+        cashOutflow: data.cashOutflow
     }));
 
-
-    
     return {
-        totalRevenue,
-        totalRevenueBase,
-        totalExpenses,
-        totalExpensesBase,
-        netProfit,
-        margin: totalRevenueBase > 0 ? (netProfit / totalRevenueBase) * 100 : 0,
-        chartData
+        // Métricas de Ingresos
+        totalGrossRevenue: totalGrossRevenueBase, // Lo que ve el Admin en su sumatoria total
+        totalNetRevenue: totalNetRevenueBase,     // Base real imponible/ganancia
+        
+        // Métricas de Costos y Utilidad
+        totalCOGS: totalCOGSBase,
+        grossProfit: grossProfitBase,
+        netMargin,
+        
+        // Flujo de Caja
+        totalCashOutflow: totalCashOutflowBase,
+        
+        chartData,
+        baseCurrency
     };
   }
 
   /**
-   * Obtener Valoración de Stock
-   * @param {object} params { branchId }
+   * Genera reporte de valorización de inventario actual detallado por categoría.
    */
-  async getStockValuation(params = {}) {
-    const { branchId } = params;
-    const where = {};
-    if (branchId && Number(branchId) > 0) where.branchId = Number(branchId);
-    where.stock = { gt: 0 };
+  async getInventoryValueReport(branchId) {
+    const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+    const baseCurrency = config?.baseCurrency || 'ARS';
+    
+    const currencies = await prisma.currency.findMany({ where: { isActive: true } });
+    const currencyMap = new Map();
+    currencies.forEach(c => {
+        currencyMap.set(c.code, Number(c.exchangeRateToBase));
+    });
 
-    const currencies = await prisma.currency.findMany();
-    const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = storeConfig?.baseCurrency;
-    if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
+    const where = {
+        isActive: true,
+        stock: { gt: 0 }
+    };
+    if (branchId && Number(branchId) > 0) where.branchId = Number(branchId);
 
     const inventory = await prisma.branchInventory.findMany({
         where,
         include: {
             sku: {
                 include: {
-                    product: { select: { name: true, category: { select: { name: true } } } },
+                    product: { include: { category: true } },
                     supplierSkus: { take: 1, orderBy: { updatedAt: 'desc' } }
                 }
-            },
-            branch: { select: { name: true } }
+            }
         }
     });
 
-    let totalValue = 0;
-    let totalItems = 0;
-    const byCategory = {};
+    let totalValueBase = 0;
+    const categoryValueMap = new Map();
 
     inventory.forEach(item => {
-        // Determinar Costo
-        // 1. item.costPrice (Sobrescritura específica de Sucursal)
-        // 2. item.sku.supplierSkus[0].basePurchasePrice (Precio del Proveedor)
-        // 3. item.sku.price * 0.6 (Estimación de fallback, 60% del minorista)
+        let unitCostBase = 0;
         
-        let cost = 0;
-        if (item.costPrice) {
-            cost = Number(item.costPrice);
-         
-        } else if (item.sku.supplierSkus && item.sku.supplierSkus.length > 0) {
-            cost = Number(item.sku.supplierSkus[0].basePurchasePrice);
-        } else {
-            cost = 0;
+        if (item.costPrice && Number(item.costPrice) > 0) {
+            unitCostBase = Number(item.costPrice);
+        } else if (item.sku && item.sku.supplierSkus && item.sku.supplierSkus.length > 0) {
+            const sSku = item.sku.supplierSkus[0];
+            const rawCost = Number(sSku.basePurchasePrice);
+            const sCurrency = sSku.currency;
+
+            if (sCurrency === baseCurrency) {
+                unitCostBase = rawCost;
+            } else {
+                const rate = currencyMap.get(sCurrency) || 1;
+                unitCostBase = rate > 0 ? rawCost * rate : rawCost;
+            }
         }
 
-        const stockNum = Number(item.stock);
-        const value = stockNum * cost;
-        totalValue += value;
-        totalItems += stockNum;
+        const totalItemValue = unitCostBase * Number(item.stock);
+        totalValueBase += totalItemValue;
 
-        // Agrupar por Categoría
-        const catName = item.sku.product.category.name;
-        if (!byCategory[catName]) byCategory[catName] = 0;
-        byCategory[catName] += value;
+        const catName = item.sku.product?.category?.name || 'Varios';
+        categoryValueMap.set(catName, (categoryValueMap.get(catName) || 0) + totalItemValue);
     });
 
-    // Formatear datos de categoría
-    const categoryData = Object.keys(byCategory).map(name => ({
-        name,
-        value: byCategory[name]
-    })).sort((a, b) => b.value - a.value);
-
     return {
-        totalValue,
-        totalItems,
-        totalSkus: inventory.length,
-        byCategory: categoryData,
-        // Top 5 Artículos más Valiosos
-        topItems: inventory
-            .map(item => {
-                let unitCost = 0;
-                if (item.costPrice) {
-                    unitCost = Number(item.costPrice);
-                } else if (item.sku.supplierSkus && item.sku.supplierSkus.length > 0) {
-                    unitCost = Number(item.sku.supplierSkus[0].basePurchasePrice);
-                }
-                
-                return {
-                    name: item.sku.product.name,
-                    stock: item.stock,
-                    unitCost: unitCost,
-                    totalValue: item.stock * unitCost
-                };
-            })
-            .sort((a, b) => b.totalValue - a.totalValue)
-            .slice(0, 5)
+        totalValueBase,
+        categoryBreakdown: Array.from(categoryValueMap.entries()).map(([name, value]) => ({ 
+            name, 
+            value: Number(value.toFixed(2)) 
+        })),
+        baseCurrency
     };
   }
 }

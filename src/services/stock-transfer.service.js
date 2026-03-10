@@ -204,18 +204,43 @@ class StockTransferService {
 
       for (const item of items) {
            const sku = await tx.sKU.findUnique({ where: { id: item.skuId } });
-
-           const updatedInv = await tx.branchInventory.upsert({
-               where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.destinationBranchId } },
-               update: { stock: { increment: item.quantity } },
-               create: {
-                   skuId: item.skuId,
-                   branchId: transferRow.destinationBranchId,
-                   stock: item.quantity,
-                   price: sku.price, 
-                   costPrice: null 
-               }
+           
+           const originInv = await tx.branchInventory.findUnique({
+               where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.originBranchId } }
            });
+           const originCost = originInv ? (originInv.costPrice ? parseFloat(originInv.costPrice.toString()) : 0) : 0;
+
+           const currentDestInv = await tx.branchInventory.findUnique({
+               where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.destinationBranchId } }
+           });
+
+           let updatedInv;
+           if (currentDestInv) {
+               const currentStock = parseFloat(currentDestInv.stock.toString());
+               const currentCost = parseFloat((currentDestInv.costPrice || originCost || 0).toString());
+               const incomingQty = parseFloat(item.quantity.toString());
+               const newTotalStock = currentStock + incomingQty;
+               
+               const weightedAverageCost = (currentStock * currentCost + incomingQty * originCost) / newTotalStock;
+
+               updatedInv = await tx.branchInventory.update({
+                   where: { id: currentDestInv.id },
+                   data: { 
+                       stock: { increment: incomingQty },
+                       costPrice: weightedAverageCost
+                   }
+               });
+           } else {
+               updatedInv = await tx.branchInventory.create({
+                   data: {
+                       skuId: item.skuId,
+                       branchId: transferRow.destinationBranchId,
+                       stock: item.quantity,
+                       price: sku.price, 
+                       costPrice: originCost 
+                   }
+               });
+           }
 
            await tx.sKU.update({
                where: { id: item.skuId },

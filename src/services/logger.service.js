@@ -17,7 +17,7 @@ class LoggerService {
       // Sanitizar Contexto
       const safeContext = this.sanitize(context);
 
-      // Lógica de Agrupación: Verificar si el mismo error ocurrió recientemente (ej. últimos 15 min)
+      // Lógica de Agrupación: Verificar si el mismo error ocurrió recientemente 
       // Buscamos mismo mensaje + mismo código + estado OPEN
       const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
       

@@ -4,6 +4,9 @@ const AuditService = require('./audit.service');
 
 class PurchaseService {
   
+  /**
+   * Obtiene todas las órdenes de compra con filtros.
+   */
   async getAll(params = {}) {
      const { branchId, supplierId, status, startDate, endDate, search } = params;
      const where = {};
@@ -72,14 +75,15 @@ class PurchaseService {
       return purchase;
   }
 
+  /**
+   * Crea una nueva orden de compra (Borrador).
+   */
   async create(data, userId) {
       const { branchId, supplierId, items, notes, deliveryDate, currencyCode: requestedCurrency } = data;
       
-      // 0. Determinar Moneda y Tipo de Cambio
       const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
       const baseCurrency = storeConfig?.baseCurrency;
-    if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
-      if (!baseCurrency) throw new Error('Store base currency not configured.');
+      if (!baseCurrency) throw new Error('Base currency not configured in StoreConfig');
       const activeCurrencyCode = requestedCurrency || baseCurrency;
       
       const currency = await prisma.currency.findUnique({ where: { code: activeCurrencyCode } });
@@ -87,7 +91,6 @@ class PurchaseService {
       
       const exchangeRateAtPurchase = parseFloat(currency.exchangeRateToBase.toString());
       
-      // Branch por defecto si no se provee
       let activeBranchId = Number(branchId);
       if (!(activeBranchId > 0)) {
           const defaultBranch = await prisma.branch.findFirst({ where: { isHeadquarters: true } }) 
@@ -96,7 +99,6 @@ class PurchaseService {
           activeBranchId = defaultBranch.id;
       }
 
-      // Calcular total
       let estimatedTotal = 0;
       items.forEach(item => {
           estimatedTotal += (item.quantity * item.unitPrice);
@@ -138,8 +140,10 @@ class PurchaseService {
       return purchase;
   }
 
+  /**
+   * Confirma una orden de compra (Pasa de DRAFT a CONFIRMED).
+   */
   async confirm(id, userId) {
-      // Transición: DRAFT -> CONFIRMED
       const purchase = await this.getById(id);
       if (purchase.status !== 'DRAFT') throw new Error('Solo se pueden confirmar ordenes en borrador');
       
@@ -161,8 +165,10 @@ class PurchaseService {
       return result;
   }
 
+  /**
+   * Recibe la mercadería de una orden de compra y actualiza el stock.
+   */
   async receive(id, userId) {
-      // Transición: CONFIRMED -> RECEIVED
       return await prisma.$transaction(async (tx) => {
           const purchase = await tx.purchase.findUnique({
               where: { id: parseInt(id) },
@@ -174,25 +180,33 @@ class PurchaseService {
               throw new Error('La orden debe estar en estado BORRADOR o CONFIRMADA para ser recibida');
           }
           
-          // ESTRICTO: Bloquear recepción si no está pagado
           if (!purchase.payment) {
               throw new Error('La orden debe estar PAGADA para poder recibir la mercadería');
           }
           
           for (const item of purchase.items) {
-               // 1. Actualizar/Crear Inventario de Branch
-               const currentInventory = await tx.branchInventory.findUnique({
-                   where: { skuId_branchId: { skuId: item.skuId, branchId: purchase.branchId } }
-               });
+                const currentInventory = await tx.branchInventory.findUnique({
+                    where: { skuId_branchId: { skuId: item.skuId, branchId: purchase.branchId } }
+                });
                
                 let newStock = 0;
                 const itemQty = parseFloat(item.quantity.toString());
                 
+                const costInBase = parseFloat(item.unitPrice.toString()) * parseFloat(purchase.exchangeRateAtPurchase.toString());
+
                 if (currentInventory) {
-                    newStock = parseFloat(currentInventory.stock.toString()) + itemQty;
+                    const currentStock = parseFloat(currentInventory.stock.toString());
+                    const currentCost = parseFloat((currentInventory.costPrice || costInBase).toString());
+                    newStock = currentStock + itemQty;
+                    
+                    const weightedAverageCost = (currentStock * currentCost + itemQty * costInBase) / newStock;
+
                     await tx.branchInventory.update({
                         where: { id: currentInventory.id },
-                        data: { stock: { increment: itemQty } }
+                        data: { 
+                            stock: { increment: itemQty },
+                            costPrice: weightedAverageCost
+                        }
                     });
                 } else {
                     const sku = await tx.sKU.findUnique({ where: { id: item.skuId } });
@@ -204,18 +218,17 @@ class PurchaseService {
                             branchId: purchase.branchId,
                             stock: itemQty,
                             price: sku.price,
-                            costPrice: item.unitPrice
+                            costPrice: costInBase
                         }
                     });
                 }
 
-                 // 2. Sincronizar Stock Global del SKU
+                 // Actualizar Stock Global
                  await tx.sKU.update({
                      where: { id: item.skuId },
                      data: { stock: { increment: itemQty } }
                  });
 
-                // 3. Registrar Auditoría (Movimiento de Stock)
                await StockMovementService.create(tx, {
                    skuId: item.skuId,
                    branchId: purchase.branchId,
@@ -228,7 +241,6 @@ class PurchaseService {
                });
           }
           
-          // Actualizar Estado de Compra
           const result = await tx.purchase.update({
               where: { id: purchase.id },
               data: {
@@ -249,11 +261,13 @@ class PurchaseService {
           });
 
           return result;
-      });
+      }, { timeout: 20000 });
   }
 
+  /**
+   * Cancela una orden de compra.
+   */
   async cancel(id, userId) {
-      // Transición: DRAFT | CONFIRMED -> CANCELLED
       const purchase = await this.getById(id);
       if (purchase.status === 'RECEIVED') throw new Error('No se puede cancelar una orden ya recibida');
       if (purchase.payment) throw new Error('No se puede cancelar una orden que ya tiene un pago registrado');

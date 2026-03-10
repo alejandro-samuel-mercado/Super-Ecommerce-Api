@@ -301,7 +301,7 @@ class SaleService {
                   await tx.$queryRaw`SELECT "exchangeRateToBase" FROM "Currency" WHERE "code" = ${sCurrency}`;
                 if (currencyRow.length > 0) {
                   const rate = Number(currencyRow[0].exchangeRateToBase);
-                  unitCostBase = rate > 0 ? rawCost / rate : rawCost;
+                  unitCostBase = rate > 0 ? rawCost * rate : rawCost;
                 } else {
                   unitCostBase = rawCost;
                 }
@@ -315,7 +315,7 @@ class SaleService {
             unitPrice: unitPrice,
             quantity: itemQty,
             subtotal: itemTotal,
-            subtotalInBaseCurrency: itemTotal / exchangeRateAtPurchase,
+            subtotalInBaseCurrency: itemTotal * exchangeRateAtPurchase,
             unitCostBase: unitCostBase,
             skuId: sku.id,
             measurementUnit: product.measurementUnit,
@@ -1611,13 +1611,28 @@ class SaleService {
       ) {
         for (const item of sale.items) {
           if (item.skuId && item.quantity > 0) {
-            await tx.$executeRaw`
-                           UPDATE "BranchInventory"
-                           SET stock = stock + ${item.quantity},
-                               "soldQuantity" = "soldQuantity" - ${item.quantity},
-                               "updatedAt" = NOW()
-                           WHERE "skuId" = ${item.skuId} AND "branchId" = ${sale.branchId}
-                       `;
+            const inv = await tx.branchInventory.findUnique({
+              where: { skuId_branchId: { skuId: item.skuId, branchId: sale.branchId } }
+            });
+
+            if (inv) {
+              const currentStock = Number(inv.stock);
+              const currentCost = Number(inv.costPrice || item.unitCostBase || 0);
+              const returnQty = Number(item.quantity);
+              const returnCost = Number(item.unitCostBase || currentCost);
+
+              const newStockValue = currentStock + returnQty;
+              const newCostValue = newStockValue > 0 ? ((currentStock * currentCost) + (returnQty * returnCost)) / newStockValue : returnCost;
+
+              await tx.$executeRaw`
+                             UPDATE "BranchInventory"
+                             SET stock = stock + ${item.quantity},
+                                 "soldQuantity" = "soldQuantity" - ${item.quantity},
+                                 "costPrice" = ${newCostValue},
+                                 "updatedAt" = NOW()
+                             WHERE "skuId" = ${item.skuId} AND "branchId" = ${sale.branchId}
+                         `;
+            }
 
             await tx.$executeRaw`
                            UPDATE "SKU"
@@ -1728,7 +1743,7 @@ class SaleService {
                    WHERE id = ${sale.couponId}
                `;
       }
-    });
+    }, { timeout: 20000 });
 
     return { success: true, message: "Venta cancelada y stock restaurado" };
   }

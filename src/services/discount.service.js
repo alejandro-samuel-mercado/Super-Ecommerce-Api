@@ -120,7 +120,7 @@ class DiscountService {
             continue; 
         }
 
-        // Si ya hay un descuento NO stackable aplicado -> SKIP (ya bloqueó todo)
+        // Si ya hay un descuento NO stackable aplicado -> SKIP 
         if (appliedDiscounts.some(d => !d.stackable)) {
              continue;
         }
@@ -140,7 +140,6 @@ class DiscountService {
 
     // Límite de Seguridad: No descontar más del total
     // Nota: El subtotal base puede variar si calculamos sobre items.
-    // Aquí asumimos suma simple.
     const cartTotal = items.reduce((sum, i) => sum + (parseFloat(i.unitPrice) * i.quantity), 0);
     if (totalDiscountAmount > cartTotal) totalDiscountAmount = cartTotal;
 

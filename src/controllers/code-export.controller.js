@@ -18,10 +18,10 @@ const generateCodesPDF = async (req, res) => {
                 whereClause.categoryId = parseInt(filters.categoryId);
             }
             
-            const activeBranchId = req.headers['x-branch-id'];
+            const activeBranchId = req.branchId;
             if (activeBranchId) {
                 whereClause.branchInventory = {
-                    some: { branchId: parseInt(activeBranchId), stock: { gt: 0 } }
+                    some: { branchId: activeBranchId, stock: { gt: 0 } }
                 }
             }
            
@@ -82,7 +82,7 @@ const generateCodesPDF = async (req, res) => {
             const x = startX + (index % cols) * cellWidth;
             const y = startY + Math.floor((index % maxPerPage) / cols) * cellHeight;
 
-            // Header título corto
+            // Header 
             const displayName = prod.name.length > 25 ? prod.name.substring(0, 22) + '...' : prod.name;
             doc.fontSize(9).text(displayName, x, y, { width: cellWidth - 10, align: 'center' });
 

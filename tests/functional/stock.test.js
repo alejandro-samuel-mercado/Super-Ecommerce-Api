@@ -19,7 +19,6 @@ describe('Stock Functional Tests', () => {
   before(async () => {
     // 1. Clean up & Setup User
     try {
-       // Delete dependents first
        await prisma.saleItem.deleteMany({ where: { sku: { code: 'LOW-STOCK-SKU' } } });
        await prisma.stockMovement.deleteMany({ where: { sku: { code: 'LOW-STOCK-SKU' } } });
        await prisma.branchInventory.deleteMany({ where: { sku: { code: 'LOW-STOCK-SKU' } } });
@@ -29,7 +28,7 @@ describe('Stock Functional Tests', () => {
 
        const cat = await prisma.category.findUnique({ where: { slug: 'stock-test-cat' } });
        if (cat) {
-           await prisma.product.deleteMany({ where: { categoryId: cat.id } }); // Catch-all
+           await prisma.product.deleteMany({ where: { categoryId: cat.id } }); 
            await prisma.category.delete({ where: { id: cat.id } });
        }
 
@@ -47,7 +46,6 @@ describe('Stock Functional Tests', () => {
     // 2. Register & Login
     const registerRes = await request(app).post('/api/auth/register').send(testUser);
     if (registerRes.status !== 201) {
-         // Ignore 409 (already exists) but throw on others
          if (registerRes.status !== 409) {
              throw new Error(`Register Failed in Test: ${registerRes.status} ${JSON.stringify(registerRes.body)}`);
          }
@@ -58,7 +56,6 @@ describe('Stock Functional Tests', () => {
     }
     token = loginRes.body.data.tokens.accessToken;
 
-    // 2. Ensuring Category
     const category = await prisma.category.upsert({
       where: { slug: 'stock-test-cat' },
       update: {},
@@ -83,7 +80,7 @@ describe('Stock Functional Tests', () => {
         productId: product.id,
         code: 'LOW-STOCK-SKU',
         price: 100,
-        stock: 5 // Global stock, but branch matters
+        stock: 5 
       }
     });
     skuId = sku.id;
@@ -109,7 +106,7 @@ describe('Stock Functional Tests', () => {
   test('Should fail when buying more than available stock', async () => {
     const saleData = {
       items: [
-        { skuId: skuId, quantity: 10 } // Request 10, have 5
+        { skuId: skuId, quantity: 10 } 
       ],
       paymentType: 'EFECTIVO',
       deliveryType: 'LOCAL',

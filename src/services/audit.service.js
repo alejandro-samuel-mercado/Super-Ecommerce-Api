@@ -17,8 +17,8 @@ class AuditService {
     try {
       await prisma.auditLog.create({
         data: {
-          adminId: adminId || null,
-          branchId: branchId || null,
+          admin: adminId ? { connect: { id: parseInt(adminId) } } : undefined,
+          branch: branchId ? { connect: { id: parseInt(branchId) } } : undefined,
           action,
           entityType,
           entityId: String(entityId),

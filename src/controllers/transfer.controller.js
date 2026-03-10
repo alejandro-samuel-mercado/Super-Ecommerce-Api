@@ -6,7 +6,7 @@ class TransferController {
     try {
       const { amount } = req.body;
       const userId = req.user.id; 
-      const branchId = req.headers['x-branch-id'];
+      const branchId = req.branchId;
 
       if (!req.file) {
         return res.status(400).json({ success: false, message: 'Debe subir una imagen del comprobante' });
@@ -29,7 +29,7 @@ class TransferController {
 
   async getAllTransfers(req, res, next) {
     try {
-      const branchId = req.headers['x-branch-id'];
+      const branchId = req.branchId;
       const transfers = await TransferService.getAllTransfers(branchId);
       res.status(200).json({ success: true, data: transfers });
     } catch (error) {

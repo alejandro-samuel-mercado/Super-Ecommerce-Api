@@ -142,7 +142,7 @@ class CurrencyService {
     const businessCountry = (config?.country || "AR").toUpperCase().trim();
     const clientCountry = countryCode.toUpperCase().trim();
 
-    // Normalización básica para Argentina (caso común en este proyecto)
+    // Normalización básica para Argentina 
     const isArgentina = (c) => c === "AR" || c === "ARGENTINA";
 
     if (isArgentina(businessCountry) && isArgentina(clientCountry)) return true;

@@ -6,6 +6,7 @@ const compression = require('compression');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swagger');
 const passport = require('./config/google.config');
+const { extractBranchId } = require('./middlewares/branch.middleware');
 
 const app = express();
 
@@ -55,6 +56,7 @@ app.use(express.json({
   }
 }));
 app.use(express.urlencoded({ extended: true }));
+app.use(extractBranchId);
 
 /**
  * ------------------------------------------------------------------
@@ -93,7 +95,7 @@ app.use('/api/comments', checkMaintenanceMode, commentRoutes);
 
 const authRoutes = require('./routes/auth.routes');
 // Las rutas de Auth DEBEN ser accesibles para que los Admins se logueen
-// Aplicar límite más estricto a auth
+
 app.use('/api/auth', authLimiter, authRoutes);
 
 const userRoutes = require('./routes/user.routes');
@@ -191,7 +193,7 @@ app.use(async (err, req, res, next) => {
   if (statusCode === 503) severity = 'CRITICAL';
 
   // 2. Logguear en Base de Datos (Async, no bloquear la respuesta demasiado tiempo)
-  // Lo esperamos para obtener el ID de Log para el usuario, pero podríamos disparar y olvidar si el rendimiento es crítico
+ 
   let logId = null;
   try {
       logId = await LoggerService.log(err, {
@@ -208,7 +210,7 @@ app.use(async (err, req, res, next) => {
  
 
   // 3. Send Sanitized Response
-  // Si es un error educacional/operacional (trae statusCode o isOperational), enviamos el mensaje real
+
   const isOperational = err.isOperational || (statusCode >= 400 && statusCode < 500);
   const responseMessage = isOperational ? err.message : 'Ha ocurrido un error interno. Por favor intente más tarde.';
 

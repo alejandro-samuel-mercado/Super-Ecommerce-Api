@@ -23,7 +23,7 @@ describe('Checkout Functional Tests', () => {
   };
 
   before(async () => {
-    // 1. Clean up
+   
     // 1. Clean up deep dependencies
     const testUserRecord = await prisma.user.findUnique({ where: { email: testUser.email } });
     if (testUserRecord) {
@@ -121,9 +121,7 @@ describe('Checkout Functional Tests', () => {
     // Clean up
     if (skuId) {
          try {
-            // Find sales with this SKU
-            // Delete dependent data... (Prisma Cascade should handle if configured, otherwise manual)
-            // Ideally we rely on cleanup script or just leave it for dev db reset
+         
          } catch(e) {}
     }
     await prisma.$disconnect();
@@ -134,7 +132,7 @@ describe('Checkout Functional Tests', () => {
       items: [
         { skuId: skuId, quantity: 2 }
       ],
-      paymentType: 'EFECTIVO', // Immediate deduction
+      paymentType: 'EFECTIVO', 
       deliveryType: 'LOCAL',
       sucursalId: sucursalId
     };
@@ -147,15 +145,13 @@ describe('Checkout Functional Tests', () => {
       .expect(201);
 
     assert.strictEqual(response.body.success, true);
-    assert.strictEqual(Number(response.body.data.total), testProduct.price * 2 * 1.21); // Assuming 21% Tax or similar logic? 
-    // Wait, tax logic in service: `(subtotal - totalDiscount) * 0.1` (10%) default if no config.
-    // Let's not assert exact total if config is variable, just success.
+    assert.strictEqual(Number(response.body.data.total), testProduct.price * 2 * 1.21); 
     assert.ok(response.body.data.id);
 
     // Verify Stock Deduction
     const inventory = await prisma.branchInventory.findUnique({
         where: { skuId_sucursalId: { skuId: skuId, sucursalId: sucursalId } }
     });
-    assert.strictEqual(inventory.stock, 48); // 50 - 2
+    assert.strictEqual(inventory.stock, 48); 
   });
 });

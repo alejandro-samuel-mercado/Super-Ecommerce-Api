@@ -110,7 +110,7 @@ const initSocket = (server) => {
                  socket.join(roomName);
                  
                  // Enviar historial a cliente
-                 // Transformar mensajes si es necesario para coincidir { text, sender, createdAt }
+                
                  const history = conversation.messages.map(m => ({
                      text: m.content,
                      sender: m.sender,

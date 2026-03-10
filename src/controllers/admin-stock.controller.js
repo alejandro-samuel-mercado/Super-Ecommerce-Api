@@ -246,9 +246,9 @@ class AdminStockController {
    */
   async getInventory(req, res, next) {
     try {
-      let parsedBranchId = Number(req.query.branchId);
+      let parsedBranchId = req.branchId;
 
-      if (!req.query.branchId || isNaN(parsedBranchId) || parsedBranchId <= 0) {
+      if (!parsedBranchId) {
         const defaultBranch =
           (await prisma.branch.findFirst({
             where: { isHeadquarters: true },
@@ -359,10 +359,9 @@ class AdminStockController {
     try {
       const { id } = req.params;
       const { stock, minStock, price } = req.body;
-      let parsedBranchId = Number(req.query.branchId);
+      let parsedBranchId = req.branchId;
 
-      // Handle missing or invalid branchId like in getInventory
-      if (!req.query.branchId || isNaN(parsedBranchId) || parsedBranchId <= 0) {
+      if (!parsedBranchId) {
         const defaultBranch =
           (await prisma.branch.findFirst({
             where: { isHeadquarters: true },

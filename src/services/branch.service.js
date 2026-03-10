@@ -157,11 +157,11 @@ class BranchService {
     const branchId = parseInt(id);
     
     // Verificar restricciones
-    // 1. Sales
+    // 1. VENTAS
     const salesCount = await prisma.sale.count({ where: { branchId } });
     if (salesCount > 0) throw new Error('No se puede eliminar: Tiene historial de ventas');
 
-    // 2. Inventory
+    // 2. INVENTARIO
     const stockCount = await prisma.branchInventory.count({ where: { branchId, stock: { gt: 0 } } });
     if (stockCount > 0) throw new Error('No se puede eliminar: Tiene stock físico asignado');
 
@@ -169,9 +169,7 @@ class BranchService {
       where: { id: branchId }
     });
 
-    // Note: adminId and ip should be passed to delete if we want to log it
-    // For now, if they are not provided, we won't log the action or we log with nulls
-    // The controller should be updated to pass these
+   
     const adminId = arguments[1]; 
     const ip = arguments[2];
 

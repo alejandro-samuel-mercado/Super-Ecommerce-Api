@@ -1,0 +1,3662 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Electrónica",
+      "slug": "electronica"
+    },
+    {
+      "id": 2,
+      "name": "Smartphones",
+      "slug": "smartphones",
+      "parentId": 1
+    },
+    {
+      "id": 3,
+      "name": "Computadoras",
+      "slug": "computadoras",
+      "parentId": 1
+    },
+    {
+      "id": 4,
+      "name": "Accesorios Tech",
+      "slug": "accesorios-tech",
+      "parentId": 1
+    },
+    {
+      "id": 5,
+      "name": "Ropa",
+      "slug": "ropa"
+    },
+    {
+      "id": 6,
+      "name": "Remeras",
+      "slug": "remeras",
+      "parentId": 5
+    },
+    {
+      "id": 7,
+      "name": "Zapatillas",
+      "slug": "zapatillas",
+      "parentId": 5
+    },
+    {
+      "id": 8,
+      "name": "Alimentos",
+      "slug": "alimentos"
+    },
+    {
+      "id": 9,
+      "name": "Frutas",
+      "slug": "frutas",
+      "parentId": 8
+    },
+    {
+      "id": 10,
+      "name": "Carnes",
+      "slug": "carnes",
+      "parentId": 8
+    },
+    {
+      "id": 11,
+      "name": "Bebidas",
+      "slug": "bebidas",
+      "parentId": 8
+    },
+    {
+      "id": 12,
+      "name": "Hogar",
+      "slug": "hogar"
+    }
+  ],
+  "products": [
+    {
+      "name": "Producto Demo 1",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 4,
+      "brand": "Adidas",
+      "model": "M220",
+      "type": "ACCESORIOS TECH",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 763.15,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 41,
+      "qr": "b2795eee-9388-4985-b10d-6c37fb8dc059",
+      "skus": [
+        {
+          "code": "SKU-YNG5BY",
+          "barcode": "6907439150008",
+          "price": 763.15,
+          "stock": 12,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 2",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 8,
+      "brand": "HP",
+      "model": "M327",
+      "type": "ALIMENTOS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 872.23,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 22,
+      "qr": "5d8574de-7e84-45e7-b9ae-a85b0822c859",
+      "skus": [
+        {
+          "code": "SKU-OO3SB0",
+          "barcode": "8124158683449",
+          "price": 872.23,
+          "stock": 137,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 3",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 10,
+      "brand": "Lenovo",
+      "model": "M348",
+      "type": "CARNES",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 531.34,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 23,
+      "qr": "26c712c1-fbcd-48f8-b3bc-abfae683d8db",
+      "skus": [
+        {
+          "code": "SKU-9XF26G",
+          "barcode": "2865707049996",
+          "price": 531.34,
+          "stock": 175,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 4",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 4,
+      "brand": "Arcor",
+      "model": "M304",
+      "type": "ACCESORIOS TECH",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 453.51,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 36,
+      "qr": "58685140-7b68-4a48-8adb-713d558be0f1",
+      "skus": [
+        {
+          "code": "SKU-W3R9AY",
+          "barcode": "8288360759838",
+          "price": 453.51,
+          "stock": 115,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 5",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 9,
+      "brand": "HP",
+      "model": "M653",
+      "type": "FRUTAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 374.74,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 14,
+      "qr": "22544e6e-f0d6-40c0-afd3-908f90ed67d1",
+      "skus": [
+        {
+          "code": "SKU-L9LF9Q",
+          "barcode": "0110704341925",
+          "price": 374.74,
+          "stock": 84,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 6",
+      "images": [
+        "https://img.freepik.com/free-photo/white-t-shirt_144627-9943.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "Xiaomi",
+      "model": "M772",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 146.18,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 44,
+      "qr": "e89741e5-dcb2-4eb3-848f-483e6914212f",
+      "skus": [
+        {
+          "code": "SKU-U54HBT",
+          "barcode": "6563414839603",
+          "price": 168.18,
+          "stock": 15,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-JCK261",
+          "barcode": "8387380695604",
+          "price": 182.18,
+          "stock": 9,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-DTEETT",
+          "barcode": "2694208093972",
+          "price": 265.18,
+          "stock": 19,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 7",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 2,
+      "brand": "Nike",
+      "model": "M687",
+      "type": "SMARTPHONES",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 182.77,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 6,
+      "qr": "ea748b20-ef77-48db-91a9-6003b4b736ea",
+      "skus": [
+        {
+          "code": "SKU-YS65BU",
+          "barcode": "9640235925634",
+          "price": 288.77,
+          "stock": 6,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-Y9W858",
+          "barcode": "3101222834598",
+          "price": 234.77,
+          "stock": 14,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-VVHSP5",
+          "barcode": "2981506162251",
+          "price": 280.77,
+          "stock": 15,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 8",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-kitchen-utensils_23-2148212436.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "Apple",
+      "model": "M373",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 496.6,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 29,
+      "qr": "8aa251c9-369a-4ac2-9a31-908a89d8b65c",
+      "skus": [
+        {
+          "code": "SKU-RGCSAA",
+          "barcode": "1610339621723",
+          "price": 536.6,
+          "stock": 6,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-1Y8S9Q",
+          "barcode": "7513500049576",
+          "price": 556.6,
+          "stock": 15,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-EEU3HQ",
+          "barcode": "3987542834335",
+          "price": 526.6,
+          "stock": 11,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 9",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-kitchen-utensils_23-2148212436.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "Coca-Cola",
+      "model": "M447",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 84.17,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 2,
+      "qr": "6e77023b-bd45-4f77-ad50-2e4962400d8b",
+      "skus": [
+        {
+          "code": "SKU-ULUTPV",
+          "barcode": "1899913303614",
+          "price": 174.17000000000002,
+          "stock": 5,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-EBASW5",
+          "barcode": "7218518222254",
+          "price": 117.17,
+          "stock": 19,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-SINJ8C",
+          "barcode": "5983246820341",
+          "price": 191.17000000000002,
+          "stock": 17,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 10",
+      "images": [
+        "https://img.freepik.com/free-photo/cold-cola-drink_144627-16269.jpg"
+      ],
+      "categoryId": 8,
+      "brand": "HP",
+      "model": "M564",
+      "type": "ALIMENTOS",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 227.45,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 10,
+      "qr": "58158812-4853-47bc-afad-7ddebf969a97",
+      "skus": [
+        {
+          "code": "SKU-Q5B0BD",
+          "barcode": "5929224469629",
+          "price": 227.45,
+          "stock": 32,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 11",
+      "images": [
+        "https://img.freepik.com/free-photo/white-t-shirt_144627-9943.jpg"
+      ],
+      "categoryId": 5,
+      "brand": "Sony",
+      "model": "M612",
+      "type": "ROPA",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 9.71,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 20,
+      "qr": "4d11e065-a472-4b88-980d-dbd37d4d870c",
+      "skus": [
+        {
+          "code": "SKU-54O0V9",
+          "barcode": "9430185283444",
+          "price": 9.71,
+          "stock": 151,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 12",
+      "images": [
+        "https://img.freepik.com/free-photo/cold-cola-drink_144627-16269.jpg"
+      ],
+      "categoryId": 7,
+      "brand": "Dell",
+      "model": "M187",
+      "type": "ZAPATILLAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 632.05,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 9,
+      "qr": "fa393b5b-132b-4174-b08c-048e932a1e0f",
+      "skus": [
+        {
+          "code": "SKU-Q1ND5Z",
+          "barcode": "5682808141412",
+          "price": 632.05,
+          "stock": 10,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-2PY1ZK",
+          "barcode": "5729731698614",
+          "price": 632.05,
+          "stock": 22,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-PY9AM7",
+          "barcode": "7900934324283",
+          "price": 632.05,
+          "stock": 22,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-TQ2K8W",
+          "barcode": "7613963410190",
+          "price": 632.05,
+          "stock": 39,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 13",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 6,
+      "brand": "Dell",
+      "model": "M924",
+      "type": "REMERAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 70.44,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 48,
+      "qr": "e9e58ff2-b50e-48f2-8e79-835ce3285fa2",
+      "skus": [
+        {
+          "code": "SKU-7UAH22",
+          "barcode": "5486597166380",
+          "price": 70.44,
+          "stock": 22,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-6M370T",
+          "barcode": "2798358069665",
+          "price": 70.44,
+          "stock": 9,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-5PSB0J",
+          "barcode": "6421905468427",
+          "price": 70.44,
+          "stock": 21,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-5K36CR",
+          "barcode": "8196151702821",
+          "price": 70.44,
+          "stock": 30,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 14",
+      "images": [
+        "https://img.freepik.com/free-photo/sport-running-shoes_1203-3414.jpg"
+      ],
+      "categoryId": 12,
+      "brand": "HP",
+      "model": "M312",
+      "type": "HOGAR",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 545.68,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 4,
+      "qr": "e1c301bb-75c0-4d6e-945b-c984f8967337",
+      "skus": [
+        {
+          "code": "SKU-E7X369",
+          "barcode": "0248459368627",
+          "price": 545.68,
+          "stock": 76,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 15",
+      "images": [
+        "https://img.freepik.com/free-photo/pair-trainers_144627-3799.jpg"
+      ],
+      "categoryId": 11,
+      "brand": "Dell",
+      "model": "M823",
+      "type": "BEBIDAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 645.3,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 20,
+      "qr": "550d30c4-0ec7-4c60-9b51-0d12a304195f",
+      "skus": [
+        {
+          "code": "SKU-1PRMEK",
+          "barcode": "9792947822275",
+          "price": 645.3,
+          "stock": 89,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 16",
+      "images": [
+        "https://img.freepik.com/free-photo/sport-running-shoes_1203-3414.jpg"
+      ],
+      "categoryId": 8,
+      "brand": "Pepsi",
+      "model": "M797",
+      "type": "ALIMENTOS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 106.91,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 14,
+      "qr": "285523c3-a6fc-4532-9292-f7f83470c58d",
+      "skus": [
+        {
+          "code": "SKU-ZU5GLC",
+          "barcode": "0903078975419",
+          "price": 106.91,
+          "stock": 187,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 17",
+      "images": [
+        "https://img.freepik.com/free-photo/sport-running-shoes_1203-3414.jpg"
+      ],
+      "categoryId": 4,
+      "brand": "Lenovo",
+      "model": "M560",
+      "type": "ACCESORIOS TECH",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 202.19,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 15,
+      "qr": "e1066346-255b-4036-a41f-010888acd3be",
+      "skus": [
+        {
+          "code": "SKU-S39YN2",
+          "barcode": "4579131000756",
+          "price": 202.19,
+          "stock": 158,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 18",
+      "images": [
+        "https://img.freepik.com/free-photo/wireless-headphones_53876-96805.jpg"
+      ],
+      "categoryId": 6,
+      "brand": "Arcor",
+      "model": "M131",
+      "type": "REMERAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 361.74,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 42,
+      "qr": "12a4f7fe-4ae2-4bae-b056-4f622e089ad9",
+      "skus": [
+        {
+          "code": "SKU-8DYQIF",
+          "barcode": "7400808204161",
+          "price": 361.74,
+          "stock": 17,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-B5IRM2",
+          "barcode": "6544330992569",
+          "price": 361.74,
+          "stock": 40,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-7DW908",
+          "barcode": "3861491421203",
+          "price": 361.74,
+          "stock": 32,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-CDF646",
+          "barcode": "5150280726708",
+          "price": 361.74,
+          "stock": 22,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 19",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "Adidas",
+      "model": "M135",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 720.95,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 20,
+      "qr": "68e65acb-c7f4-492f-ae95-e6bd682a0d94",
+      "skus": [
+        {
+          "code": "SKU-IQYHTG",
+          "barcode": "6388355869712",
+          "price": 823.95,
+          "stock": 17,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-7978BS",
+          "barcode": "2356851652910",
+          "price": 778.95,
+          "stock": 20,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-U0TUWR",
+          "barcode": "5880812555917",
+          "price": 775.95,
+          "stock": 18,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 20",
+      "images": [
+        "https://img.freepik.com/free-photo/raw-beef-steak_144627-6916.jpg"
+      ],
+      "categoryId": 9,
+      "brand": "Apple",
+      "model": "M692",
+      "type": "FRUTAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 835.07,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 33,
+      "qr": "d1965e5c-8115-432f-9843-e17e45f436b7",
+      "skus": [
+        {
+          "code": "SKU-5QPVXX",
+          "barcode": "6479588202439",
+          "price": 835.07,
+          "stock": 44,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 21",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-kitchen-utensils_23-2148212436.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "Samsung",
+      "model": "M931",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 690.39,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 13,
+      "qr": "e47a4c3d-a626-47af-ac5c-89b83614aa9b",
+      "skus": [
+        {
+          "code": "SKU-QE7FEN",
+          "barcode": "2860957433973",
+          "price": 764.39,
+          "stock": 17,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-X8M4EQ",
+          "barcode": "6308687169899",
+          "price": 764.39,
+          "stock": 4,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-W3AMTA",
+          "barcode": "8148589848688",
+          "price": 762.39,
+          "stock": 12,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 22",
+      "images": [
+        "https://img.freepik.com/free-photo/cold-cola-drink_144627-16269.jpg"
+      ],
+      "categoryId": 9,
+      "brand": "Dell",
+      "model": "M243",
+      "type": "FRUTAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 120.46,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 27,
+      "qr": "3c3c036c-f24b-4f29-ad45-7b400a811eb1",
+      "skus": [
+        {
+          "code": "SKU-CX0ZSB",
+          "barcode": "1106474575671",
+          "price": 120.46,
+          "stock": 133,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 23",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 7,
+      "brand": "Xiaomi",
+      "model": "M933",
+      "type": "ZAPATILLAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 375.43,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 37,
+      "qr": "f5675e30-4f27-4db2-841e-195070f4dcac",
+      "skus": [
+        {
+          "code": "SKU-S0Q6S0",
+          "barcode": "4657376611232",
+          "price": 375.43,
+          "stock": 19,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-BGQJ4G",
+          "barcode": "6201690838650",
+          "price": 375.43,
+          "stock": 11,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-90HQRL",
+          "barcode": "7031617487619",
+          "price": 375.43,
+          "stock": 35,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-GJYMK7",
+          "barcode": "4684783957105",
+          "price": 375.43,
+          "stock": 22,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 24",
+      "images": [
+        "https://img.freepik.com/free-photo/pair-trainers_144627-3799.jpg"
+      ],
+      "categoryId": 2,
+      "brand": "Arcor",
+      "model": "M962",
+      "type": "SMARTPHONES",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 564.03,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 17,
+      "qr": "cb740c69-ea52-4ba8-82dc-5745819fda37",
+      "skus": [
+        {
+          "code": "SKU-P0JIQM",
+          "barcode": "6890898264474",
+          "price": 618.03,
+          "stock": 18,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-N5X4PV",
+          "barcode": "2929782085823",
+          "price": 624.03,
+          "stock": 18,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-4VHIIQ",
+          "barcode": "3180921393894",
+          "price": 638.03,
+          "stock": 13,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 25",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-kitchen-utensils_23-2148212436.jpg"
+      ],
+      "categoryId": 2,
+      "brand": "Nike",
+      "model": "M186",
+      "type": "SMARTPHONES",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 740.09,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 17,
+      "qr": "66304515-bf0e-49d6-9ef2-53382b8e46f8",
+      "skus": [
+        {
+          "code": "SKU-7YBHVW",
+          "barcode": "2142905111453",
+          "price": 794.09,
+          "stock": 19,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-DXBFIZ",
+          "barcode": "5315408515294",
+          "price": 811.09,
+          "stock": 5,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-7408ZT",
+          "barcode": "3482098123364",
+          "price": 829.09,
+          "stock": 3,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 26",
+      "images": [
+        "https://img.freepik.com/free-photo/white-t-shirt_144627-9943.jpg"
+      ],
+      "categoryId": 6,
+      "brand": "Adidas",
+      "model": "M584",
+      "type": "REMERAS",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 246.03,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 47,
+      "qr": "650c8233-8814-44a3-9559-cc7e5c83a5d0",
+      "skus": [
+        {
+          "code": "SKU-XE8X89",
+          "barcode": "8909472219237",
+          "price": 246.03,
+          "stock": 26,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-XSKJY2",
+          "barcode": "6192449080268",
+          "price": 246.03,
+          "stock": 11,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-3B11RX",
+          "barcode": "6697017000192",
+          "price": 246.03,
+          "stock": 38,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-6W9RW4",
+          "barcode": "3931852105654",
+          "price": 246.03,
+          "stock": 8,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 27",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 11,
+      "brand": "Adidas",
+      "model": "M872",
+      "type": "BEBIDAS",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 375.2,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 40,
+      "qr": "86b4d102-4ac5-43a3-88d3-3d49d1c47f1b",
+      "skus": [
+        {
+          "code": "SKU-7JDVH6",
+          "barcode": "2875190736263",
+          "price": 375.2,
+          "stock": 35,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 28",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 5,
+      "brand": "Coca-Cola",
+      "model": "M351",
+      "type": "ROPA",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 877.46,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 31,
+      "qr": "93311f85-f03c-45f6-a8d2-cdcd529ad5e2",
+      "skus": [
+        {
+          "code": "SKU-M12Z8H",
+          "barcode": "9742206610127",
+          "price": 877.46,
+          "stock": 106,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 29",
+      "images": [
+        "https://img.freepik.com/free-photo/pair-trainers_144627-3799.jpg"
+      ],
+      "categoryId": 12,
+      "brand": "Xiaomi",
+      "model": "M257",
+      "type": "HOGAR",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 718.69,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 29,
+      "qr": "512a261d-cf36-40fe-8289-459aa02f478e",
+      "skus": [
+        {
+          "code": "SKU-ZO8ZA8",
+          "barcode": "3622531882269",
+          "price": 718.69,
+          "stock": 15,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 30",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 10,
+      "brand": "HP",
+      "model": "M842",
+      "type": "CARNES",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 386.4,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 25,
+      "qr": "757bf3cb-4b0b-47fd-81b2-f6af6c96861b",
+      "skus": [
+        {
+          "code": "SKU-3HDYF9",
+          "barcode": "1708300474629",
+          "price": 386.4,
+          "stock": 44,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 31",
+      "images": [
+        "https://img.freepik.com/free-photo/cold-cola-drink_144627-16269.jpg"
+      ],
+      "categoryId": 10,
+      "brand": "HP",
+      "model": "M922",
+      "type": "CARNES",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 694.23,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 44,
+      "qr": "2e7f6af1-88b2-4011-a616-54f9be17b444",
+      "skus": [
+        {
+          "code": "SKU-YM5RXJ",
+          "barcode": "4942915524445",
+          "price": 694.23,
+          "stock": 108,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 32",
+      "images": [
+        "https://img.freepik.com/free-photo/wireless-headphones_53876-96805.jpg"
+      ],
+      "categoryId": 6,
+      "brand": "Xiaomi",
+      "model": "M358",
+      "type": "REMERAS",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 422.58,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 37,
+      "qr": "0e28bd19-1fd8-4aa7-ac75-3238f718aef6",
+      "skus": [
+        {
+          "code": "SKU-8M81PI",
+          "barcode": "8763112006662",
+          "price": 422.58,
+          "stock": 13,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-88EPYI",
+          "barcode": "4365234257841",
+          "price": 422.58,
+          "stock": 37,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-TN3BSG",
+          "barcode": "9574900522116",
+          "price": 422.58,
+          "stock": 20,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-N66ZHN",
+          "barcode": "6829401396789",
+          "price": 422.58,
+          "stock": 19,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 33",
+      "images": [
+        "https://img.freepik.com/free-photo/white-t-shirt_144627-9943.jpg"
+      ],
+      "categoryId": 6,
+      "brand": "HP",
+      "model": "M338",
+      "type": "REMERAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 575.67,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 25,
+      "qr": "cbfaf59b-03ad-4bae-bee3-17d24ba8c9f4",
+      "skus": [
+        {
+          "code": "SKU-R5GIL9",
+          "barcode": "0707368531106",
+          "price": 575.67,
+          "stock": 33,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-ML6M6Y",
+          "barcode": "8533591507092",
+          "price": 575.67,
+          "stock": 14,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-S4C6EZ",
+          "barcode": "1689464570870",
+          "price": 575.67,
+          "stock": 32,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-TUJ9RE",
+          "barcode": "9566809910980",
+          "price": 575.67,
+          "stock": 11,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 34",
+      "images": [
+        "https://img.freepik.com/free-photo/white-t-shirt_144627-9943.jpg"
+      ],
+      "categoryId": 7,
+      "brand": "Samsung",
+      "model": "M752",
+      "type": "ZAPATILLAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 839.8,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 40,
+      "qr": "32ddb1b5-b173-4bc5-af66-1b7058a1a28f",
+      "skus": [
+        {
+          "code": "SKU-F82V68",
+          "barcode": "0255329291658",
+          "price": 839.8,
+          "stock": 31,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-XVQXCE",
+          "barcode": "3468499112461",
+          "price": 839.8,
+          "stock": 13,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-S9QPNG",
+          "barcode": "4708438185548",
+          "price": 839.8,
+          "stock": 13,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-C2XCBU",
+          "barcode": "6280986233192",
+          "price": 839.8,
+          "stock": 37,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 35",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "Sony",
+      "model": "M567",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 414.13,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 40,
+      "qr": "07db6758-41e2-4e19-9c36-1f4cc1bd7692",
+      "skus": [
+        {
+          "code": "SKU-AA5CKQ",
+          "barcode": "8003182083374",
+          "price": 465.13,
+          "stock": 18,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-6XUZEM",
+          "barcode": "9239496975070",
+          "price": 447.13,
+          "stock": 16,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-VVE0M6",
+          "barcode": "7998879979724",
+          "price": 520.13,
+          "stock": 19,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 36",
+      "images": [
+        "https://img.freepik.com/free-photo/raw-beef-steak_144627-6916.jpg"
+      ],
+      "categoryId": 6,
+      "brand": "Dell",
+      "model": "M652",
+      "type": "REMERAS",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 689.15,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 0,
+      "qr": "b270ba79-f5ff-4fd6-a8f1-ec467ebd030b",
+      "skus": [
+        {
+          "code": "SKU-C33WO6",
+          "barcode": "7375266015048",
+          "price": 689.15,
+          "stock": 8,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-TYAUVT",
+          "barcode": "9031511246953",
+          "price": 689.15,
+          "stock": 6,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-L6XTSY",
+          "barcode": "6871363909333",
+          "price": 689.15,
+          "stock": 30,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-YNJTXA",
+          "barcode": "4772205685875",
+          "price": 689.15,
+          "stock": 12,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 37",
+      "images": [
+        "https://img.freepik.com/free-photo/pair-trainers_144627-3799.jpg"
+      ],
+      "categoryId": 11,
+      "brand": "LG",
+      "model": "M111",
+      "type": "BEBIDAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 729.93,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 7,
+      "qr": "a7d65ace-97b5-43e6-8164-63a2931e873e",
+      "skus": [
+        {
+          "code": "SKU-6OQ1XO",
+          "barcode": "0198882240130",
+          "price": 729.93,
+          "stock": 182,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 38",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 2,
+      "brand": "Apple",
+      "model": "M156",
+      "type": "SMARTPHONES",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 659.36,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 21,
+      "qr": "0c1bfce4-8a9a-44e0-b664-a4804487c7e5",
+      "skus": [
+        {
+          "code": "SKU-BA9N4M",
+          "barcode": "4498843236038",
+          "price": 768.36,
+          "stock": 17,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-CVU0HB",
+          "barcode": "9281233241052",
+          "price": 687.36,
+          "stock": 17,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-JOCSWD",
+          "barcode": "9173321030113",
+          "price": 715.36,
+          "stock": 11,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 39",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 10,
+      "brand": "Pepsi",
+      "model": "M357",
+      "type": "CARNES",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 784.41,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 22,
+      "qr": "c4782731-c5e6-4d93-a829-c3bb25798005",
+      "skus": [
+        {
+          "code": "SKU-3YYF1P",
+          "barcode": "7529131648455",
+          "price": 784.41,
+          "stock": 114,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 40",
+      "images": [
+        "https://img.freepik.com/free-photo/raw-beef-steak_144627-6916.jpg"
+      ],
+      "categoryId": 9,
+      "brand": "Lenovo",
+      "model": "M623",
+      "type": "FRUTAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 318.64,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 19,
+      "qr": "021e90f9-c7fe-4c76-ad8e-03143411b34e",
+      "skus": [
+        {
+          "code": "SKU-KTI9JK",
+          "barcode": "7222194355247",
+          "price": 318.64,
+          "stock": 89,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 41",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "Lenovo",
+      "model": "M210",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 141.16,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 43,
+      "qr": "76cadb35-5edd-462b-a35d-fde220bc4546",
+      "skus": [
+        {
+          "code": "SKU-L48CCM",
+          "barcode": "5585855126049",
+          "price": 252.16,
+          "stock": 9,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-DPTUZP",
+          "barcode": "5034903123584",
+          "price": 179.16,
+          "stock": 8,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-OET668",
+          "barcode": "9867987285361",
+          "price": 196.16,
+          "stock": 9,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 42",
+      "images": [
+        "https://img.freepik.com/free-photo/sport-running-shoes_1203-3414.jpg"
+      ],
+      "categoryId": 5,
+      "brand": "Samsung",
+      "model": "M267",
+      "type": "ROPA",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 122.83,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 3,
+      "qr": "a6229735-c9ce-4d93-b1c0-73d04d880b76",
+      "skus": [
+        {
+          "code": "SKU-XFPNF2",
+          "barcode": "3952903578005",
+          "price": 122.83,
+          "stock": 137,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 43",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 10,
+      "brand": "HP",
+      "model": "M426",
+      "type": "CARNES",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 124.56,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 30,
+      "qr": "2abb5d6a-8893-408d-bf72-1c5bef8fd00b",
+      "skus": [
+        {
+          "code": "SKU-V0EQEU",
+          "barcode": "0253544476042",
+          "price": 124.56,
+          "stock": 172,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 44",
+      "images": [
+        "https://img.freepik.com/free-photo/raw-beef-steak_144627-6916.jpg"
+      ],
+      "categoryId": 6,
+      "brand": "Dell",
+      "model": "M322",
+      "type": "REMERAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 106.88,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 36,
+      "qr": "ee524c68-0693-40dc-9242-20ece7749566",
+      "skus": [
+        {
+          "code": "SKU-SQLUJW",
+          "barcode": "1658936727303",
+          "price": 106.88,
+          "stock": 10,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-EC7644",
+          "barcode": "5829760688729",
+          "price": 106.88,
+          "stock": 28,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-DXW2P8",
+          "barcode": "4175322705952",
+          "price": 106.88,
+          "stock": 36,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-4AOD2K",
+          "barcode": "8367154225229",
+          "price": 106.88,
+          "stock": 38,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 45",
+      "images": [
+        "https://img.freepik.com/free-photo/raw-beef-steak_144627-6916.jpg"
+      ],
+      "categoryId": 6,
+      "brand": "Lenovo",
+      "model": "M568",
+      "type": "REMERAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 500.28,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 37,
+      "qr": "4d46087b-5944-4266-bf79-bca0c0588201",
+      "skus": [
+        {
+          "code": "SKU-NSJAVH",
+          "barcode": "6682977875301",
+          "price": 500.28,
+          "stock": 11,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-G8YI2Z",
+          "barcode": "2778909397764",
+          "price": 500.28,
+          "stock": 27,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-LRLB9D",
+          "barcode": "1837575160746",
+          "price": 500.28,
+          "stock": 34,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-V6GKZ8",
+          "barcode": "6978252529333",
+          "price": 500.28,
+          "stock": 34,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 46",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 12,
+      "brand": "LG",
+      "model": "M153",
+      "type": "HOGAR",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 95.75,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 35,
+      "qr": "a9b15fc0-010c-438b-a547-018a24195396",
+      "skus": [
+        {
+          "code": "SKU-URZAY5",
+          "barcode": "7449654217272",
+          "price": 95.75,
+          "stock": 127,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 47",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "Sony",
+      "model": "M943",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 113.68,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 35,
+      "qr": "edfd99da-e503-41a0-8baa-99e885786b85",
+      "skus": [
+        {
+          "code": "SKU-3U5Z8N",
+          "barcode": "2383930590560",
+          "price": 177.68,
+          "stock": 14,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-X0NSOU",
+          "barcode": "6620659933195",
+          "price": 182.68,
+          "stock": 9,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-SG1AWF",
+          "barcode": "6218252665884",
+          "price": 159.68,
+          "stock": 9,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 48",
+      "images": [
+        "https://img.freepik.com/free-photo/wireless-headphones_53876-96805.jpg"
+      ],
+      "categoryId": 4,
+      "brand": "Xiaomi",
+      "model": "M222",
+      "type": "ACCESORIOS TECH",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 873.12,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 8,
+      "qr": "590be192-15f5-426a-ae07-913b8923b372",
+      "skus": [
+        {
+          "code": "SKU-VUIBWL",
+          "barcode": "3379701287923",
+          "price": 873.12,
+          "stock": 102,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 49",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 4,
+      "brand": "Apple",
+      "model": "M492",
+      "type": "ACCESORIOS TECH",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 804.6,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 12,
+      "qr": "8495ac4a-266a-44eb-b197-2cf369706e67",
+      "skus": [
+        {
+          "code": "SKU-PNATCR",
+          "barcode": "8311165179874",
+          "price": 804.6,
+          "stock": 46,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 50",
+      "images": [
+        "https://img.freepik.com/free-photo/raw-beef-steak_144627-6916.jpg"
+      ],
+      "categoryId": 8,
+      "brand": "LG",
+      "model": "M546",
+      "type": "ALIMENTOS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 584.3,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 4,
+      "qr": "ee40cb1f-8e5c-4f68-92d3-bd1e3683839d",
+      "skus": [
+        {
+          "code": "SKU-JPPBPZ",
+          "barcode": "7979102800646",
+          "price": 584.3,
+          "stock": 43,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 51",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 5,
+      "brand": "Dell",
+      "model": "M865",
+      "type": "ROPA",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 815.47,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 44,
+      "qr": "92fda829-d959-43d0-83e3-c3c3de19cc5c",
+      "skus": [
+        {
+          "code": "SKU-7XDWHP",
+          "barcode": "1620522407071",
+          "price": 815.47,
+          "stock": 160,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 52",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-kitchen-utensils_23-2148212436.jpg"
+      ],
+      "categoryId": 8,
+      "brand": "HP",
+      "model": "M199",
+      "type": "ALIMENTOS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 424.4,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 15,
+      "qr": "12a1c33a-438a-4911-a997-980afacea39d",
+      "skus": [
+        {
+          "code": "SKU-7Y4U2H",
+          "barcode": "1399511513191",
+          "price": 424.4,
+          "stock": 10,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 53",
+      "images": [
+        "https://img.freepik.com/free-photo/sport-running-shoes_1203-3414.jpg"
+      ],
+      "categoryId": 10,
+      "brand": "Apple",
+      "model": "M414",
+      "type": "CARNES",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 820.34,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 35,
+      "qr": "6737abf1-0907-494b-a9ca-4991859956d9",
+      "skus": [
+        {
+          "code": "SKU-TZCBR4",
+          "barcode": "7345778048277",
+          "price": 820.34,
+          "stock": 85,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 54",
+      "images": [
+        "https://img.freepik.com/free-photo/white-t-shirt_144627-9943.jpg"
+      ],
+      "categoryId": 11,
+      "brand": "Coca-Cola",
+      "model": "M507",
+      "type": "BEBIDAS",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 166.79,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 48,
+      "qr": "66334732-4c0b-48a0-867e-a0dbea3b7b6d",
+      "skus": [
+        {
+          "code": "SKU-OTBEJ5",
+          "barcode": "1544842182707",
+          "price": 166.79,
+          "stock": 130,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 55",
+      "images": [
+        "https://img.freepik.com/free-photo/wireless-headphones_53876-96805.jpg"
+      ],
+      "categoryId": 11,
+      "brand": "Pepsi",
+      "model": "M114",
+      "type": "BEBIDAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 489.16,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 50,
+      "qr": "a7654b99-50f4-4228-8832-7cd997f9d004",
+      "skus": [
+        {
+          "code": "SKU-3SAR6B",
+          "barcode": "9611599971978",
+          "price": 489.16,
+          "stock": 97,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 56",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 11,
+      "brand": "Dell",
+      "model": "M219",
+      "type": "BEBIDAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 171.6,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 48,
+      "qr": "2baa3dcc-b64f-492c-8617-d4ce10f405db",
+      "skus": [
+        {
+          "code": "SKU-MK8JON",
+          "barcode": "1859649249319",
+          "price": 171.6,
+          "stock": 77,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 57",
+      "images": [
+        "https://img.freepik.com/free-photo/pair-trainers_144627-3799.jpg"
+      ],
+      "categoryId": 2,
+      "brand": "Lenovo",
+      "model": "M532",
+      "type": "SMARTPHONES",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 390.39,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 13,
+      "qr": "69cab1d1-2571-4372-b23e-bb69e0136eca",
+      "skus": [
+        {
+          "code": "SKU-C10WW6",
+          "barcode": "2233051753342",
+          "price": 498.39,
+          "stock": 19,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-YG4A4T",
+          "barcode": "4432606780237",
+          "price": 492.39,
+          "stock": 6,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-S1M7VG",
+          "barcode": "3379127599668",
+          "price": 463.39,
+          "stock": 3,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 58",
+      "images": [
+        "https://img.freepik.com/free-photo/wireless-headphones_53876-96805.jpg"
+      ],
+      "categoryId": 12,
+      "brand": "LG",
+      "model": "M230",
+      "type": "HOGAR",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 850.98,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 39,
+      "qr": "67bbf104-5503-4276-93e4-b0fa65e8dd0f",
+      "skus": [
+        {
+          "code": "SKU-1GMR41",
+          "barcode": "4815288408157",
+          "price": 850.98,
+          "stock": 77,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 59",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "LG",
+      "model": "M822",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 127.68,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 37,
+      "qr": "f5c59e3d-0824-47ac-8fec-e300d8ad8a75",
+      "skus": [
+        {
+          "code": "SKU-I9Z5O6",
+          "barcode": "0606913071490",
+          "price": 191.68,
+          "stock": 4,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-EECTWT",
+          "barcode": "1879552583593",
+          "price": 178.68,
+          "stock": 9,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-TT8UTA",
+          "barcode": "7432321463228",
+          "price": 226.68,
+          "stock": 5,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 60",
+      "images": [
+        "https://img.freepik.com/free-photo/sport-running-shoes_1203-3414.jpg"
+      ],
+      "categoryId": 7,
+      "brand": "Xiaomi",
+      "model": "M139",
+      "type": "ZAPATILLAS",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 817.79,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 50,
+      "qr": "d87e59ad-4eca-4228-b1ac-5103fa363a0c",
+      "skus": [
+        {
+          "code": "SKU-HTOS62",
+          "barcode": "5111318787092",
+          "price": 817.79,
+          "stock": 34,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-18HMAP",
+          "barcode": "4389444544000",
+          "price": 817.79,
+          "stock": 33,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-CNEU2T",
+          "barcode": "1313032990708",
+          "price": 817.79,
+          "stock": 19,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-4L8AOI",
+          "barcode": "1025918843608",
+          "price": 817.79,
+          "stock": 22,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 61",
+      "images": [
+        "https://img.freepik.com/free-photo/raw-beef-steak_144627-6916.jpg"
+      ],
+      "categoryId": 7,
+      "brand": "LG",
+      "model": "M642",
+      "type": "ZAPATILLAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 888.14,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 11,
+      "qr": "afaf792c-0eab-4f59-88a2-555bed472761",
+      "skus": [
+        {
+          "code": "SKU-4ZIN7B",
+          "barcode": "8052356069781",
+          "price": 888.14,
+          "stock": 7,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-I908Y8",
+          "barcode": "4903346480943",
+          "price": 888.14,
+          "stock": 39,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-78KOFN",
+          "barcode": "7206402109672",
+          "price": 888.14,
+          "stock": 18,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-3GZOEI",
+          "barcode": "5877856937465",
+          "price": 888.14,
+          "stock": 29,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 62",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-kitchen-utensils_23-2148212436.jpg"
+      ],
+      "categoryId": 11,
+      "brand": "Apple",
+      "model": "M285",
+      "type": "BEBIDAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 341.37,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 26,
+      "qr": "a338e463-086c-463c-994e-3e1844f7c0d0",
+      "skus": [
+        {
+          "code": "SKU-5D3HO3",
+          "barcode": "5815049895292",
+          "price": 341.37,
+          "stock": 120,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 63",
+      "images": [
+        "https://img.freepik.com/free-photo/sport-running-shoes_1203-3414.jpg"
+      ],
+      "categoryId": 12,
+      "brand": "Lenovo",
+      "model": "M867",
+      "type": "HOGAR",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 645.23,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 7,
+      "qr": "497d5b56-4569-40c1-91bb-5e78c7198ce7",
+      "skus": [
+        {
+          "code": "SKU-SQBFU6",
+          "barcode": "2341275677197",
+          "price": 645.23,
+          "stock": 154,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 64",
+      "images": [
+        "https://img.freepik.com/free-photo/pair-trainers_144627-3799.jpg"
+      ],
+      "categoryId": 3,
+      "brand": "Samsung",
+      "model": "M375",
+      "type": "COMPUTADORAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 56.11,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 39,
+      "qr": "19c5bb75-3d2d-432d-a933-3086be229fc8",
+      "skus": [
+        {
+          "code": "SKU-VB3VPO",
+          "barcode": "5007836223160",
+          "price": 98.11,
+          "stock": 13,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-A387KC",
+          "barcode": "6348730966686",
+          "price": 110.11,
+          "stock": 17,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-VBF40K",
+          "barcode": "6288889246745",
+          "price": 166.11,
+          "stock": 17,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 65",
+      "images": [
+        "https://img.freepik.com/free-photo/sport-running-shoes_1203-3414.jpg"
+      ],
+      "categoryId": 8,
+      "brand": "Sony",
+      "model": "M655",
+      "type": "ALIMENTOS",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 340.78,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 42,
+      "qr": "352dd9cd-2711-47c0-a2dc-9121769774e9",
+      "skus": [
+        {
+          "code": "SKU-EQYKQQ",
+          "barcode": "7027132160211",
+          "price": 340.78,
+          "stock": 129,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 66",
+      "images": [
+        "https://img.freepik.com/free-photo/modern-smartphone-with-black-screen_23-2149413930.jpg"
+      ],
+      "categoryId": 10,
+      "brand": "Adidas",
+      "model": "M152",
+      "type": "CARNES",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 707.43,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 38,
+      "qr": "76f84cb2-8f39-4180-9d38-f89a6df9c75f",
+      "skus": [
+        {
+          "code": "SKU-2HVUYY",
+          "barcode": "4137856669422",
+          "price": 707.43,
+          "stock": 23,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 67",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 7,
+      "brand": "Coca-Cola",
+      "model": "M707",
+      "type": "ZAPATILLAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 870.65,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 48,
+      "qr": "3138d51c-0dfc-47fb-a1b7-cf017d751332",
+      "skus": [
+        {
+          "code": "SKU-H8N4OW",
+          "barcode": "9823422667508",
+          "price": 870.65,
+          "stock": 9,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-BXPJNZ",
+          "barcode": "7894695751990",
+          "price": 870.65,
+          "stock": 13,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-94LFAE",
+          "barcode": "0243768844861",
+          "price": 870.65,
+          "stock": 30,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-3PEUIB",
+          "barcode": "6045097590856",
+          "price": 870.65,
+          "stock": 8,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 68",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 11,
+      "brand": "LG",
+      "model": "M515",
+      "type": "BEBIDAS",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 769.31,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 49,
+      "qr": "867ad111-14d9-4ebf-8fbd-61dd8afffa70",
+      "skus": [
+        {
+          "code": "SKU-90WLZC",
+          "barcode": "2489629749940",
+          "price": 769.31,
+          "stock": 110,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 69",
+      "images": [
+        "https://img.freepik.com/free-photo/wireless-headphones_53876-96805.jpg"
+      ],
+      "categoryId": 10,
+      "brand": "Sony",
+      "model": "M274",
+      "type": "CARNES",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 372.59,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 32,
+      "qr": "dbc1fdb0-c308-43c9-9457-5d7331d67ec1",
+      "skus": [
+        {
+          "code": "SKU-FZQZ5C",
+          "barcode": "4246414011727",
+          "price": 372.59,
+          "stock": 71,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 70",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 5,
+      "brand": "Apple",
+      "model": "M845",
+      "type": "ROPA",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 204.68,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 16,
+      "qr": "eaf556d7-e65a-4d27-a247-70bd8428404a",
+      "skus": [
+        {
+          "code": "SKU-0JWHDY",
+          "barcode": "9932897259689",
+          "price": 204.68,
+          "stock": 181,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 71",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 4,
+      "brand": "Coca-Cola",
+      "model": "M927",
+      "type": "ACCESORIOS TECH",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 478.51,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 6,
+      "qr": "68bc417d-9f89-4231-b3ae-5b607ba279cf",
+      "skus": [
+        {
+          "code": "SKU-2FADR9",
+          "barcode": "4994761342880",
+          "price": 478.51,
+          "stock": 103,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 72",
+      "images": [
+        "https://img.freepik.com/free-photo/wireless-headphones_53876-96805.jpg"
+      ],
+      "categoryId": 9,
+      "brand": "Adidas",
+      "model": "M216",
+      "type": "FRUTAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 893.93,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 21,
+      "qr": "a0fe59c3-aa88-48a8-94f9-642aaec47abb",
+      "skus": [
+        {
+          "code": "SKU-J9OAO4",
+          "barcode": "5265697140848",
+          "price": 893.93,
+          "stock": 91,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 73",
+      "images": [
+        "https://img.freepik.com/free-photo/sport-running-shoes_1203-3414.jpg"
+      ],
+      "categoryId": 5,
+      "brand": "LG",
+      "model": "M455",
+      "type": "ROPA",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 208.77,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 49,
+      "qr": "cec8cce0-b8c1-49a7-959f-76c2b54d41cf",
+      "skus": [
+        {
+          "code": "SKU-6I14F7",
+          "barcode": "4131662178323",
+          "price": 208.77,
+          "stock": 79,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 74",
+      "images": [
+        "https://img.freepik.com/free-photo/pair-trainers_144627-3799.jpg"
+      ],
+      "categoryId": 7,
+      "brand": "Dell",
+      "model": "M872",
+      "type": "ZAPATILLAS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 314.57,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 16,
+      "qr": "641f8726-4fd3-4384-b554-444c02b0c04a",
+      "skus": [
+        {
+          "code": "SKU-48BVBL",
+          "barcode": "3431655310659",
+          "price": 314.57,
+          "stock": 26,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-0VQZRW",
+          "barcode": "9163975401980",
+          "price": 314.57,
+          "stock": 15,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Negro"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        },
+        {
+          "code": "SKU-O82S1Z",
+          "barcode": "9016293767162",
+          "price": 314.57,
+          "stock": 36,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "S"
+            }
+          ]
+        },
+        {
+          "code": "SKU-NT9CTS",
+          "barcode": "2484726585340",
+          "price": 314.57,
+          "stock": 24,
+          "variantOptions": [
+            {
+              "name": "Color",
+              "value": "Blanco"
+            },
+            {
+              "name": "Talle",
+              "value": "M"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 75",
+      "images": [
+        "https://img.freepik.com/free-photo/pair-trainers_144627-3799.jpg"
+      ],
+      "categoryId": 10,
+      "brand": "Adidas",
+      "model": "M263",
+      "type": "CARNES",
+      "measurementUnit": "LITRO",
+      "allowFractional": true,
+      "basePrice": 267.28,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": false,
+      "pointsReward": 9,
+      "qr": "9b7aab19-8585-4322-bed9-0603e53cfbe6",
+      "skus": [
+        {
+          "code": "SKU-QY25KY",
+          "barcode": "0193508406195",
+          "price": 267.28,
+          "stock": 43,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 76",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 2,
+      "brand": "HP",
+      "model": "M544",
+      "type": "SMARTPHONES",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 219.57,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 21,
+      "qr": "b5dad3de-4a0e-48be-a004-8200d0e137c9",
+      "skus": [
+        {
+          "code": "SKU-B2BKRN",
+          "barcode": "6420076816460",
+          "price": 268.57,
+          "stock": 13,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-05N6FV",
+          "barcode": "6238716634040",
+          "price": 272.57,
+          "stock": 5,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-LQ21TG",
+          "barcode": "4072483206809",
+          "price": 303.57,
+          "stock": 12,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 77",
+      "images": [
+        "https://img.freepik.com/free-photo/pair-trainers_144627-3799.jpg"
+      ],
+      "categoryId": 2,
+      "brand": "Xiaomi",
+      "model": "M712",
+      "type": "SMARTPHONES",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 307.88,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": true,
+      "isRecommended": true,
+      "isNew": true,
+      "pointsReward": 49,
+      "qr": "23bde04f-1753-4247-8957-efe991bb8d45",
+      "skus": [
+        {
+          "code": "SKU-Y7BOZB",
+          "barcode": "0869206632319",
+          "price": 384.88,
+          "stock": 20,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "64GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-8VQM6Q",
+          "barcode": "6349424594833",
+          "price": 395.88,
+          "stock": 3,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "128GB"
+            }
+          ]
+        },
+        {
+          "code": "SKU-GNRKUO",
+          "barcode": "2093644346002",
+          "price": 419.88,
+          "stock": 18,
+          "variantOptions": [
+            {
+              "name": "Almacenamiento",
+              "value": "256GB"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 78",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 8,
+      "brand": "LG",
+      "model": "M897",
+      "type": "ALIMENTOS",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 856.11,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 17,
+      "qr": "31178266-9fd5-4c27-bc7c-02bf8835f466",
+      "skus": [
+        {
+          "code": "SKU-Q4JWJY",
+          "barcode": "0141737404509",
+          "price": 856.11,
+          "stock": 136,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 79",
+      "images": [
+        "https://img.freepik.com/free-photo/red-apples_144627-16536.jpg"
+      ],
+      "categoryId": 8,
+      "brand": "Dell",
+      "model": "M837",
+      "type": "ALIMENTOS",
+      "measurementUnit": "KG",
+      "allowFractional": true,
+      "basePrice": 383.0,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": true,
+      "isNew": false,
+      "pointsReward": 25,
+      "qr": "e0bcdb0e-485e-4bec-8c62-fd53c31abc62",
+      "skus": [
+        {
+          "code": "SKU-SGFKVX",
+          "barcode": "9661606931376",
+          "price": 383.0,
+          "stock": 54,
+          "variantOptions": []
+        }
+      ]
+    },
+    {
+      "name": "Producto Demo 80",
+      "images": [
+        "https://img.freepik.com/free-photo/laptop-office-desk_23-2148043203.jpg"
+      ],
+      "categoryId": 12,
+      "brand": "Pepsi",
+      "model": "M455",
+      "type": "HOGAR",
+      "measurementUnit": "UNIDAD",
+      "allowFractional": false,
+      "basePrice": 200.43,
+      "description": "Producto de alta calidad ideal para pruebas de ecommerce, POS y gestión de inventario. Incluye variantes, códigos de barras y stock para simular un catálogo real.",
+      "isTrending": false,
+      "isRecommended": false,
+      "isNew": true,
+      "pointsReward": 24,
+      "qr": "a238e282-e0fe-47e5-909d-5ed8501f28e1",
+      "skus": [
+        {
+          "code": "SKU-4LC6MP",
+          "barcode": "2148005430422",
+          "price": 200.43,
+          "stock": 27,
+          "variantOptions": []
+        }
+      ]
+    }
+  ]
+}

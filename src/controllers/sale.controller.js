@@ -19,7 +19,7 @@ class SaleController {
 
       // Calcular totales usando el Servicio (obtiene precios reales)
       const userId = req.user?.id;
-      const branchId = req.headers['x-branch-id'] || req.body.branchId;
+      const branchId = req.branchId;
       
       const currency = await CurrencyService.getCurrencyByContext(req);
       const data = await SaleService.previewSale({ 
@@ -61,7 +61,7 @@ class SaleController {
 
 
 
-      let branchId = req.headers['x-branch-id'] || req.body.branchId;
+      let branchId = req.branchId;
       if (roleName === 'EMPLOYEE') {
           const userProfile = await require('../services/user.service').getProfile(loggedUserId);
           if (userProfile && userProfile.branchId) {
@@ -125,7 +125,7 @@ class SaleController {
 
   async getAll(req, res, next) {
     try {
-        let branchId = req.query.branchId || req.headers['x-branch-id'];
+        let branchId = req.branchId;
         let branchIds = null;
         const roleName = req.user.role.name || req.user.role;
         

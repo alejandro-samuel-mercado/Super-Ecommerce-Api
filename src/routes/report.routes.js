@@ -3,7 +3,6 @@ const router = express.Router();
 const ReportController = require('../controllers/report.controller');
 const { protect, restrictTo } = require('../middlewares/auth.middleware');
 
-// Requiere autenticación
 router.use(protect);
 
 /**

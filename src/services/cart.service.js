@@ -3,9 +3,7 @@ const prisma = require('../config/prisma');
 class CartService {
 
     /**
-     * Obtener o crear un carrito para el usuario.
-     * @param {number} userId 
-     * @returns {Promise<Object>} Carrito con items
+     * Obtiene el carrito de un usuario, opcionalmente con precios convertidos.
      */
     async getCart(userId, currencyCode) {
         let cart = null;
@@ -54,10 +52,7 @@ class CartService {
     }
 
     /**
-     * Agregar item al carrito o actualizar cantidad si existe.
-     * @param {number} userId 
-     * @param {number} skuId 
-     * @param {number} quantity 
+     * Añade un SKU al carrito.
      */
     async addToCart(userId, skuId, quantity) {
         const cart = await this.getCart(userId);
@@ -65,6 +60,7 @@ class CartService {
         const qty = parseFloat(quantity);
         if (!qty || qty <= 0) throw new Error('Cantidad inválida');
 
+        // Validar unidad de medida
         const skuExists = await prisma.sKU.findUnique({ 
             where: { id: skuIdInt }, 
             include: { product: { select: { measurementUnit: true } } } 
@@ -75,7 +71,6 @@ class CartService {
             throw new Error(`Cantidad fraccionaria no permitida para venta por unidad`);
         }
 
-        // Validar si el item existe en el carrito
         const existingItem = await prisma.cartItem.findUnique({
             where: {
                 cartId_skuId: {
@@ -102,9 +97,7 @@ class CartService {
     }
 
     /**
-     * Eliminar item del carrito.
-     * @param {number} userId 
-     * @param {number} skuId 
+     * Elimina un item del carrito.
      */
     async removeFromCart(userId, skuId) {
         const cart = await this.getCart(userId);
@@ -120,16 +113,12 @@ class CartService {
                 }
             });
         } catch (e) {
-           
             return null;
         }
     }
 
     /**
-     * Actualizar cantidad de item directamente.
-     * @param {number} userId 
-     * @param {number} skuId 
-     * @param {number} quantity 
+     * Actualiza la cantidad de un item.
      */
     async updateItem(userId, skuId, quantity) {
         const cart = await this.getCart(userId);
@@ -157,9 +146,8 @@ class CartService {
     }
 
     /**
-     * Fusionar items del carrito local con la DB.
-     * @param {number} userId 
-     * @param {Array<{skuId: number, quantity: number}>} localItems 
+     * Mergea el carrito local del frontend con el del usuario en DB.
+     * También valida el stock disponible.
      */
     async mergeCart(userId, localItems, currencyCode) {
         const PriceService = require('./price.service');
@@ -191,6 +179,7 @@ class CartService {
                  });
             }
 
+            // Validar stock de todos los items
             const updatedCart = await prisma.cart.findUnique({
                 where: { userId: parseInt(userId) },
                 include: {
@@ -238,6 +227,7 @@ class CartService {
             const finalCart = await this.getCart(userId, currencyCode);
             return { ...finalCart, stockAdjustments };
         } else {
+            // Manejo de carrito de invitado (solo validación y enriquecimiento)
             const items = [];
             for (const item of localItems) {
                 const skuIdInt = parseInt(item.skuId);
@@ -280,7 +270,7 @@ class CartService {
     }
     
     /**
-     * Limpiar o vaciar el carrito
+     * Limpia el carrito de un usuario.
      */
     async clearCart(userId) {
         const cart = await this.getCart(userId);

@@ -17,7 +17,7 @@ class AdminUserService {
       action: 'VERIFY_IDENTITY',
       entityType: 'USER',
       entityId: userId,
-      branchId: user.branchId, // Use user's branch
+      branchId: user.branchId, 
       changes: { prev: user.dniVerified, new: true },
       ip
     });
@@ -26,7 +26,7 @@ class AdminUserService {
   }
 
   async toggleUserStatus(adminId, userId, status, ip) {
-      // status: 'ACTIVE', 'SUSPENDED'
+      
       const user = await prisma.user.findUnique({ where: { id: parseInt(userId) } });
       if (!user) throw new Error('Usuario no encontrado');
 
@@ -47,7 +47,7 @@ class AdminUserService {
           action: 'CHANGE_STATUS',
           entityType: 'USER',
           entityId: userId,
-          branchId: user.branchId, // Use user's branch
+          branchId: user.branchId, 
           changes: { prev: user.status, new: status },
           ip
       });
@@ -86,7 +86,7 @@ class AdminUserService {
           action: 'ADJUST_POINTS',
           entityType: 'USER',
           entityId: userId,
-          branchId: user.branchId, // Use user's branch
+          branchId: user.branchId,
           changes: { prev: user.points, change: amount, reason },
           ip
       });

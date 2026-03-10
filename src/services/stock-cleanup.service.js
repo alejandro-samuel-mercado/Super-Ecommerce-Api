@@ -95,8 +95,7 @@ class StockCleanupService {
                   }
               }
 
-              // No devolvemos el cupón por petición del usuario
-
+            
               await AuditService.logAction({
                   adminId: null,
                   action: 'AUTO_CANCEL_EXPIRED_SALE',

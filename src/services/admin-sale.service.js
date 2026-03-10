@@ -2,12 +2,10 @@ const prisma = require('../config/prisma');
 const AuditService = require('./audit.service');
 
 class AdminSaleService {
-
-  // Transiciones validas
-  // PENDING -> PAID | CANCELLED
-  // PAID -> SHIPPED | DELIVERED | CANCELLED (Refund needed)
-  // SHIPPED -> DELIVERED | CANCELLED (Refund needed)
   
+  /**
+   * Actualiza el estado de entrega de una venta.
+   */
   async updateDeliveryStatus(adminId, saleId, newStatus, ip) {
       const sale = await prisma.sale.findUnique({ where: { id: parseInt(saleId) } });
       if (!sale) throw new Error('Venta no encontrada');
@@ -43,6 +41,9 @@ class AdminSaleService {
       return updatedSale;
   }
 
+  /**
+   * Anula una venta y devuelve el stock al inventario.
+   */
   async refundSale(adminId, saleId, reason, ip) {
       if (!reason || reason.trim() === '') {
           throw new Error('Motivo de anulación es requerido');
@@ -63,6 +64,7 @@ class AdminSaleService {
           for (const item of sale.items) {
               const qty = Number(item.quantity);
               
+              // Bloqueo de fila para evitar race conditions en stock
               const branchInventoryRows = await tx.$queryRaw`
                   SELECT id FROM "BranchInventory"
                   WHERE "skuId" = ${item.skuId} AND "branchId" = ${sale.branchId}
@@ -71,10 +73,21 @@ class AdminSaleService {
               
               if (branchInventoryRows.length > 0) {
                   const biId = branchInventoryRows[0].id;
+                  const invRow = await tx.branchInventory.findUnique({ where: { id: biId } });
+                  
+                  const currentStock = Number(invRow.stock);
+                  const currentCost = Number(invRow.costPrice || item.unitCostBase || 0);
+                  const returnQty = qty;
+                  const returnCost = Number(item.unitCostBase || currentCost);
+                  
+                  const newStockVal = currentStock + returnQty;
+                  const newCostVal = newStockVal > 0 ? ((currentStock * currentCost) + (returnQty * returnCost)) / newStockVal : returnCost;
+
                   await tx.$executeRaw`
                       UPDATE "BranchInventory"
                       SET stock = stock + ${qty},
                           "soldQuantity" = GREATEST("soldQuantity" - ${qty}, 0),
+                          "costPrice" = ${newCostVal},
                           "updatedAt" = NOW()
                       WHERE id = ${biId}
                   `;
@@ -84,11 +97,13 @@ class AdminSaleService {
                           skuId: item.skuId,
                           branchId: sale.branchId,
                           stock: qty,
+                          costPrice: item.unitCostBase,
                           isActive: true
                       }
                   });
               }
               
+              // Actualizar Stock global del SKU
               await tx.$executeRaw`
                   UPDATE "SKU"
                   SET stock = stock + ${qty},
@@ -115,6 +130,7 @@ class AdminSaleService {
               });
           }
 
+          // Reversión de Puntos
           let pointsReverted = 0;
           let pointsRemoved = 0;
 
@@ -140,6 +156,7 @@ class AdminSaleService {
               }
           }
 
+          // Quitar puntos ganados en la venta
           let pointsEarnedInSale = 0;
           for (const item of sale.items) {
               const sku = await tx.sKU.findUnique({
@@ -152,50 +169,34 @@ class AdminSaleService {
           }
 
           if (pointsEarnedInSale > 0 && sale.userId) {
-              const alreadyRemoved = await tx.pointsHistory.findFirst({
-                  where: { reason: `Reversión de puntos ganados por anulación manual - Venta #${sale.id}` }
-              });
-              
-              if (!alreadyRemoved) {
-                  const userCurrent = await tx.user.findUnique({ where: { id: sale.userId } });
-                  const amountToRemove = Math.min(pointsEarnedInSale, userCurrent.points || 0);
-                  
-                  if (amountToRemove > 0) {
-                      await tx.user.update({
-                          where: { id: sale.userId },
-                          data: { points: { decrement: amountToRemove } }
-                      });
-                      await tx.pointsHistory.create({
-                          data: {
-                              userId: sale.userId,
-                              type: 'USED',
-                              amount: amountToRemove,
-                              reason: `Reversión de puntos ganados por anulación manual - Venta #${sale.id}`
-                          }
-                      });
-                      pointsRemoved = amountToRemove;
-                  }
+              const user = await tx.user.findUnique({ where: { id: sale.userId } });
+              if (user && user.points >= pointsEarnedInSale) {
+                  await tx.user.update({
+                      where: { id: sale.userId },
+                      data: { points: { decrement: pointsEarnedInSale } }
+                  });
+                  await tx.pointsHistory.create({
+                      data: {
+                          userId: sale.userId,
+                          type: 'USED',
+                          amount: pointsEarnedInSale,
+                          reason: `Deducción por anulación de compra - Venta #${sale.id}`
+                      }
+                  });
+                  pointsRemoved = pointsEarnedInSale;
               }
           }
 
-          const newObservations = sale.observations 
-              ? `${sale.observations} | ANULACIÓN: ${reason}` 
-              : `ANULACIÓN: ${reason}`;
-
           const updatedSale = await tx.sale.update({
-              where: { id: parseInt(saleId) },
-              data: { 
-                  paymentStatus: 'CANCELLED',
-                  deliveryStatus: 'CANCELLED',
-                  observations: newObservations
-              }
+              where: { id: sale.id },
+              data: { paymentStatus: 'CANCELLED' }
           });
 
           await AuditService.logAction({
               adminId,
               action: 'REFUND_SALE',
               entityType: 'SALE',
-              entityId: saleId,
+              entityId: sale.id,
               branchId: sale.branchId,
               changes: { 
                   reason, 
@@ -208,11 +209,13 @@ class AdminSaleService {
           });
 
           return updatedSale;
-      });
+      }, { timeout: 20000 });
   }
 
+  /**
+   * Actualiza el estado de pago de una venta.
+   */
   async updatePaymentStatus(adminId, saleId, newStatus, ip) {
-
       const sale = await prisma.sale.findUnique({
           where: { id: parseInt(saleId) },
           include: { items: true, stockReservations: true }
@@ -222,6 +225,7 @@ class AdminSaleService {
       const wasPending = sale.paymentStatus !== 'PAID';
       
       if (wasPending && newStatus === 'PAID') {
+          // Si cambia a PAGADO, procesar deducción de stock (Lógica similar a Webhook)
           const hasMPOIntent = !!sale.mpPaymentId;
           const hasManualProof = !!sale.paymentProofUrl;
           
@@ -230,11 +234,9 @@ class AdminSaleService {
           }
 
           await prisma.$transaction(async (tx) => {
-              // 1. Deducir stock basado en los ITEMS de la venta
               for (const item of (sale.items || [])) {
                   if (!item.skuId || item.quantity <= 0) continue;
 
-                  // Actualizar SKU
                   await tx.$executeRaw`
                       UPDATE "SKU" 
                       SET stock = stock - ${item.quantity},
@@ -243,7 +245,6 @@ class AdminSaleService {
                       WHERE id = ${item.skuId}
                   `;
                   
-                  // Actualizar Inventario de Sucursal
                   await tx.$executeRaw`
                       UPDATE "BranchInventory"
                       SET stock = stock - ${item.quantity},
@@ -252,7 +253,6 @@ class AdminSaleService {
                       WHERE "skuId" = ${item.skuId} AND "branchId" = ${sale.branchId}
                   `;
 
-                  // Registrar Movimiento de Stock
                   const inv = await tx.branchInventory.findUnique({ 
                       where: { skuId_branchId: { skuId: item.skuId, branchId: sale.branchId } } 
                   });
@@ -271,7 +271,6 @@ class AdminSaleService {
                   });
               }
 
-              // 2. Liberar CUALQUIER reserva que pudiese haber quedado (aunque esté expirada)
               if (sale.stockReservations && sale.stockReservations.length > 0) {
                   await tx.stockReservation.updateMany({
                       where: { saleId: sale.id, released: false },
@@ -309,26 +308,27 @@ class AdminSaleService {
           ip
       });
 
-      return await prisma.sale.findUnique({ where: { id: parseInt(saleId) } });
+      return sale;
   }
+
+  /**
+   * Obtiene estadísticas para el dashboard administrativo.
+   */
   async getDashboardStats(timeRange = 'month', branchId = null, branchIds = null) {
     const now = new Date();
-    // Inicio del día actual (00:00:00)
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    // Calcular startDate basado en rango
     let startDate;
     let prevStartDate;
     let prevEndDate;
 
-    // Fechas para lógica de comparación "Mes Anterior" (por defecto)
+    // Fechas para comparación (Mes Actual vs Mes Anterior por defecto)
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
     const filter = { paymentStatus: 'PAID' };
     
-    // Agregar filtro de sucursal si se especifica
     if (branchId) {
         filter.branchId = branchId;
     } else if (branchIds && branchIds.length > 0) {
@@ -338,7 +338,6 @@ class AdminSaleService {
     switch (timeRange) {
         case 'today':
             startDate = todayStart;
-            // Comparar vs ayer
             prevStartDate = new Date(todayStart);
             prevStartDate.setDate(prevStartDate.getDate() - 1);
             prevEndDate = new Date(todayStart);
@@ -346,16 +345,12 @@ class AdminSaleService {
         case 'week':
             startDate = new Date();
             startDate.setDate(now.getDate() - 7);
-
-
-            // Comparar vs semana anterior
             prevStartDate = new Date(startDate);
             prevStartDate.setDate(prevStartDate.getDate() - 7);
             prevEndDate = new Date(startDate);
             break;
         case 'year':
             startDate = new Date(now.getFullYear(), 0, 1);
-            // Comparar vs año anterior
             prevStartDate = new Date(now.getFullYear() - 1, 0, 1);
             prevEndDate = new Date(now.getFullYear() - 1, 11, 31);
             break;
@@ -372,21 +367,18 @@ class AdminSaleService {
             break;
     }
 
-
     if (startDate) {
         filter.createdAt = { gte: startDate };
     }
 
-    // 1. Ingresos Totales (Filtrado) - Usar totalInBaseCurrency para consolidación real
+    // 1. Ingresos Totales (Usando totalInBaseCurrency para consistencia multi-divisa)
     const totalRevenueAgg = await prisma.sale.aggregate({
       _sum: { totalInBaseCurrency: true },
       where: filter
     });
     const totalRevenue = Number(totalRevenueAgg._sum.totalInBaseCurrency || 0);
 
-
-    // 2. Crecimiento de Ingresos (Vs Periodo Anterior)
-    // Solo significativo si comparamos periodos similares, 'total' no tiene crecimiento
+    // 2. Crecimiento vs Periodo Anterior
     let revenueGrowth = 0;
     if (timeRange !== 'total') {
         const prevFilter = { 
@@ -394,14 +386,12 @@ class AdminSaleService {
             createdAt: { gte: prevStartDate, lt: prevEndDate || startDate }
         };
         
-        // Agregar filtro de sucursal al periodo anterior también
         if (branchId) {
             prevFilter.branchId = branchId;
         } else if (branchIds && branchIds.length > 0) {
             prevFilter.branchId = { in: branchIds };
         }
         
-        // Caso especial para hoy/semana se podría necesitar manejo preciso, pero aprox está bien
         if (timeRange === 'today') {
              prevFilter.createdAt = { gte: prevStartDate, lt: startDate };
         }
@@ -415,12 +405,7 @@ class AdminSaleService {
         revenueGrowth = prevRevenue === 0 ? (currentRevenue > 0 ? 100 : 0) : ((currentRevenue - prevRevenue) / prevRevenue) * 100;
     }
 
-    // 3. Conteo de Ventas (Filtrado)
     const totalSalesCount = await prisma.sale.count({ where: filter });
-    const currentSalesCount = totalSalesCount;
-
-    // 4. Clientes Activos (Nuevos Clientes en Periodo)
-   
     const userFilter = {};
     if (startDate) userFilter.createdAt = { gte: startDate };
     userFilter.role = { name: 'CUSTOMER' };
@@ -428,11 +413,9 @@ class AdminSaleService {
     const totalUsersEver = await prisma.user.count({ where: { role: { name: 'CUSTOMER' } } });
     const newUsersPeriod = await prisma.user.count({ where: userFilter });
 
-    // 5. Ticket Promedio
     const avgTicket = totalSalesCount > 0 ? Number(totalRevenue) / totalSalesCount : 0;
 
-    // 6. Gráfico de Ingresos
-
+    // 3. Datos para Gráfico
     let chartData = [];
     const chartSales = await prisma.sale.findMany({
         where: filter,
@@ -448,15 +431,13 @@ class AdminSaleService {
         } else if (timeRange === 'year') {
             key = d.toLocaleString('es-ES', { month: 'short' });
         } else {
-
             key = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' });
         }
         revenueByTime[key] = (revenueByTime[key] || 0) + Number(sale.totalInBaseCurrency || 0);
     });
     chartData = Object.keys(revenueByTime).map(name => ({ name, total: revenueByTime[name] }));
 
-
-    // 7. Desglose Métodos de Pago (Filtrado)
+    // 4. Métodos de Pago
     const paymentMethods = await prisma.sale.groupBy({
       by: ['paymentType'],
       _count: { id: true },
@@ -470,8 +451,7 @@ class AdminSaleService {
       count: pm._count.id
     }));
 
-    // 8. Productos Top (Filtrado)
-    
+    // 5. Productos más vendidos
     const topProductsRaw = await prisma.saleItem.groupBy({
       by: ['productName'],
       _sum: { quantity: true, subtotalInBaseCurrency: true },
@@ -488,7 +468,7 @@ class AdminSaleService {
       revenue: Number(p._sum.subtotalInBaseCurrency || 0)
     }));
 
-    // 9. Usuarios Top (Filtrado)
+    // 6. Mejores Clientes
     const topUsersRaw = await prisma.sale.groupBy({
       by: ['userId'],
       _count: { id: true },
@@ -499,50 +479,26 @@ class AdminSaleService {
     });
 
     const topUsers = await Promise.all(topUsersRaw.map(async (u) => {
-      const user = await prisma.user.findUnique({ where: { id: u.userId }, select: { name: true, email: true } });
-      return {
-        name: user ? user.name : `Usuario #${u.userId}`,
-        email: user ? user.email : '',
-        salesCount: u._count.id,
-        revenue: Number(u._sum.totalInBaseCurrency || 0)
-      };
-    }));
-
-    // 10. Empleados Top (Filtrado)
-    const topEmployeesRaw = await prisma.sale.groupBy({
-      by: ['employeeId'],
-      _count: { id: true },
-      _sum: { totalInBaseCurrency: true },
-      where: { ...filter, employeeId: { not: null } },
-      orderBy: { _sum: { totalInBaseCurrency: 'desc' } },
-      take: 5
-    });
-
-    const topEmployees = await Promise.all(topEmployeesRaw.map(async (e) => {
-       if (!e.employeeId) return null;
-       const user = await prisma.user.findUnique({ where: { id: e.employeeId }, select: { name: true } });
-       return {
-         name: user ? user.name : `Empleado #${e.employeeId}`,
-         salesCount: e._count.id,
-         revenue: Number(e._sum.totalInBaseCurrency || 0)
-       };
+        const user = await prisma.user.findUnique({ where: { id: u.userId }, select: { name: true, email: true } });
+        return {
+            name: user?.name || user?.email || 'Anónimo',
+            orders: u._count.id,
+            totalSpent: Number(u._sum.totalInBaseCurrency || 0)
+        };
     }));
 
     return {
-      totalRevenue: Number(totalRevenue),
-      revenueGrowth,
-      salesCount: currentSalesCount,
-      newUsers: newUsersPeriod,
-      totalUsers: totalUsersEver,
-      avgTicket,
-      chartData,
-      paymentMethodsData,
-      topProducts,
-      topUsers,
-      topEmployees: topEmployees.filter(Boolean)
+        totalRevenue,
+        revenueGrowth,
+        totalSalesCount,
+        newUsersPeriod,
+        avgTicket,
+        chartData,
+        paymentMethods: paymentMethodsData,
+        topProducts,
+        topUsers
     };
   }
 }
-
 
 module.exports = new AdminSaleService();

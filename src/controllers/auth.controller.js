@@ -72,7 +72,7 @@ class AuthController {
 
   async logout(req, res, next) {
       try {
-          // Obtener token del body o cookies si aplica
+        
           const { refreshToken } = req.body;
           if (refreshToken) {
               await AuthService.logout(refreshToken);

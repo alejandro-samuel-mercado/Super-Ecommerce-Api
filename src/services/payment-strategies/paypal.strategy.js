@@ -92,7 +92,6 @@ class PayPalStrategy extends PaymentStrategy {
 
     async refundPayment(paymentId, amount) {
         console.log(`[PayPal] Refunding ${paymentId}`);
-        // TODO: Implement real refund if needed
         return { status: 'REFUNDED', id: `refund_${Date.now()}` }; 
     }
 }

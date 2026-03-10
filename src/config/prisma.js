@@ -10,16 +10,11 @@ const pool = new Pool({
   max: 5, 
   min: 0, 
   idleTimeoutMillis: 30000, // Cerrar conexiones inactivas más rápido
-  connectionTimeoutMillis: 30000, // Incrementado para arranque en frío de Neon serverless (antes 10s)
+  connectionTimeoutMillis: 30000, // Incrementado para arranque en frío de Neon serverless 
   query_timeout: 30000, // Timeout de consulta 30s
   statement_timeout: 30000, // Timeout de sentencia 30s
   allowExitOnIdle: true, // Permitir salir del proceso cuando el pool está inactivo
   ssl: { rejectUnauthorized: false } 
-});
-
-// Logueo de eventos del pool para debugging
-pool.on('error', (err) => {
- 
 });
 
 pool.on('connect', () => {

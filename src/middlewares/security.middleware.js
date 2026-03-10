@@ -24,7 +24,7 @@ const authLimiter = rateLimit({
         success: false,
         message: 'Demasiados intentos fallidos. Por seguridad, debe esperar 10 minutos para volver a intentarlo.'
     },
-    skipSuccessfulRequests: true // No penalizar logins exitosos
+    skipSuccessfulRequests: true 
 });
 
 module.exports = {

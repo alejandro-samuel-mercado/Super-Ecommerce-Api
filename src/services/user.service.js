@@ -170,7 +170,7 @@ class UserService {
             action: 'DELETE_USER',
             entityType: 'USER',
             entityId: userId,
-            branchId: null, // Global user deletion
+            branchId: null,
             changes: { status: 'DELETED' },
             ip
         });

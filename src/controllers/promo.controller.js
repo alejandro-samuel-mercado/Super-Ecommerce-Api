@@ -5,7 +5,7 @@ const AuditService = require('../services/audit.service');
 
 class PromoController {
 
-  // --- EVENTS ---
+  // --- EVENTOS ---
   async createEvent(req, res, next) {
       try {
           const event = await EventService.createEvent(req.body);
@@ -78,7 +78,7 @@ class PromoController {
       }
   }
 
-  // --- DISCOUNTS ---
+  // --- DESCUENTOS ---
   async createDiscount(req, res, next) {
       try {
           const { 
@@ -129,6 +129,7 @@ class PromoController {
   async getDiscounts(req, res, next) {
       try {
           const discounts = await prisma.discount.findMany({
+              where: { eventId: null },
               include: { event: true }
           });
           res.json({ success: true, data: discounts });

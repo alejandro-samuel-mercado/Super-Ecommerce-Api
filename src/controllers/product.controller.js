@@ -4,7 +4,7 @@ class ProductController {
 
   async create(req, res, next) {
     try {
-      const { branchId } = req.query;
+      const branchId = req.branchId;
       const product = await ProductService.createProduct({ ...req.body, adminId: req.user.id, ip: req.ip, branchId });
       res.status(201).json({ success: true, message: 'Producto creado exitosamente', data: product });
     } catch (error) {
@@ -18,7 +18,7 @@ class ProductController {
   async getAll(req, res, next) {
     try {
       const currency = req.headers['x-currency'] || req.query.currency;
-      const products = await ProductService.getProducts({ ...req.query, currency });
+      const products = await ProductService.getProducts({ ...req.query, currency, branchId: req.branchId });
       res.status(200).json({ success: true, data: products });
     } catch (error) {
       next(error); 
@@ -49,7 +49,7 @@ class ProductController {
       }
       
  
-      const results = await ProductService.getProducts({ search: q, currency });
+      const results = await ProductService.getProducts({ search: q, currency, branchId: req.branchId });
       res.status(200).json({ success: true, data: results });
     } catch (error) {
       next(error);
@@ -59,7 +59,7 @@ class ProductController {
   async update(req, res, next) {
     try {
       const { id } = req.params;
-      const { branchId } = req.query;
+      const branchId = req.branchId;
       const product = await ProductService.updateProduct(id, { ...req.body, adminId: req.user.id, ip: req.ip, branchId });
       res.status(200).json({ success: true, message: 'Producto actualizado exitosamente', data: product });
     } catch (error) {
@@ -73,7 +73,7 @@ class ProductController {
   async delete(req, res, next) {
     try {
       const { id } = req.params;
-      const { branchId } = req.query;
+      const branchId = req.branchId;
       await ProductService.deleteProduct(id, req.user.id, req.ip, branchId);
       res.status(200).json({ success: true, message: 'Producto eliminado correctamente' });
     } catch (error) {
@@ -90,7 +90,7 @@ class ProductController {
   async getRecommendations(req, res, next) {
     try {
       const { id } = req.params;
-      const { branchId } = req.query;
+      const branchId = req.branchId;
       const currency = req.headers['x-currency'] || req.query.currency;
       const recommendations = await ProductService.getRecommendations(id, branchId, currency);
       res.status(200).json({ success: true, data: recommendations });

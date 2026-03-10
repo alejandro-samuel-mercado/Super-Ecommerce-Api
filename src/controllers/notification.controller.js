@@ -4,7 +4,7 @@ class NotificationController {
   
   async getNotifications(req, res, next) {
     try {
-      let { branchId } = req.query;
+      let branchId = req.branchId;
       const roleName = req.user.role.name || req.user.role;
 
       if (roleName === 'EMPLOYEE') {
