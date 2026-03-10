@@ -104,26 +104,32 @@ const initSocket = (server) => {
 
     socket.on('resume_chat', async ({ conversationId }) => {
         try {
-            const conversation = await chatService.joinGuestConversation(conversationId, socket.id);
-            if (conversation) {
-                 const roomName = `conversation_${conversation.id}`;
-                 socket.join(roomName);
-                 
-                 // Enviar historial a cliente
+            const conversation = await chatService.getConversationById(conversationId);
+            if (!conversation || conversation.closed) {
+                return socket.emit('chat_history', { conversationId: null, messages: [] });
+            }
+
+            const isOwner = userId 
+                ? conversation.userId === userId 
+                : conversation.socketId === socket.id;
+
+            if (isOwner || role === 'ADMIN' || role === 'SUPER_ADMIN') {
+                await chatService.joinGuestConversation(conversationId, socket.id);
+                const roomName = `conversation_${conversation.id}`;
+                socket.join(roomName);
                 
-                 const history = conversation.messages.map(m => ({
-                     text: m.content,
-                     sender: m.sender,
-                     createdAt: m.createdAt
-                 }));
-                 
-                 socket.emit('chat_history', { conversationId: conversation.id, messages: history });
+                const history = conversation.messages.map(m => ({
+                    text: m.content,
+                    sender: m.sender,
+                    createdAt: m.createdAt
+                }));
+                
+                socket.emit('chat_history', { conversationId: conversation.id, messages: history });
             } else {
-                // Si es inválido o cerrado, decir a cliente que limpie
                 socket.emit('chat_history', { conversationId: null, messages: [] });
             }
         } catch (error) {
-        
+            console.error("Socket error resume_chat:", error);
         }
     });
 

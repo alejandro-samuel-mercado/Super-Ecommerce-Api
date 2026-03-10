@@ -78,12 +78,10 @@ class UserController {
 
           if (!targetUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
 
-          // Salvaguarda: No se puede editar al Super Admin a menos que seas uno
-          if (targetUser.role.name === 'SUPER_ADMIN' && req.user.role.name !== 'SUPER_ADMIN') {
-               return res.status(403).json({ success: false, message: 'No puedes modificar a un Super Admin.' });
+          if (targetUser.role.name === 'SUPER_ADMIN' && req.user.id !== targetUser.id) {
+               return res.status(403).json({ success: false, message: 'No puedes modificar a otro Super Admin.' });
           }
 
-          // Salvaguarda: El Admin no puede editar a otros Admins
           if (targetUser.role.name === 'ADMIN' && req.user.role.name !== 'SUPER_ADMIN') {
               return res.status(403).json({ success: false, message: 'Solo el Super Admin puede gestionar a otros administradores.' });
           }
@@ -119,12 +117,10 @@ class UserController {
           
           if (!targetUser) return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
 
-          // Salvaguarda: No se puede eliminar al Super Admin
-          if (targetUser.role.name === 'SUPER_ADMIN') {
-              return res.status(403).json({ success: false, message: 'No se puede eliminar al Super Admin principal.' });
+          if (targetUser.role.name === 'SUPER_ADMIN' && req.user.id !== targetUser.id) {
+              return res.status(403).json({ success: false, message: 'No puedes eliminar a otro Super Admin.' });
           }
 
-          // Salvaguarda: El Admin no puede eliminar a otros Admins
           if (targetUser.role.name === 'ADMIN' && req.user.role.name !== 'SUPER_ADMIN') {
               return res.status(403).json({ success: false, message: 'No tienes permisos para eliminar administradores.' });
           }

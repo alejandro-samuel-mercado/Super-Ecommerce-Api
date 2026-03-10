@@ -124,8 +124,8 @@ class InvoiceService {
         const tableTop = 340;
         const itemX = 50;
         const qtyX = 300;
-        const priceX = 360;
-        const totalX = 460;
+        const priceX = 355;
+        const totalX = 450;
 
         // Header de Tabla (Bloque sólido)
         doc
@@ -179,7 +179,7 @@ class InvoiceService {
         // --- RESUMEN DE TOTALES ---
         y += 20;
         const sumX = 350;
-        const sumValX = 460;
+        const sumValX = 450;
 
         if (y > 650) {
             doc.addPage();
@@ -238,7 +238,7 @@ class InvoiceService {
             .fontSize(14)
             .text('TOTAL', sumX, y + 15)
             .fontSize(totalFontSize)
-            .text(totalStr, sumValX - 20, y + (totalStr.length > 12 ? 17 : 12), { width: 110, align: 'right' });
+            .text(totalStr, sumValX - 25, y + (totalStr.length > 12 ? 17 : 12), { width: 110, align: 'right' });
 
         // --- PIE DE PÁGINA ---
         doc
