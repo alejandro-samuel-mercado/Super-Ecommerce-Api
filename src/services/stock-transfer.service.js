@@ -125,7 +125,7 @@ class StockTransferService {
       });
 
       return transfer;
-    });
+    }, { maxWait: 20000, timeout: 20000 });
   }
 
   async shipTransfer(id, userId) {
@@ -150,13 +150,12 @@ class StockTransferService {
 
            const updatedOrigin = await tx.branchInventory.update({
                where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.originBranchId } },
-               data: { stock: { decrement: item.quantity } }
+               data: { stock: { decrement: Number(item.quantity) } }
            });
 
-           await tx.sKU.update({
-               where: { id: item.skuId },
-               data: { stock: { decrement: item.quantity } }
-           });
+           /* NOTA: El stock del SKU (Global) NO DEBE MODIFICARSE al hacer ship/receive, 
+              dado que el inventario global de la empresa no se destruye, solo cambia de sucursal. 
+              Al enviarlo, la mercadería queda en el "limbo" físico pero sigue perteneciendo a la empresa. */
 
            await tx.stockMovement.create({
                data: {
@@ -188,7 +187,7 @@ class StockTransferService {
       });
 
       return result;
-    });
+    }, { maxWait: 20000, timeout: 20000 });
   }
 
   async receiveTransfer(id, userId) {
@@ -226,7 +225,7 @@ class StockTransferService {
                updatedInv = await tx.branchInventory.update({
                    where: { id: currentDestInv.id },
                    data: { 
-                       stock: { increment: incomingQty },
+                       stock: { increment: Number(incomingQty) },
                        costPrice: weightedAverageCost
                    }
                });
@@ -235,17 +234,14 @@ class StockTransferService {
                    data: {
                        skuId: item.skuId,
                        branchId: transferRow.destinationBranchId,
-                       stock: item.quantity,
+                       stock: Number(item.quantity),
                        price: sku.price, 
                        costPrice: originCost 
                    }
                });
            }
 
-           await tx.sKU.update({
-               where: { id: item.skuId },
-               data: { stock: { increment: item.quantity } }
-           });
+           /* NOTA: No incrementamos el SKU global porque no es mercadería nueva creada ex novo. */
 
            await tx.stockMovement.create({
                data: {
@@ -277,7 +273,7 @@ class StockTransferService {
       });
 
       return result;
-    });
+    }, { maxWait: 20000, timeout: 20000 });
   }
 
   async cancelTransfer(id, userId) {
@@ -293,51 +289,10 @@ class StockTransferService {
                   where: { id: transferRow.id },
                   data: { status: 'CANCELLED' }
               });
-          } else if (transferRow.status === 'IN_TRANSIT') {
-               const items = await tx.stockTransferItem.findMany({ where: { transferId: transferRow.id } });
-               for (const item of items) {
-                   const updatedInv = await tx.branchInventory.update({
-                       where: { skuId_branchId: { skuId: item.skuId, branchId: transferRow.originBranchId } },
-                       data: { stock: { increment: item.quantity } }
-                   });
-
-                   await tx.sKU.update({
-                       where: { id: item.skuId },
-                       data: { stock: { increment: item.quantity } }
-                   });
-
-                   await tx.stockMovement.create({
-                       data: {
-                           skuId: item.skuId,
-                           branchId: transferRow.originBranchId,
-                           type: 'TRANSFER_IN',
-                           quantity: Number(item.quantity),
-                           resultingStock: Number(updatedInv.stock),
-                           referenceId: `TX-CANCEL-${transferRow.id}`,
-                           userId, 
-                           notes: `Cancelación de Transferencia #${transferRow.id}`
-                       }
-                   });
-               }
-               const result = await tx.stockTransfer.update({
-                  where: { id: transferRow.id },
-                  data: { status: 'CANCELLED' }
-              });
-
-              await AuditService.logAction({
-                  adminId: userId,
-                  action: 'CANCEL_STOCK_TRANSFER',
-                  entityType: 'STOCK_TRANSFER',
-                  entityId: result.id,
-                  branchId: transferRow.originBranchId,
-                  changes: { from: transferRow.status, to: result.status },
-                  ip: arguments[2]
-              });
-              return result;
           } else {
-              throw new Error('No se puede cancelar una transferencia completada o ya cancelada');
+              throw new Error('Solo se pueden cancelar transferencias en estado Pendiente. Si la mercadería ya fue despachada (En Tránsito), debe ser recibida.');
           }
-      });
+      }, { maxWait: 20000, timeout: 20000 });
   }
 }
 

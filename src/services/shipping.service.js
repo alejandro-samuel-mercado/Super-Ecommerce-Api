@@ -13,6 +13,17 @@ class ShippingService {
   ) {
     if (deliveryType === "LOCAL") return 0;
 
+    const EventService = require("./event.service");
+    const activeEvent = await EventService.getActiveEvent();
+
+    if (
+      activeEvent &&
+      activeEvent.shippingEnabled &&
+      activeEvent.shippingConfig
+    ) {
+      if (activeEvent.shippingConfig.type === "FREE") return 0;
+    }
+
     // Verificar envío gratuito por umbral
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
     if (subtotal !== undefined && config?.freeShippingThreshold) {
@@ -132,6 +143,15 @@ class ShippingService {
       } catch (e) {
         console.error("Error converting shipping currency", e);
       }
+    }
+
+    if (
+      activeEvent &&
+      activeEvent.shippingEnabled &&
+      activeEvent.shippingConfig?.type === "DISCOUNT"
+    ) {
+      const discountPercent = parseFloat(activeEvent.shippingConfig.value) || 0;
+      cost = cost * (1 - discountPercent / 100);
     }
 
     return cost;

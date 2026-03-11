@@ -89,7 +89,7 @@ const initSocket = (server) => {
         }
 
       } catch (error) {
-        console.error("Socket error client_message:", error);
+        
       }
     });
 
@@ -129,7 +129,7 @@ const initSocket = (server) => {
                 socket.emit('chat_history', { conversationId: null, messages: [] });
             }
         } catch (error) {
-            console.error("Socket error resume_chat:", error);
+           
         }
     });
 

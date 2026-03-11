@@ -167,7 +167,7 @@ class UserService {
                 role: true,
                 branch: true,
                 adminBranches: { include: { branch: true } },
-                sales: { select: { branchId: true }, take: 1 } // Solo para verificar existencia en branch si es cliente
+                sales: { select: { branchId: true }, take: 1 } 
               },
               orderBy: { createdAt: 'desc' },
               skip,

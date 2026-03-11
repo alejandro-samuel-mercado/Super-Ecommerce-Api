@@ -33,8 +33,7 @@ class TransferService {
     if (branchId) {
         where.branchId = parseInt(branchId);
     }
-    const [transfers, total] = await Promise.all([
-        prisma.transfer.findMany({
+    const transfers = await prisma.transfer.findMany({
           where,
           include: {
             user: {
@@ -45,9 +44,9 @@ class TransferService {
           orderBy: { createdAt: 'desc' },
           skip,
           take: l
-        }),
-        prisma.transfer.count({ where })
-    ]);
+        });
+        
+    const total = await prisma.transfer.count({ where });
     return { data: transfers, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 

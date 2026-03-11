@@ -281,15 +281,15 @@ class AdminStockController {
       if (search || brand || categoryId || supplierId) {
         if (search) {
           skuWhere.OR = [
-            { code: { contains: search, mode: "insensitive" } },
-            { product: { name: { contains: search, mode: "insensitive" } } },
+            { code: { contains: search } },
+            { product: { name: { contains: search } } },
           ];
         }
 
         if (brand || categoryId) {
           skuWhere.product = skuWhere.product || {};
           if (brand)
-            skuWhere.product.brand = { contains: brand, mode: "insensitive" };
+            skuWhere.product.brand = { contains: brand };
           if (categoryId) skuWhere.product.categoryId = parseInt(categoryId);
         }
 
