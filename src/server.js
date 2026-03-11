@@ -24,7 +24,7 @@ async function main() {
     
     server.listen(PORT, () => {
        console.log(`Servidor corriendo en el puerto ${PORT}`);
-       console.log(`Documentación disponible en: http://localhost:${PORT}/api-docs (Si está habilitado)`);
+    
     });
   } catch (error) {
     console.error('Error crítico al iniciar el servidor:', error);

@@ -104,6 +104,7 @@ const updateConfig = async (req, res) => {
       "baseCurrency",
       "enableAutoBackup",
       "backupFrequency",
+      "country",
     ];
 
     fields.forEach((f) => {

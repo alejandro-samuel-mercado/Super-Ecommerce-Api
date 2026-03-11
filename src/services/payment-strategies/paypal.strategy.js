@@ -15,9 +15,7 @@ class PayPalStrategy extends PaymentStrategy {
         const mode = (rawMode === 'production' || rawMode === 'live') ? 'live' : 'sandbox';
 
         if (clientId && clientSecret) {
-            console.log(`[PayPal] Initializing in ${mode} mode`);
-            console.log(`[PayPal] Client ID: ${clientId.substring(0, 5)}...${clientId.substring(clientId.length - 5)}`);
-            console.log(`[PayPal] Secret: ${clientSecret.substring(0, 5)}...${clientSecret.substring(clientSecret.length - 5)}`);
+           
 
             const environment = mode === 'live'
                 ? new paypal.core.LiveEnvironment(clientId, clientSecret)
@@ -31,8 +29,7 @@ class PayPalStrategy extends PaymentStrategy {
     async createPreference(sale, user) {
         if (!this.client) throw new Error('PayPal Provider not configured');
 
-        console.log(`[PayPal] Creating Payment for Sale #${sale.id} in ${sale.currencyCode}`);
-        
+       
         const baseCurrency = (this.config?.baseCurrency || process.env.BASE_CURRENCY || 'USD').toUpperCase();
         const targetCurrency = (sale.currencyCode || baseCurrency).toUpperCase();
         const isForeignCurrency = targetCurrency !== baseCurrency;
@@ -48,8 +45,7 @@ class PayPalStrategy extends PaymentStrategy {
               ? Number(sale.totalInBaseCurrency) 
               : convertToTarget(sale.total);
 
-        console.log(`[PayPal] Final Target Amount: ${targetTotal} ${targetCurrency}`);
-        
+     
         const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
 
         const request = new paypal.orders.OrdersCreateRequest();
@@ -91,7 +87,7 @@ class PayPalStrategy extends PaymentStrategy {
     }
 
     async refundPayment(paymentId, amount) {
-        console.log(`[PayPal] Refunding ${paymentId}`);
+       
         return { status: 'REFUNDED', id: `refund_${Date.now()}` }; 
     }
 }
