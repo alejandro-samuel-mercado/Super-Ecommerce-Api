@@ -12,6 +12,7 @@ class SkuService {
     // Validar producto
     const product = await prisma.product.findUnique({ where: { id: parseInt(productId) } });
     if (!product) throw new Error('Producto no encontrado');
+    if (product.isDeleted) throw new Error('No se pueden crear SKUs para un producto eliminado');
 
     return await prisma.$transaction(async (tx) => {
         let finalBarcode = barcode;
@@ -35,9 +36,16 @@ class SkuService {
         }
 
         // 3. Unicidad (Prisma unique constraint lo atrapa, pero podemos pre-checkear si queremos msj custom)
+        if (finalBarcode === "") finalBarcode = null;
+
         if (finalBarcode) {
             const existing = await tx.sKU.findUnique({ where: { barcode: finalBarcode } });
             if (existing) throw new Error(`El código de barras ${finalBarcode} ya está en uso.`);
+        }
+
+        if (code) {
+            const existingCode = await tx.sKU.findUnique({ where: { code } });
+            if (existingCode) throw new Error(`El código SKU ${code} ya está en uso.`);
         }
 
         const newSku = await tx.sKU.create({
@@ -62,7 +70,10 @@ class SkuService {
             });
         }
         
-        return newSku;
+        return tx.sKU.findUnique({
+            where: { id: newSku.id },
+            include: { variantOptions: true }
+        });
     });
   }
 
@@ -85,8 +96,9 @@ class SkuService {
            }
        }
 
-       let finalBarcode = barcode === "" ? null : barcode;
-       // Validar EAN si cambia
+       let finalBarcode = (barcode === "" || barcode === undefined) ? null : barcode;
+       let finalCode = (code === "" || code === undefined) ? currentSku.code : code;
+
        if (barcodeType === 'EAN13' && finalBarcode && finalBarcode !== currentSku.barcode) {
             if (!validateEAN13(finalBarcode)) {
                 throw new Error('El código EAN-13 es inválido.');
@@ -100,8 +112,8 @@ class SkuService {
              price, 
              active,
              ...(stock !== undefined && { stock }),
-             ...(code && { code }),
-             ...(barcode !== undefined && { barcode: finalBarcode }),
+             code: finalCode,
+             barcode: finalBarcode,
              ...(barcodeType && { barcodeType })
          }
        });

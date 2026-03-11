@@ -8,7 +8,10 @@ class PurchaseService {
    * Obtiene todas las órdenes de compra con filtros.
    */
   async getAll(params = {}) {
-     const { branchId, supplierId, status, startDate, endDate, search } = params;
+     const { branchId, supplierId, status, startDate, endDate, search, page = 1, limit = 20 } = params;
+     const p = Math.max(1, parseInt(page));
+     const l = Math.max(1, parseInt(limit));
+     const skip = (p - 1) * l;
      const where = {};
      
      if (branchId) where.branchId = parseInt(branchId);
@@ -30,19 +33,25 @@ class PurchaseService {
          if (endDate) where.createdAt.lte = new Date(endDate);
      }
 
-     return await prisma.purchase.findMany({
-         where,
-         include: {
-             supplier: { select: { id: true, tradeName: true } },
-             branch: { select: { id: true, name: true } },
-             user: { select: { id: true, name: true } },
-             items: {
-                 include: { sku: { include: { product: true } } }
+     const [purchases, total] = await Promise.all([
+         prisma.purchase.findMany({
+             where,
+             include: {
+                 supplier: { select: { id: true, tradeName: true } },
+                 branch: { select: { id: true, name: true } },
+                 user: { select: { id: true, name: true } },
+                 items: {
+                     include: { sku: { include: { product: true } } }
+                 },
+                 payment: true
              },
-             payment: true
-         },
-         orderBy: { createdAt: 'desc' }
-     });
+             orderBy: { createdAt: 'desc' },
+             skip,
+             take: l
+         }),
+         prisma.purchase.count({ where })
+     ]);
+     return { data: purchases, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 
   async getById(id) {

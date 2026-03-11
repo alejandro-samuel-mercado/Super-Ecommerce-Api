@@ -34,13 +34,13 @@ class UserController {
 
   async getAll(req, res, next) {
       try {
-         
-          const users = await UserService.getAllUsers();
-          const safeUsers = users.map(u => {
+          const { page, limit, search } = req.query;
+          const result = await UserService.getAllUsers({ page, limit, search });
+          const safeData = result.data.map(u => {
               const { password, ...rest } = u;
               return rest;
           });
-          res.status(200).json({ success: true, data: safeUsers });
+          res.status(200).json({ success: true, data: { ...result, data: safeData } });
       } catch (error) {
           next(error);
       }

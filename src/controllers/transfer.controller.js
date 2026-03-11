@@ -30,8 +30,9 @@ class TransferController {
   async getAllTransfers(req, res, next) {
     try {
       const branchId = req.branchId;
-      const transfers = await TransferService.getAllTransfers(branchId);
-      res.status(200).json({ success: true, data: transfers });
+      const { page, limit } = req.query;
+      const result = await TransferService.getAllTransfers({ branchId, page, limit });
+      res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }

@@ -186,6 +186,7 @@ const getPublicConfig = async (req, res) => {
         enabledPaymentMethods: true,
         baseCurrency: true,
         pointsPerCurrency: true,
+        webSafetyStock: true,
       },
     });
 

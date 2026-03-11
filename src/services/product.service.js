@@ -56,7 +56,9 @@ async createProduct(data) {
     variants,
     skus,
     measurementUnit,
-    allowFractional
+    allowFractional,
+    characteristics,
+    specifications
   } = data;
 
   // Normalización: alias 'skus' para 'variants'
@@ -78,9 +80,11 @@ async createProduct(data) {
         categoryId: parseInt(categoryId),
         condition,
         isTrending,
-        qr,
+        qr: qr === "" ? null : qr,
         measurementUnit: measurementUnit || 'UNIDAD',
-        allowFractional: allowFractional || false
+        allowFractional: allowFractional || false,
+        characteristics: characteristics || [],
+        specifications: specifications || []
       }
     });
 
@@ -208,6 +212,8 @@ async createProduct(data) {
       freeShipping,
       branchId,
       currency,
+      includeInactive,
+      adminView,
       ...attributes
     } = params;
 
@@ -225,7 +231,7 @@ async createProduct(data) {
     const offset = (pageNum - 1) * limitNum;
     const take = limitNum;
 
-    const where = { isActive: true };
+    const where = (includeInactive === 'true' || includeInactive === true) ? { isDeleted: false } : { isActive: true, isDeleted: false };
 
     // 2. Logica de Categorías (Recursiva)
     // Helper para obtener la ultima cadena de una potencial formacion
@@ -316,7 +322,7 @@ async createProduct(data) {
     
     // 5. Filtro de Sucursal - SIEMPRE filtrar por inventario de sucursal cuando se provee branchId
     // Esto asegura que el admin solo vea productos disponibles en la sucursal seleccionada
-    if (branchId) {
+    if (branchId && !adminView) {
        // Filtrar productos que tienen inventario en esta sucursal
        where.skus = { 
          some: { 
@@ -336,7 +342,7 @@ async createProduct(data) {
          some: { 
            branchInventory: { 
              some: { 
-               branchId: 1,
+               branchId: activeBranchId,
                stock: { gt: 0 },
                isActive: true
              } 
@@ -500,7 +506,8 @@ async createProduct(data) {
   /**
    * Obtener detalle de producto
    */
-  async getProductById(idOrSlug, currencyCode) {
+  async getProductById(idOrSlug, currencyCode, branchId) {
+    const activeBranchId = Number(branchId) > 0 ? Number(branchId) : 1;
     if (!idOrSlug || idOrSlug === 'undefined' || idOrSlug === 'null') return null;
 
     let whereClause = {};
@@ -525,7 +532,7 @@ async createProduct(data) {
                // Necesitamos contexto aquí. Si no se provee, podríamos obtener todas?
                // Idealmente getProductById debería aceptar contexto.
              
-               where: { branchId: 1 } 
+               where: { branchId: activeBranchId } 
             }
           }
         },
@@ -540,7 +547,10 @@ async createProduct(data) {
       }
     });
     
-    // Mapear inventario de sucursal a SKU
+    if (product && product.isDeleted) {
+      return null;
+    }
+
     if (product) {
        product.skus = product.skus.map(sku => {
           const branchInv = sku.branchInventory && sku.branchInventory[0];
@@ -562,7 +572,6 @@ async createProduct(data) {
        product.averageRating = avgRating._avg.rating || 0;
        product.ratingCount = product._count.comments;
 
-       // Inyectar precio multimoneda si se solicita
        if (currencyCode) {
          const priceData = await PriceService.getProductPrice(product.id, currencyCode);
          product.price = priceData;
@@ -571,23 +580,19 @@ async createProduct(data) {
          const basePrice = parseFloat(product.basePrice.toString());
          const scalingRatio = basePrice > 0 ? (priceData / basePrice) : 1.0;
 
-         // Convertir precios de SKUs usando el ratio calculado
          product.skus = product.skus.map(sku => ({
              ...sku,
              price: parseFloat(sku.price.toString()) * scalingRatio
          }));
        }
-        // Inyectar DESCUENTOS como metadata (sin sobrescribir price)
         const discountInfo = await DiscountService.getDiscountForProduct(product, { 
           currencyCode: currencyCode, 
           branchId: 1 
         });
 
-        // price se mantiene como el precio REAL
         product.discountedPrice = discountInfo.discountedPrice;
         product.discountPercentage = discountInfo.discountPercentage;
 
-        // Agregar info de descuento a cada SKU sin tocar price
         if (product.discountPercentage > 0) {
           product.skus = product.skus.map(sku => {
             const skuDiscountedPrice = sku.price * (1 - (product.discountPercentage / 100));
@@ -638,10 +643,12 @@ async createProduct(data) {
                 measurementUnit: data.measurementUnit,
                 allowFractional: data.allowFractional,
                 condition: data.condition,
-                qr: data.qr,
+                qr: data.qr === "" ? null : data.qr,
                 isTrending: data.isTrending,
                 isRecommended: data.isRecommended,
-                isNew: data.isNew
+                isNew: data.isNew,
+                characteristics: data.characteristics !== undefined ? data.characteristics : undefined,
+                specifications: data.specifications !== undefined ? data.specifications : undefined
             },
             include: { category: true }
         });
@@ -704,35 +711,45 @@ async createProduct(data) {
    */
   async deleteProduct(id, adminId = null, ip = null, branchId = null) {
     return await prisma.$transaction(async (tx) => {
-       const skusConVentas = await tx.sKU.count({
-          where: {
-            productId: parseInt(id),
-            soldQuantity: { gt: 0 }
-          }
-       });
+       const productId = parseInt(id);
 
-       if (skusConVentas > 0) {
-         throw new Error('No se puede eliminar el producto porque tiene historial de ventas asociadas.');
-       }
+       const product = await tx.product.findUnique({ where: { id: productId } });
+       if (!product) throw new Error('Producto no encontrado');
+       if (product.isDeleted) throw new Error('Este producto ya fue eliminado.');
 
        const reservasPendientes = await tx.stockReservation.count({
-           where: { sku: { productId: parseInt(id) }, released: false, expiresAt: { gt: new Date() } }
+           where: { sku: { productId }, released: false, expiresAt: { gt: new Date() } }
        });
        if (reservasPendientes > 0) throw new Error('No se puede eliminar el producto porque tiene reservas activas.');
 
        const transferenciasActivas = await tx.stockTransferItem.count({
-           where: { sku: { productId: parseInt(id) }, transfer: { status: { in: ['PENDING', 'IN_TRANSIT'] } } }
+           where: { sku: { productId }, transfer: { status: { in: ['PENDING', 'IN_TRANSIT'] } } }
        });
        if (transferenciasActivas > 0) throw new Error('No se puede eliminar el producto porque está en una transferencia.');
 
-       let deletedProduct;
-       try {
-         deletedProduct = await tx.product.delete({
-            where: { id: parseInt(id) }
+       const deletedProduct = await tx.product.update({
+         where: { id: productId },
+         data: { isDeleted: true, isActive: false }
+       });
+
+       await tx.sKU.updateMany({
+         where: { productId },
+         data: { active: false }
+       });
+
+       await tx.branchInventory.updateMany({
+         where: { sku: { productId } },
+         data: { isActive: false }
+       });
+
+       const cartItemsToRemove = await tx.cartItem.findMany({
+         where: { sku: { productId } },
+         select: { id: true }
+       });
+       if (cartItemsToRemove.length > 0) {
+         await tx.cartItem.deleteMany({
+           where: { id: { in: cartItemsToRemove.map(c => c.id) } }
          });
-       } catch (e) {
-         if (e.code === 'P2025') throw new Error('Producto no encontrado');
-         throw e;
        }
 
        if (adminId) {
@@ -742,7 +759,7 @@ async createProduct(data) {
                entityType: 'PRODUCT',
                entityId: id,
                branchId: branchId || null,
-               changes: { status: 'DELETED' },
+               changes: { status: 'SOFT_DELETED' },
                ip
            });
        }
@@ -772,7 +789,8 @@ async createProduct(data) {
       where: {
         categoryId: product.categoryId,
         id: { not: prodIdNum },
-        isActive: true
+        isActive: true,
+        isDeleted: false
       },
       include: {
         category: true,
@@ -831,7 +849,7 @@ async createProduct(data) {
 
       if (sortedProductIds.length > 0) {
         boughtTogether = await prisma.product.findMany({
-          where: { id: { in: sortedProductIds }, isActive: true },
+          where: { id: { in: sortedProductIds }, isActive: true, isDeleted: false },
           include: {
             category: true,
             skus: {

@@ -63,9 +63,10 @@ class CartService {
         // Validar unidad de medida
         const skuExists = await prisma.sKU.findUnique({ 
             where: { id: skuIdInt }, 
-            include: { product: { select: { measurementUnit: true } } } 
+            include: { product: { select: { measurementUnit: true, isDeleted: true } } } 
         });
         if (!skuExists) throw new Error('El producto no fue encontrado');
+        if (skuExists.product?.isDeleted) throw new Error('Este producto ya no está disponible');
         
         if (skuExists.product?.measurementUnit === 'UNIDAD' && !Number.isInteger(qty)) {
             throw new Error(`Cantidad fraccionaria no permitida para venta por unidad`);

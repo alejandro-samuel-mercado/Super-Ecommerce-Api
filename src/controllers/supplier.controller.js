@@ -6,8 +6,8 @@ class SupplierController {
     
     async getAll(req, res) {
         try {
-            const suppliers = await SupplierService.findAll(req.query);
-            res.json({ success: true, data: suppliers });
+            const result = await SupplierService.findAll(req.query);
+            res.json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, message: error.message });
         }

@@ -46,34 +46,41 @@ class SupplierPaymentService {
   }
 
   async getAll(params = {}) {
-      const { supplierId, purchaseId, startDate, endDate, method, search } = params;
-      const where = {};
-
-      if (supplierId) where.supplierId = parseInt(supplierId);
-      if (purchaseId) where.purchaseId = parseInt(purchaseId);
-      if (method) where.method = method;
-
-      if (search) {
-         where.OR = [
-             { reference: { contains: search, mode: 'insensitive' } },
-             { supplier: { tradeName: { contains: search, mode: 'insensitive' } } }
-         ];
-      }
-      
-      if (startDate || endDate) {
-          where.paymentDate = {};
-          if (startDate) where.paymentDate.gte = new Date(startDate);
-          if (endDate) where.paymentDate.lte = new Date(endDate);
-      }
-
-      return await prisma.supplierPayment.findMany({
+    const { supplierId, branchId, startDate, endDate, page = 1, limit = 20, purchaseId, method, search } = params;
+    const p = Math.max(1, parseInt(page));
+    const l = Math.max(1, parseInt(limit));
+    const skip = (p - 1) * l;
+    const where = {};
+    if (supplierId) where.supplierId = parseInt(supplierId);
+    if (branchId) where.branchId = parseInt(branchId);
+    if (purchaseId) where.purchaseId = parseInt(purchaseId);
+    if (method) where.method = method;
+    if (search) {
+       where.OR = [
+           { reference: { contains: search, mode: 'insensitive' } },
+           { supplier: { tradeName: { contains: search, mode: 'insensitive' } } }
+       ];
+    }
+    if (startDate || endDate) {
+        where.paymentDate = {};
+        if (startDate) where.paymentDate.gte = new Date(startDate);
+        if (endDate) where.paymentDate.lte = new Date(endDate);
+    }
+    const [payments, total] = await Promise.all([
+        prisma.supplierPayment.findMany({
           where,
           include: {
-              supplier: { select: { id: true, tradeName: true } },
-              purchase: { select: { id: true, estimatedTotal: true } },
+            supplier: true,
+            branch: true,
+            purchase: { select: { id: true, total: true, status: true } }
           },
-          orderBy: { paymentDate: 'desc' }
-      });
+          orderBy: { paymentDate: 'desc' },
+          skip,
+          take: l
+        }),
+        prisma.supplierPayment.count({ where })
+    ]);
+    return { data: payments, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 }
 

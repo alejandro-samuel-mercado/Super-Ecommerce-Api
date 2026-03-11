@@ -265,8 +265,10 @@ class AdminStockController {
         parsedBranchId = defaultBranch.id;
       }
 
-      const { search, categoryId, supplierId, brand, lowStock, stockLevel } =
-        req.query;
+      const { search, categoryId, supplierId, brand, lowStock, stockLevel, page = 1, limit = 20 } = req.query;
+      const p = Math.max(1, parseInt(page));
+      const l = Math.max(1, parseInt(limit));
+      const skip = (p - 1) * l;
 
       const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
       const lowThreshold = config?.lowStockThreshold ?? 10;
@@ -298,23 +300,44 @@ class AdminStockController {
         }
       }
 
-      const skus = await prisma.sKU.findMany({
-        where: skuWhere,
-        include: {
-          product: {
-            include: {
-              category: { select: { name: true } },
-            },
-          },
-          variantOptions: true,
-          branchInventory: {
-            where: { branchId: parsedBranchId },
-          },
-        },
-        orderBy: { product: { name: "asc" } },
-      });
+      if (stockLevel === "CRITICAL" || lowStock === "true") {
+        skuWhere.branchInventory = {
+            some: {
+                branchId: parsedBranchId,
+                stock: { lte: criticalThreshold }
+            }
+        };
+      } else if (stockLevel === "LOW") {
+        skuWhere.branchInventory = {
+            some: {
+                branchId: parsedBranchId,
+                stock: { lte: lowThreshold }
+            }
+        };
+      }
 
-      let data = skus.map((sku) => {
+      const [skus, total] = await Promise.all([
+          prisma.sKU.findMany({
+            where: skuWhere,
+            include: {
+              product: {
+                include: {
+                  category: { select: { name: true } },
+                },
+              },
+              variantOptions: true,
+              branchInventory: {
+                where: { branchId: parsedBranchId },
+              },
+            },
+            orderBy: { product: { name: "asc" } },
+            skip,
+            take: l
+          }),
+          prisma.sKU.count({ where: skuWhere })
+      ]);
+
+      const data = skus.map((sku) => {
         const inv = sku.branchInventory[0];
         const stock = inv ? parseFloat(inv.stock.toString()) : 0;
         const minStock = inv ? parseFloat(inv.minStock.toString()) : 0;
@@ -339,13 +362,7 @@ class AdminStockController {
         };
       });
 
-      if (stockLevel === "CRITICAL" || lowStock === "true") {
-        data = data.filter((item) => item.stock <= criticalThreshold);
-      } else if (stockLevel === "LOW") {
-        data = data.filter((item) => item.stock <= lowThreshold);
-      }
-
-      res.json({ success: true, data });
+      res.json({ success: true, data: { data, total, page: p, limit: l, totalPages: Math.ceil(total / l) } });
     } catch (error) {
       next(error);
     }

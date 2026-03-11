@@ -26,6 +26,7 @@ model Product {
   categoryId      Int
   updatedAt       DateTime       @updatedAt
   isActive        Boolean        @default(true)
+  isDeleted       Boolean        @default(false)
   allowFractional Boolean        @default(false)
   basePrice       Decimal        @db.Decimal(10, 2)
   brand           String
@@ -48,6 +49,8 @@ model Product {
   productPrices   ProductPrice[]
   skus            SKU[]
   favoritedBy     User[]         @relation("UserFavorites")
+  characteristics Json?
+  specifications  Json?
 }
 
 model SKU {

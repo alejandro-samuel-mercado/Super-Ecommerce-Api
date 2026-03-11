@@ -235,6 +235,8 @@ class SaleService {
 
           if (!product)
             throw new Error(`Producto para SKU ${item.skuId} no encontrado`);
+          if (product.isDeleted)
+            throw new Error(`El producto ${product.name} ya no está disponible`);
           if (!inventory.isActive)
             throw new Error(
               `Producto ${product.name} (${sku.code}) no está disponible en esta sucursal`,
@@ -1223,67 +1225,89 @@ class SaleService {
     return sale;
   }
 
-  async getAllSales(params = {}) {
+  async getAllSales(filters = {}) {
     const {
-      branchId,
-      branchIds,
-      paymentStatus,
-      isAbandoned,
-      isPendingPayment,
-      deliveryType,
-      paymentType,
-      deliveryStatus,
-    } = params;
-    const where = {};
+        branchId,
+        branchIds,
+        paymentStatus,
+        isAbandoned,
+        isPendingPayment,
+        isCancelled,
+        deliveryType,
+        paymentType,
+        deliveryStatus,
+        search,
+        page = 1,
+        limit = 20
+    } = filters;
 
-    if (branchId) {
-      where.branchId = parseInt(branchId);
-    } else if (branchIds && branchIds.length > 0) {
-      where.branchId = { in: branchIds.map((id) => parseInt(id)) };
+    const p = Math.max(1, parseInt(page));
+    const l = Math.max(1, parseInt(limit));
+    const skip = (p - 1) * l;
+
+    const where = {};
+    
+    if (branchId) where.branchId = parseInt(branchId);
+    else if (branchIds && branchIds.length > 0) where.branchId = { in: branchIds.map(id => parseInt(id)) };
+
+    // Búsqueda global (ID o Nombre/Email de cliente)
+    if (search) {
+        const searchTrim = search.trim();
+        if (!isNaN(parseInt(searchTrim))) {
+            where.id = parseInt(searchTrim);
+        } else {
+            where.OR = [
+                { user: { name: { contains: searchTrim, mode: 'insensitive' } } },
+                { user: { email: { contains: searchTrim, mode: 'insensitive' } } }
+            ];
+        }
     }
 
-    if (paymentStatus) {
-      where.paymentStatus = paymentStatus;
+    // Lógica de Tabs del Administrador
+    if (isAbandoned === 'true') {
+        where.paymentStatus = 'PENDING';
+        where.mpPaymentId = null;
+        where.paymentType = { notIn: ['CASH', 'TRANSFER'] };
+    } else if (isPendingPayment === 'true') {
+        where.paymentStatus = 'PENDING';
+        where.OR = [
+            { paymentType: { in: ['CASH', 'TRANSFER'] } },
+            { mpPaymentId: { not: null } }
+        ];
+    } else if (isCancelled === 'true') {
+        where.paymentStatus = { in: ['CANCELLED', 'REJECTED'] };
+    } else if (isAbandoned === 'false') {
+        // En el admin, "isAbandoned: false" se usa para ver las ventas confirmadas (Pagadas)
+        where.paymentStatus = 'PAID';
+    } else if (paymentStatus) {
+        where.paymentStatus = paymentStatus;
     }
 
     if (deliveryType) where.deliveryType = deliveryType;
     if (paymentType) where.paymentType = paymentType;
     if (deliveryStatus) where.deliveryStatus = deliveryStatus;
 
-    if (isAbandoned === "true") {
-      // Abandonadas Reales: PENDING y SIN mpPaymentId (nunca intentó pagar) y NO Efectivo/Transferencia
-      where.paymentStatus = "PENDING";
-      where.paymentType = { notIn: ["CASH", "TRANSFER"] };
-      where.mpPaymentId = null;
-    } else if (isPendingPayment === "true") {
-      // Pendientes de Pago:
-      // 1. PENDING + Efectivo/Transferencia
-      // 2. PENDING + Digital (pero con mpPaymentId generado, ej Rapipago)
-      where.paymentStatus = "PENDING";
-      where.OR = [
-        { paymentType: { in: ["CASH", "TRANSFER"] } },
-        { mpPaymentId: { not: null } },
-      ];
-    } else if (params.isCancelled === "true") {
-      where.paymentStatus = { in: ["CANCELLED", "REJECTED"] };
-    } else if (isAbandoned === "false") {
-      // Confirmadas: Pagadas/Completadas
-      where.paymentStatus = "PAID";
-    }
+    const [sales, total] = await Promise.all([
+        prisma.sale.findMany({
+          where,
+          include: {
+            items: true,
+            coupon: true,
+            receipt: true,
+            user: {
+              select: { id: true, name: true, email: true, phone: true, dni: true },
+            },
+            employee: { select: { id: true, name: true, email: true } },
+            branch: { select: { name: true } }
+          },
+          orderBy: { createdAt: "desc" },
+          skip,
+          take: l
+        }),
+        prisma.sale.count({ where })
+    ]);
 
-    return await prisma.sale.findMany({
-      where,
-      include: {
-        items: true,
-        coupon: true,
-        receipt: true,
-        user: {
-          select: { id: true, name: true, email: true, phone: true, dni: true },
-        },
-        employee: { select: { id: true, name: true, email: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    return { data: sales, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 
   /**

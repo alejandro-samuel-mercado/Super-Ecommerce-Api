@@ -3,14 +3,14 @@ const prisma = require('../config/prisma');
 class SupplierService {
   
   async findAll(params = {}) {
-    const { active, search } = params;
-    
+    const { active, search, page = 1, limit = 20 } = params;
+    const p = Math.max(1, parseInt(page));
+    const l = Math.max(1, parseInt(limit));
+    const skip = (p - 1) * l;
     const where = {};
-    
     if (active !== undefined) {
       where.isActive = active === 'true' || active === true;
     }
-
     if (search) {
       where.OR = [
         { tradeName: { contains: search, mode: 'insensitive' } },
@@ -18,11 +18,16 @@ class SupplierService {
         { taxId: { contains: search } }
       ];
     }
-
-    return await prisma.supplier.findMany({
-      where,
-      orderBy: { tradeName: 'asc' }
-    });
+    const [suppliers, total] = await Promise.all([
+        prisma.supplier.findMany({
+          where,
+          orderBy: { tradeName: 'asc' },
+          skip,
+          take: l
+        }),
+        prisma.supplier.count({ where })
+    ]);
+    return { data: suppliers, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 
   async findById(id) {

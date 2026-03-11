@@ -29,7 +29,8 @@ class ProductController {
     try {
       const { id } = req.params;
       const currency = req.headers['x-currency'] || req.query.currency;
-      const product = await ProductService.getProductById(id, currency);
+      const branchId = req.branchId || req.query.branchId;
+      const product = await ProductService.getProductById(id, currency, branchId);
       
       if (!product) return res.status(404).json({ success: false, message: 'Producto no encontrado' });
 
@@ -49,8 +50,8 @@ class ProductController {
       }
       
  
-      const results = await ProductService.getProducts({ search: q, currency, branchId: req.branchId });
-      res.status(200).json({ success: true, data: results });
+      const result = await ProductService.getProducts({ search: q, currency, branchId: req.branchId, ...req.query });
+      res.status(200).json({ success: true, data: result });
     } catch (error) {
       next(error);
     }
@@ -77,10 +78,10 @@ class ProductController {
       await ProductService.deleteProduct(id, req.user.id, req.ip, branchId);
       res.status(200).json({ success: true, message: 'Producto eliminado correctamente' });
     } catch (error) {
-      if (error.message.includes('sales history')) {
+      if (error.message.includes('reservas activas') || error.message.includes('transferencia') || error.message.includes('ya fue eliminado')) {
          return res.status(409).json({ success: false, message: error.message });
       }
-      if (error.message === 'Product not found') {
+      if (error.message === 'Producto no encontrado') {
          return res.status(404).json({ success: false, message: error.message });
       }
       next(error);

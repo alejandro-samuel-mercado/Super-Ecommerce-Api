@@ -147,9 +147,9 @@ class SaleController {
              }
         }
 
-        const { paymentStatus, isAbandoned, isPendingPayment, isCancelled, deliveryType, paymentType, deliveryStatus } = req.query;
+        const { paymentStatus, isAbandoned, isPendingPayment, isCancelled, deliveryType, paymentType, deliveryStatus, page, limit } = req.query;
         
-        const sales = await SaleService.getAllSales({ 
+        const result = await SaleService.getAllSales({ 
             branchId,
             branchIds,
             paymentStatus, 
@@ -158,9 +158,11 @@ class SaleController {
             isCancelled,
             deliveryType,
             paymentType,
-            deliveryStatus
+            deliveryStatus,
+            page,
+            limit
         }); 
-        res.json({ success: true, data: sales });
+        res.json({ success: true, data: result });
     } catch (error) {
         next(error);
     }

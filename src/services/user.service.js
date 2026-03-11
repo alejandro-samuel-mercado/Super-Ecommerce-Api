@@ -121,15 +121,61 @@ class UserService {
   // --- ADMINISTRACIÓN ---
   
   async getAllUsers(filters = {}) {
-      return await prisma.user.findMany({
-          include: { 
-            role: true,
-            branch: true,
-            adminBranches: { include: { branch: true } },
-            sales: { select: { branchId: true } } 
-          },
-          orderBy: { createdAt: 'desc' }
-      });
+      const { page = 1, limit = 20, search, branchId, role } = filters;
+      const p = Math.max(1, parseInt(page));
+      const l = Math.max(1, parseInt(limit));
+      const skip = (p - 1) * l;
+      
+      const where = { status: { not: 'DELETED' } };
+      const andConditions = [];
+
+      if (search) {
+          const searchTrim = search.trim();
+          andConditions.push({
+              OR: [
+                  { name: { contains: searchTrim, mode: 'insensitive' } },
+                  { email: { contains: searchTrim, mode: 'insensitive' } },
+                  { dni: { contains: searchTrim, mode: 'insensitive' } },
+                  { phone: { contains: searchTrim, mode: 'insensitive' } }
+              ]
+          });
+      }
+
+      if (role) {
+          andConditions.push({ role: { name: role } });
+      }
+
+      if (branchId && branchId !== 'all') {
+          const bId = parseInt(branchId);
+          andConditions.push({
+              OR: [
+                  { branchId: bId },
+                  { adminBranches: { some: { branchId: bId } } },
+                  { sales: { some: { branchId: bId } } }
+              ]
+          });
+      }
+
+      if (andConditions.length > 0) {
+          where.AND = andConditions;
+      }
+
+      const [users, total] = await Promise.all([
+          prisma.user.findMany({
+              where,
+              include: { 
+                role: true,
+                branch: true,
+                adminBranches: { include: { branch: true } },
+                sales: { select: { branchId: true }, take: 1 } // Solo para verificar existencia en branch si es cliente
+              },
+              orderBy: { createdAt: 'desc' },
+              skip,
+              take: l
+          }),
+          prisma.user.count({ where })
+      ]);
+      return { data: users, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 
   async updateUserRole(id, roleId) {

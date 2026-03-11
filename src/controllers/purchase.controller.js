@@ -4,8 +4,8 @@ class PurchaseController {
     
     async getAll(req, res) {
         try {
-            const purchases = await PurchaseService.getAll(req.query);
-            res.json({ success: true, data: purchases });
+            const result = await PurchaseService.getAll(req.query);
+            res.json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, message: error.message });
         }

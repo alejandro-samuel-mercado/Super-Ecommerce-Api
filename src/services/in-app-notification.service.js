@@ -200,6 +200,31 @@ class InAppNotificationService {
      
     }
   }
+
+  async getAllAdminNotifications(params = {}) {
+      const { page = 1, limit = 20, search, branchId } = params;
+      const p = Math.max(1, parseInt(page));
+      const l = Math.max(1, parseInt(limit));
+      const skip = (p - 1) * l;
+      const where = { userId: null };
+      if (branchId) where.branchId = parseInt(branchId);
+      if (search) {
+          where.OR = [
+              { title: { contains: search, mode: 'insensitive' } },
+              { message: { contains: search, mode: 'insensitive' } }
+          ];
+      }
+      const [notifications, total] = await Promise.all([
+          prisma.notification.findMany({
+              where,
+              orderBy: { createdAt: 'desc' },
+              skip,
+              take: l
+          }),
+          prisma.notification.count({ where })
+      ]);
+      return { data: notifications, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
+  }
 }
 
 module.exports = new InAppNotificationService();

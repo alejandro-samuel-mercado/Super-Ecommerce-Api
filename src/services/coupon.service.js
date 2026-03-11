@@ -31,10 +31,27 @@ class CouponService {
     });
   }
 
-  async getAllCoupons() {
-    return await prisma.coupon.findMany({
-      orderBy: { createdAt: "desc" },
-    });
+  async getAllCoupons(params = {}) {
+    const { page = 1, limit = 20, search } = params;
+    const p = Math.max(1, parseInt(page));
+    const l = Math.max(1, parseInt(limit));
+    const skip = (p - 1) * l;
+
+    const where = {};
+    if (search) {
+        where.code = { contains: search.trim(), mode: 'insensitive' };
+    }
+
+    const [coupons, total] = await Promise.all([
+        prisma.coupon.findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          skip,
+          take: l
+        }),
+        prisma.coupon.count({ where })
+    ]);
+    return { data: coupons, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 
   async validateCoupon(code, purchaseAmount, currencyCode, userId) {

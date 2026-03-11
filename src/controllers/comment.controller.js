@@ -4,8 +4,8 @@ class CommentController {
 
   async getAll(req, res, next) {
       try {
-          const comments = await CommentService.getAllComments();
-          res.json({ success: true, data: comments });
+          const result = await CommentService.getAllComments(req.query);
+          res.json({ success: true, data: result });
       } catch (error) {
           next(error);
       }

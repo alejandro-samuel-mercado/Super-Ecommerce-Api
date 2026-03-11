@@ -38,8 +38,8 @@ class CouponController {
 
   async getAll(req, res, next) {
     try {
-      const coupons = await CouponService.getAllCoupons();
-      res.json({ success: true, data: coupons });
+      const result = await CouponService.getAllCoupons(req.query);
+      res.json({ success: true, data: result });
     } catch (error) {
       next(error);
     }

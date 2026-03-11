@@ -13,8 +13,8 @@ class SupplierPaymentController {
 
     async getAll(req, res) {
         try {
-            const payments = await SupplierPaymentService.getAll(req.query);
-            res.json({ success: true, data: payments });
+            const result = await SupplierPaymentService.getAll(req.query);
+            res.json({ success: true, data: result });
         } catch (error) {
             res.status(500).json({ success: false, message: error.message });
         }

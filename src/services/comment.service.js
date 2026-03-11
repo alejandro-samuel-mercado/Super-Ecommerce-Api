@@ -42,11 +42,34 @@ class CommentService {
   /**
    * Obtener TODOS los comentarios (Admin)
    */
-  async getAllComments() {
-      return await prisma.comment.findMany({
-          include: { user: true, product: true },
-          orderBy: { createdAt: 'desc' }
-      });
+  async getAllComments(params = {}) {
+      const { page = 1, limit = 20, search } = params;
+      const p = Math.max(1, parseInt(page));
+      const l = Math.max(1, parseInt(limit));
+      const skip = (p - 1) * l;
+      
+      const where = {};
+      if (search) {
+          const searchTrim = search.trim();
+          where.OR = [
+              { content: { contains: searchTrim, mode: 'insensitive' } },
+              { user: { name: { contains: searchTrim, mode: 'insensitive' } } },
+              { user: { email: { contains: searchTrim, mode: 'insensitive' } } },
+              { product: { name: { contains: searchTrim, mode: 'insensitive' } } }
+          ];
+      }
+
+      const [comments, total] = await Promise.all([
+          prisma.comment.findMany({
+              where,
+              include: { user: true, product: true },
+              orderBy: { createdAt: 'desc' },
+              skip,
+              take: l
+          }),
+          prisma.comment.count({ where })
+      ]);
+      return { data: comments, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 
   /**
