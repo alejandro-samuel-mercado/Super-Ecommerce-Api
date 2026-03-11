@@ -1287,8 +1287,7 @@ class SaleService {
     if (paymentType) where.paymentType = paymentType;
     if (deliveryStatus) where.deliveryStatus = deliveryStatus;
 
-    const [sales, total] = await Promise.all([
-        prisma.sale.findMany({
+    const sales = await prisma.sale.findMany({
           where,
           include: {
             items: true,
@@ -1303,9 +1302,9 @@ class SaleService {
           orderBy: { createdAt: "desc" },
           skip,
           take: l
-        }),
-        prisma.sale.count({ where })
-    ]);
+        });
+        
+    const total = await prisma.sale.count({ where });
 
     return { data: sales, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }

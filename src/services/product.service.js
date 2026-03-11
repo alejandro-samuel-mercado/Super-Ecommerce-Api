@@ -221,8 +221,8 @@ async createProduct(data) {
     const activeBranchId = Number(branchId) > 0 ? Number(branchId) : 1;
 
     
-    // Ignorar teclas de atributos dinamicos internos
-    const ignoredKeys = ['order']; 
+    // Ignorar teclas de atributos dinamicos internos/Frameworks
+    const ignoredKeys = ['order', 't', '_', 'format', 'limit', 'page', 'search', 'category', 'subcategory', 'brand', 'model', 'minPrice', 'maxPrice', 'sort', 'inStock', 'isTrending', 'isNew', 'freeShipping', 'branchId', 'currency', 'includeInactive', 'adminView']; 
     const dynamicAttrs = Object.entries(attributes).filter(([k]) => !ignoredKeys.includes(k));
 
     // Sanitizar la paginación

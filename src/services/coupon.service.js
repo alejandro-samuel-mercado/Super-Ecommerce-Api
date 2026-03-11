@@ -42,15 +42,15 @@ class CouponService {
         where.code = { contains: search.trim(), mode: 'insensitive' };
     }
 
-    const [coupons, total] = await Promise.all([
-        prisma.coupon.findMany({
-          where,
-          orderBy: { createdAt: "desc" },
-          skip,
-          take: l
-        }),
-        prisma.coupon.count({ where })
-    ]);
+    const coupons = await prisma.coupon.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: l
+    });
+    
+    const total = await prisma.coupon.count({ where });
+
     return { data: coupons, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 

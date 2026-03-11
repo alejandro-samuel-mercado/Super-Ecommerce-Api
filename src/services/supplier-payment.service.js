@@ -52,7 +52,7 @@ class SupplierPaymentService {
     const skip = (p - 1) * l;
     const where = {};
     if (supplierId) where.supplierId = parseInt(supplierId);
-    if (branchId) where.branchId = parseInt(branchId);
+    if (branchId) where.purchase = { branchId: parseInt(branchId) };
     if (purchaseId) where.purchaseId = parseInt(purchaseId);
     if (method) where.method = method;
     if (search) {
@@ -66,20 +66,19 @@ class SupplierPaymentService {
         if (startDate) where.paymentDate.gte = new Date(startDate);
         if (endDate) where.paymentDate.lte = new Date(endDate);
     }
-    const [payments, total] = await Promise.all([
-        prisma.supplierPayment.findMany({
-          where,
-          include: {
-            supplier: true,
-            branch: true,
-            purchase: { select: { id: true, total: true, status: true } }
-          },
-          orderBy: { paymentDate: 'desc' },
-          skip,
-          take: l
-        }),
-        prisma.supplierPayment.count({ where })
-    ]);
+    const payments = await prisma.supplierPayment.findMany({
+      where,
+      include: {
+        supplier: true,
+        purchase: { select: { id: true, estimatedTotal: true, status: true } }
+      },
+      orderBy: { paymentDate: 'desc' },
+      skip,
+      take: l
+    });
+    
+    const total = await prisma.supplierPayment.count({ where });
+
     return { data: payments, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 }

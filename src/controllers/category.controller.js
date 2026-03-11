@@ -80,7 +80,10 @@ class CategoryController {
       });
     } catch (error) {
       // Manejo simple de error de duplicados de Prisma (código P2002)
-      if (error.message.includes('Ya existe')) {
+      if (error.code === 'P2002') {
+          return res.status(400).json({ success: false, message: 'El identificador (slug) o nombre ya está en uso por otra categoría.' });
+      }
+      if (error.message.includes('Ya existe') || error.message.includes('en uso')) {
           return res.status(400).json({ success: false, message: error.message });
       }
       next(error);
@@ -104,6 +107,9 @@ class CategoryController {
         data: updatedCategory
       });
     } catch (error) {
+      if (error.code === 'P2002') {
+          return res.status(400).json({ success: false, message: 'El identificador (slug) o nombre ya está en uso por otra categoría.' });
+      }
       if (error.code === 'P2025') {
         return res.status(404).json({ success: false, message: 'Categoría no encontrada para actualizar' });
       }

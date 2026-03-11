@@ -1,12 +1,13 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const prisma = require('../config/prisma');
 const { Prisma } = require('@prisma/client');
 const archiver = require('archiver');
 
 class BackupService {
     constructor() {
-        this.backupsDir = process.env.BACKUP_PATH || path.join(process.cwd(), 'Backups');
+        this.backupsDir = process.env.BACKUP_PATH || path.join(os.tmpdir(), 'SuperEcommerce_Backups');
         try {
             if (!fs.existsSync(this.backupsDir)) {
                 fs.mkdirSync(this.backupsDir, { recursive: true });
@@ -28,7 +29,6 @@ class BackupService {
         fs.mkdirSync(folderPath, { recursive: true });
 
         // Obtener la lista dinámica de todos los modelos
-        // Prisma.dmmf.datamodel.models contiene la metadata de todas las tablas
         const models = Prisma.dmmf.datamodel.models;
         
         for (const model of models) {
@@ -72,8 +72,6 @@ class BackupService {
                 });
 
                 output.on('close', () => {
-                    // Una vez terminado el ZIP, se puede borrar o dejar la carpeta temporal.
-                  
                    fs.rmSync(folderPath, { recursive: true, force: true });
                     resolve(zipPath);
                 });

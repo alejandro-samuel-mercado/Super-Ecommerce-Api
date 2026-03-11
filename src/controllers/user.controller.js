@@ -34,8 +34,8 @@ class UserController {
 
   async getAll(req, res, next) {
       try {
-          const { page, limit, search } = req.query;
-          const result = await UserService.getAllUsers({ page, limit, search });
+          const { page, limit, search, branchId, role } = req.query;
+          const result = await UserService.getAllUsers({ page, limit, search, branchId, role });
           const safeData = result.data.map(u => {
               const { password, ...rest } = u;
               return rest;

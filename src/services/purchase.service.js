@@ -33,8 +33,7 @@ class PurchaseService {
          if (endDate) where.createdAt.lte = new Date(endDate);
      }
 
-     const [purchases, total] = await Promise.all([
-         prisma.purchase.findMany({
+     const purchases = await prisma.purchase.findMany({
              where,
              include: {
                  supplier: { select: { id: true, tradeName: true } },
@@ -48,9 +47,10 @@ class PurchaseService {
              orderBy: { createdAt: 'desc' },
              skip,
              take: l
-         }),
-         prisma.purchase.count({ where })
-     ]);
+         });
+         
+     const total = await prisma.purchase.count({ where });
+
      return { data: purchases, total, page: p, limit: l, totalPages: Math.ceil(total / l) };
   }
 
