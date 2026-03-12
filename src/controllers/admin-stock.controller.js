@@ -73,8 +73,8 @@ class AdminStockController {
   async getStockInconsistencies(req, res, next) {
     try {
       const skus = await prisma.sKU.findMany({
+        where: { isDeleted: false },
         include: {
-          product: true,
           branchInventory: {
             include: { branch: { select: { name: true } } }
           },
@@ -501,7 +501,7 @@ class AdminStockController {
         message: "Inventario actualizado correctamente",
       });
     } catch (error) {
-      next(error);
+      return res.status(400).json({ success: false, message: error.message });
     }
   }
 }

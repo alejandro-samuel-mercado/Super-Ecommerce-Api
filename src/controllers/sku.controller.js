@@ -37,10 +37,7 @@ class SkuController {
           await SkuService.deleteSku(id);
           res.status(200).json({ success: true, message: 'SKU eliminado correctamente' });
       } catch (error) {
-          if (error.message.includes('ventas registradas')) {
-            return res.status(409).json({ success: false, message: error.message });
-          }
-          next(error);
+          return res.status(400).json({ success: false, message: error.message });
       }
   }
 
