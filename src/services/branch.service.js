@@ -208,7 +208,15 @@ class BranchService {
           return { ...a.user, assignedAt: a.assignedAt };
       });
       
-      return [...employees, ...admins];
+      // Asegurar unicidad por ID
+      const userMap = new Map();
+      [...employees, ...admins].forEach(u => {
+          if (!userMap.has(u.id)) {
+              userMap.set(u.id, u);
+          }
+      });
+      
+      return Array.from(userMap.values());
   }
 
   async addUser(branchId, userId, assignedBy) {

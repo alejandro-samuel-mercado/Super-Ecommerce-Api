@@ -189,7 +189,10 @@ class AdminSaleService {
 
           const updatedSale = await tx.sale.update({
               where: { id: sale.id },
-              data: { paymentStatus: 'CANCELLED' }
+              data: { 
+                  paymentStatus: 'CANCELLED',
+                  cancelReason: reason
+              }
           });
 
           await AuditService.logAction({

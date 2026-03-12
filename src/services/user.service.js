@@ -8,12 +8,17 @@ class UserService {
    * Crear usuario (Panel Admin / Registro)
    */
   async register(data, isFromAdmin = false) {
-    const { email, password, name, roleId, ...profileData } = data;
+    const { email, password, name, roleId, branchId, ...profileData } = data;
     const normalizedEmail = email.toLowerCase();
     
     // Verificar existencia
     const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-    if (existing) throw new Error('El correo ya está registrado.');
+    if (existing) {
+        const err = new Error('El correo ya está registrado.');
+        err.statusCode = 400;
+        err.isOperational = true;
+        throw err;
+    }
     
     // Hashear Contraseña
     if (!password) throw new Error('La contraseña es obligatoria');
@@ -27,12 +32,13 @@ class UserService {
         targetRoleId = customerRole.id;
     }
 
-    return await prisma.user.create({
+    const newUser = await prisma.user.create({
         data: {
             email: normalizedEmail,
             password: hashedPassword,
             name,
             roleId: targetRoleId,
+            branchId: branchId ? parseInt(branchId) : null,
             address: profileData.address,
             city: profileData.city,
             state: profileData.state,
@@ -43,6 +49,22 @@ class UserService {
         },
         include: { role: true }
     });
+
+    // Si se crea desde el panel con una sucursal y es Admin/Empleado, asociar
+    if (isFromAdmin && branchId) {
+        const bid = parseInt(branchId);
+        // Si es Rol Admin/SuperAdmin (1 o 2), asociar en tabla pivot de permisos
+        if ([1, 2].includes(newUser.roleId)) {
+            await prisma.userBranch.create({
+                data: {
+                    userId: newUser.id,
+                    branchId: bid
+                }
+            });
+        }
+    }
+
+    return newUser;
   }
 
   async getProfile(userId) {
@@ -121,13 +143,17 @@ class UserService {
   // --- ADMINISTRACIÓN ---
   
   async getAllUsers(filters = {}) {
-      const { page = 1, limit = 20, search, branchId, role } = filters;
+      const { page = 1, limit = 20, search, branchId, role, isStaffOnly = false } = filters;
       const p = Math.max(1, parseInt(page));
       const l = Math.max(1, parseInt(limit));
       const skip = (p - 1) * l;
       
       const where = { status: { not: 'DELETED' } };
       const andConditions = [];
+
+      if (isStaffOnly) {
+          andConditions.push({ roleId: { notIn: [4, 99] } });
+      }
 
       if (search) {
           const searchTrim = search.trim();

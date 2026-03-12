@@ -1077,8 +1077,9 @@ class SaleService {
             saleData.deliveryAddress || saleData.address || null,
             deliveryMethod === "shipping" ? "SHIPPING" : "LOCAL",
             activeCurrencyCode,
+            subtotal
           );
-          if (shipping <= 0) {
+          if (shipping === null || shipping === undefined || shipping < 0) {
             shipping = await ShippingService.getDefaultCost();
             if (activeCurrencyCode !== storeConfig?.baseCurrency) {
               shipping = shipping * rate;
@@ -1450,7 +1451,7 @@ class SaleService {
         where: {
           userId: sale.userId,
           type: "EARNED",
-          reason: { contains: `#${sale.id}` },
+          reason: { contains: `#${sale.id}`, mode: 'insensitive' },
         },
       });
 

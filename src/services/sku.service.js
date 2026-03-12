@@ -192,7 +192,10 @@ class SkuService {
       if (search) {
           where.OR = [
               { code: { contains: search, mode: 'insensitive' } },
-              { product: { name: { contains: search, mode: 'insensitive' } } }
+              { barcode: { contains: search, mode: 'insensitive' } },
+              { product: { name: { contains: search, mode: 'insensitive' } } },
+              { product: { brand: { contains: search, mode: 'insensitive' } } },
+              { product: { model: { contains: search, mode: 'insensitive' } } }
           ];
       }
 

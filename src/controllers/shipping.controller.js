@@ -3,8 +3,9 @@ const ShippingService = require('../services/shipping.service');
 
 const getZones = async (req, res) => {
     try {
-        const zones = await ShippingService.getAllZones();
-        res.json(zones);
+        const { search, page, limit } = req.query;
+        const result = await ShippingService.getAllZones({ search, page, limit });
+        res.json(result);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -55,9 +56,9 @@ const calculateCost = async (req, res) => {
 
 const getAvailableZones = async (req, res) => {
     try {
-        const zones = await ShippingService.getAllZones();
-      
-        const available = zones.filter(z => z.active).map(z => ({
+        // Para el selector público, traemos todas las activas sin paginar por ahora
+        const result = await ShippingService.getAllZones({ limit: 1000 });
+        const available = result.data.filter(z => z.active).map(z => ({
             id: z.id,
             country: z.country,
             province: z.province,

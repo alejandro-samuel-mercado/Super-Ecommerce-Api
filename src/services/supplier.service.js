@@ -15,7 +15,7 @@ class SupplierService {
       where.OR = [
         { tradeName: { contains: search, mode: 'insensitive' } },
         { legalName: { contains: search, mode: 'insensitive' } },
-        { taxId: { contains: search } }
+        { taxId: { contains: search, mode: 'insensitive' } }
       ];
     }
     const [suppliers, total] = await Promise.all([

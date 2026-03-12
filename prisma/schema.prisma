@@ -251,6 +251,7 @@ model Sale {
   branchId               Int
   mpPaymentId            String?
   observations           String?
+  cancelReason           String?
   pointsDiscount         Decimal              @default(0) @db.Decimal(10, 2)
   pointsUsed             Int                  @default(0)
   taxAmount              Decimal              @default(0) @db.Decimal(10, 2)

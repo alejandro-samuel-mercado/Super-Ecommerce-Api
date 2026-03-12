@@ -17,8 +17,6 @@ class ProductService {
     return query
       .toLowerCase()
       .trim()
-      // Eliminar caracteres consecutivos duplicados (permitir máx 2, e.g., "ll" en "hello")
-      .replace(/(.)\1{2,}/g, '$1$1')
       // Normalizar espacios múltiples a un solo espacio
       .replace(/\s+/g, ' ')
       // Eliminar espacios extra alrededor de puntuación
@@ -222,7 +220,7 @@ async createProduct(data) {
 
     
     // Ignorar teclas de atributos dinamicos internos/Frameworks
-    const ignoredKeys = ['order', 't', '_', 'format', 'limit', 'page', 'search', 'category', 'subcategory', 'brand', 'model', 'minPrice', 'maxPrice', 'sort', 'inStock', 'isTrending', 'isNew', 'freeShipping', 'branchId', 'currency', 'includeInactive', 'adminView']; 
+    const ignoredKeys = ['q', 'term', 'order', 't', '_', 'format', 'search', 'category', 'subcategory', 'brand', 'model', 'minPrice', 'maxPrice', 'sort', 'inStock', 'isTrending', 'isNew', 'freeShipping', 'branchId', 'currency', 'includeInactive', 'adminView']; 
     const dynamicAttrs = Object.entries(attributes).filter(([k]) => !ignoredKeys.includes(k));
 
     // Sanitizar la paginación
@@ -264,33 +262,41 @@ async createProduct(data) {
     if (search) {
       // Normalizar query de búsqueda
       const normalizedSearch = this.normalizeSearchQuery(search);
+      const words = normalizedSearch.split(' ').filter(word => word.length > 0);
       
-      where.OR = [
-        { name: { contains: normalizedSearch, mode: 'insensitive' } },
-        { description: { contains: normalizedSearch, mode: 'insensitive' } },
-        { brand: { contains: normalizedSearch, mode: 'insensitive' } },
-        { model: { contains: normalizedSearch, mode: 'insensitive' } },
-        // Campos de Búsqueda Mejorada
-        { qr: { contains: normalizedSearch, mode: 'insensitive' } },
-        { 
-          skus: { 
-            some: { 
-              OR: [
-                { code: { contains: normalizedSearch, mode: 'insensitive' } },
-                { barcode: { contains: normalizedSearch, mode: 'insensitive' } },
-                { 
-                  variantOptions: { 
-                    some: { 
-                      value: { contains: normalizedSearch, mode: 'insensitive' } 
-                    } 
+      if (words.length > 0) {
+        
+        if (!where.AND) where.AND = [];
+        
+        words.forEach(word => {
+          where.AND.push({
+            OR: [
+              { name: { contains: word, mode: 'insensitive' } },
+              ...(adminView === 'true' || adminView === true ? [] : [{ description: { contains: word, mode: 'insensitive' } }]),
+              { brand: { contains: word, mode: 'insensitive' } },
+              { model: { contains: word, mode: 'insensitive' } },
+              { qr: { contains: word, mode: 'insensitive' } },
+              { 
+                skus: { 
+                  some: { 
+                    OR: [
+                      { code: { contains: word, mode: 'insensitive' } },
+                      { barcode: { contains: word, mode: 'insensitive' } },
+                      { 
+                        variantOptions: { 
+                          some: { 
+                            value: { contains: word, mode: 'insensitive' } 
+                          } 
+                        } 
+                      }
+                    ]
                   } 
-                }
-              ]
-            } 
-          } 
-        }
-      ];
-      
+                } 
+              }
+            ]
+          });
+        });
+      }
     }
     
     // 4. Filtros Estándar
@@ -678,8 +684,13 @@ async createProduct(data) {
         // 2. Administrar Nuevas Variantes (Si fueron proveidas)
         if (data.variants && Array.isArray(data.variants) && data.variants.length > 0) {
             for (const variant of data.variants) {
+                if (variant.id) continue;
+                
                 const skuCode = variant.code || `${id}-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
                 
+                const existing = await tx.sKU.findFirst({ where: { productId: parseInt(id), code: skuCode } });
+                if (existing) continue;
+
                 const newSku = await tx.sKU.create({
                     data: {
                         productId: parseInt(id),
@@ -809,7 +820,7 @@ async createProduct(data) {
     });
 
     // 3. QUIENES COMPRARON ESTO TAMBIÉN LLEVARON
-    // - Buscar IDs de ventas que contengan el producto actual (vía cualquier SKU)
+ 
     const salesWithThisProduct = await prisma.saleItem.findMany({
       where: {
         sku: { productId: prodIdNum },

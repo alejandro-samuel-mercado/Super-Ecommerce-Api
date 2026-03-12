@@ -11,11 +11,10 @@ class ShippingService {
     currencyCode,
     subtotal,
   ) {
-    if (deliveryType === "LOCAL") return 0;
-
     const EventService = require("./event.service");
     const activeEvent = await EventService.getActiveEvent();
 
+    // 1. Prioridad Máxima: Evento con Envío Gratis
     if (
       activeEvent &&
       activeEvent.shippingEnabled &&
@@ -23,6 +22,8 @@ class ShippingService {
     ) {
       if (activeEvent.shippingConfig.type === "FREE") return 0;
     }
+
+    if (deliveryType === "LOCAL") return 0;
 
     // Verificar envío gratuito por umbral
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
@@ -171,10 +172,39 @@ class ShippingService {
 
   // --- CRUD ---
 
-  async getAllZones() {
-    return await prisma.shippingZone.findMany({
-      orderBy: [{ country: "asc" }, { province: "asc" }, { city: "asc" }],
-    });
+  async getAllZones(filters = {}) {
+    const { search, page = 1, limit = 10 } = filters;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+
+    const where = {};
+    if (search) {
+      where.OR = [
+        { city: { contains: search, mode: "insensitive" } },
+        { province: { contains: search, mode: "insensitive" } },
+        { country: { contains: search, mode: "insensitive" } },
+      ];
+    }
+
+    const [zones, total] = await Promise.all([
+      prisma.shippingZone.findMany({
+        where,
+        orderBy: [{ country: "asc" }, { province: "asc" }, { city: "asc" }],
+        skip,
+        take,
+      }),
+      prisma.shippingZone.count({ where }),
+    ]);
+
+    return {
+      data: zones,
+      meta: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async createZone(data) {

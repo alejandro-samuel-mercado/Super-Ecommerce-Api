@@ -281,15 +281,18 @@ class AdminStockController {
       if (search || brand || categoryId || supplierId) {
         if (search) {
           skuWhere.OR = [
-            { code: { contains: search } },
-            { product: { name: { contains: search } } },
+            { code: { contains: search, mode: 'insensitive' } },
+            { barcode: { contains: search, mode: 'insensitive' } },
+            { product: { name: { contains: search, mode: 'insensitive' } } },
+            { product: { brand: { contains: search, mode: 'insensitive' } } },
+            { product: { model: { contains: search, mode: 'insensitive' } } },
           ];
         }
 
         if (brand || categoryId) {
           skuWhere.product = skuWhere.product || {};
           if (brand)
-            skuWhere.product.brand = { contains: brand };
+            skuWhere.product.brand = { contains: brand, mode: 'insensitive' };
           if (categoryId) skuWhere.product.categoryId = parseInt(categoryId);
         }
 
