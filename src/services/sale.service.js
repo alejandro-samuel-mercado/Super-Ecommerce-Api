@@ -223,11 +223,11 @@ class SaleService {
           }
 
           const skuRows = await tx.$queryRaw`
-          SELECT * FROM "SKU" WHERE id = ${skuIdInt}
+          SELECT * FROM "SKU" WHERE id = ${skuIdInt} AND "isDeleted" = false
         `;
           const sku = skuRows[0];
 
-          if (!sku) throw new Error(`SKU ${item.skuId} no encontrado`);
+          if (!sku) throw new Error(`El producto o variante ya no está disponible`);
 
           const product = await tx.product.findUnique({
             where: { id: sku.productId },

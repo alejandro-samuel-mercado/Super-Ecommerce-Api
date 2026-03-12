@@ -65,7 +65,7 @@ class CartService {
             where: { id: skuIdInt }, 
             include: { product: { select: { measurementUnit: true, isDeleted: true } } } 
         });
-        if (!skuExists) throw new Error('El producto no fue encontrado');
+        if (!skuExists || skuExists.isDeleted) throw new Error('El producto no fue encontrado');
         if (skuExists.product?.isDeleted) throw new Error('Este producto ya no está disponible');
         
         if (skuExists.product?.measurementUnit === 'UNIDAD' && !Number.isInteger(qty)) {
@@ -232,8 +232,11 @@ class CartService {
             const items = [];
             for (const item of localItems) {
                 const skuIdInt = parseInt(item.skuId);
-                const sku = await prisma.sKU.findUnique({
-                    where: { id: skuIdInt },
+                const sku = await prisma.sKU.findFirst({
+                    where: { 
+                        id: skuIdInt,
+                        isDeleted: false
+                    },
                     include: { product: true, variantOptions: true }
                 });
                 if (sku) {

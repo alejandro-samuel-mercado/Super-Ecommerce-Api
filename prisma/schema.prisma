@@ -58,6 +58,7 @@ model SKU {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   active          Boolean             @default(true)
+  isDeleted       Boolean             @default(false)
   barcode         String?             @unique
   barcodeType     BarcodeType?        @default(INTERNO)
   code            String              @unique

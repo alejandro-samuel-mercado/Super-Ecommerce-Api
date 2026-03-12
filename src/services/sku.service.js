@@ -149,11 +149,10 @@ class SkuService {
       const sku = await prisma.sKU.findUnique({ where: { id: parseInt(id) } });
       if (!sku) throw new Error('SKU no encontrado');
 
-      if (sku.soldQuantity > 0) {
-          throw new Error('No se puede eliminar un SKU con ventas registradas. Considere pausarlo (active: false).');
-      }
-
-      return await prisma.sKU.delete({ where: { id: parseInt(id) } });
+      return await prisma.sKU.update({ 
+          where: { id: parseInt(id) },
+          data: { isDeleted: true, active: false }
+      });
   }
 
   /**
@@ -180,14 +179,17 @@ class SkuService {
 
   async getSkusByProduct(productId) {
     return await prisma.sKU.findMany({
-      where: { productId: parseInt(productId) },
+      where: { 
+        productId: parseInt(productId),
+        isDeleted: false
+      },
       include: { variantOptions: true }
     });
   }
 
   async findAll(params = {}) {
       const { search, limit = 20 } = params;
-      const where = { active: true };
+      const where = { active: true, isDeleted: false };
 
       if (search) {
           where.OR = [

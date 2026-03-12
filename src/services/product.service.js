@@ -406,6 +406,7 @@ async createProduct(data) {
                 include: {
                   category: true,
                   skus: {
+                     where: { isDeleted: false },
                      include: { 
                        variantOptions: true,
                        branchInventory: {
@@ -532,6 +533,7 @@ async createProduct(data) {
       include: {
         category: true,
         skus: {
+          where: { isDeleted: false },
           include: { 
             variantOptions: true,
             branchInventory: {
