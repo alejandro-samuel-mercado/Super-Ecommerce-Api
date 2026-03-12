@@ -38,6 +38,7 @@ class SupplierService {
       where: { id: parseInt(id) },
       include: {
         skus: {
+          where: { sku: { isDeleted: false } },
           include: { 
             sku: { 
               include: { 

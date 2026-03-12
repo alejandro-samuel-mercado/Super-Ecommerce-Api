@@ -109,9 +109,11 @@ class PurchaseService {
       }
 
       let estimatedTotal = 0;
-      items.forEach(item => {
+      for (const item of items) {
+          const sku = await prisma.sKU.findUnique({ where: { id: parseInt(item.skuId) } });
+          if (!sku || sku.isDeleted) throw new Error(`El SKU ID ${item.skuId} no existe o fue eliminado`);
           estimatedTotal += (item.quantity * item.unitPrice);
-      });
+      }
 
       const purchase = await prisma.purchase.create({
           data: {

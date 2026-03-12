@@ -89,8 +89,11 @@ class StockTransferService {
 
     return await prisma.$transaction(async (tx) => {
       for (const item of items) {
+         const sku = await tx.sKU.findUnique({ where: { id: parseInt(item.skuId) } });
+         if (!sku || sku.isDeleted) throw new Error(`El SKU ID ${item.skuId} no existe o fue eliminado`);
+
          const originStock = await tx.branchInventory.findUnique({
-             where: { skuId_branchId: { skuId: item.skuId, branchId: originBranchId } }
+             where: { skuId_branchId: { skuId: parseInt(item.skuId), branchId: originBranchId } }
          });
          if (!originStock || Number(originStock.stock) < Number(item.quantity)) {
              throw new Error(`Stock insuficiente en origen para SKU ID ${item.skuId}`);

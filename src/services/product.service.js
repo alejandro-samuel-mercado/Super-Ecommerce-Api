@@ -236,7 +236,6 @@ async createProduct(data) {
     const getSlug = (param) => Array.isArray(param) ? param[param.length - 1] : param;
     
     const categorySlug = getSlug(subcategory) || getSlug(category);
-    
     if (categorySlug) {
       const categoryRecord = await prisma.category.findUnique({
         where: { slug: categorySlug },
@@ -406,7 +405,10 @@ async createProduct(data) {
                 include: {
                   category: true,
                   skus: {
-                     where: { isDeleted: false },
+                     where: { 
+                       isDeleted: false,
+                       ...(adminView === 'true' || adminView === true ? {} : { active: true })
+                     },
                      include: { 
                        variantOptions: true,
                        branchInventory: {
@@ -533,7 +535,12 @@ async createProduct(data) {
       include: {
         category: true,
         skus: {
-          where: { isDeleted: false },
+          where: { 
+            isDeleted: false,
+            // Aquí no tenemos adminView explícito, pero getProductById se usa en ambos
+            // Si viene de admin (vía controllers), podríamos pasar un flag.
+            // Por ahora, si es para detalle, solemos querer solo los activos en web.
+          },
           include: { 
             variantOptions: true,
             branchInventory: {
