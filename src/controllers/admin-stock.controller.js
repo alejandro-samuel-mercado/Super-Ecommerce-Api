@@ -73,7 +73,7 @@ class AdminStockController {
   async getStockInconsistencies(req, res, next) {
     try {
       const skus = await prisma.sKU.findMany({
-        where: { isDeleted: false },
+        where: { isDeleted: false, product: { isDeleted: false } },
         include: {
           branchInventory: {
             include: { branch: { select: { name: true } } }
@@ -276,6 +276,7 @@ class AdminStockController {
 
       const skuWhere = {
         isDeleted: false,
+        product: { isDeleted: false }
       };
 
       if (search || brand || categoryId || supplierId) {
