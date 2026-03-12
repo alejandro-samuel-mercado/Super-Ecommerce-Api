@@ -25,7 +25,7 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 // Debe ir antes de Helmet para que los headers de CORS no sean sobrescritos o bloqueados
 const allowedOrigins = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : ['https://superx-ecommerce.unixxtech.online','https://superx-ecommerce-admin.unixxtech.online',"https://super-ecommerce-administrador.vercel.app",'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'];
+  : ['https://superx.unixxtech.online','https://superx-admin.unixxtech.online',"https://super-ecommerce-administrador.vercel.app",'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'];
 
 app.use(cors({
   origin: (origin, callback) => {

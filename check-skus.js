@@ -12,7 +12,7 @@ async function checkMismatchedSkus() {
 
   let count = 0;
   skus.forEach(sku => {
-    // This is virtually impossible with Prisma relations, but checking if there's any weirdness
+   
     if (sku.productId !== sku.product.id) {
        console.error(`ERROR: SKU ${sku.id} (code: ${sku.code}) has productId ${sku.productId} but linked product has id ${sku.product.id}`);
        count++;
@@ -23,10 +23,7 @@ async function checkMismatchedSkus() {
     console.log('No direct Prisma relation mismatches found.');
   }
 
-  // Check for SKUs that belong to the same product but have very different properties? 
-  // No, the user says "variants that I put in others".
-  
-  // Let's check if any SKU Code suggests a different product ID than its productId
+
   skus.forEach(sku => {
      const match = sku.code.match(/^(\d+)-/);
      if (match) {
