@@ -146,11 +146,19 @@ class SkuService {
    * Regla: No borrar si tiene ventas history
    */
   async deleteSku(id) {
-      const sku = await prisma.sKU.findUnique({ where: { id: parseInt(id) } });
+      const skuId = parseInt(id);
+      const sku = await prisma.sKU.findUnique({ 
+          where: { id: skuId },
+          include: { product: { include: { skus: { where: { isDeleted: false } } } } }
+      });
       if (!sku) throw new Error('SKU no encontrado');
 
+      if (sku.product && sku.product.skus.length <= 1) {
+          throw new Error('No se puede eliminar la última variante del producto. Debe quedar al menos una o eliminar el producto completo.');
+      }
+
       return await prisma.sKU.update({ 
-          where: { id: parseInt(id) },
+          where: { id: skuId },
           data: { isDeleted: true, active: false }
       });
   }

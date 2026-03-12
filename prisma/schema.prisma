@@ -26,7 +26,6 @@ model Product {
   categoryId      Int
   updatedAt       DateTime       @updatedAt
   isActive        Boolean        @default(true)
-  isDeleted       Boolean        @default(false)
   allowFractional Boolean        @default(false)
   basePrice       Decimal        @db.Decimal(10, 2)
   brand           String
@@ -44,13 +43,14 @@ model Product {
   type            String
   visibleFrom     DateTime?
   visibleTo       DateTime?
+  isDeleted       Boolean        @default(false)
+  characteristics Json?
+  specifications  Json?
   comments        Comment[]
   category        Category       @relation(fields: [categoryId], references: [id])
   productPrices   ProductPrice[]
   skus            SKU[]
   favoritedBy     User[]         @relation("UserFavorites")
-  characteristics Json?
-  specifications  Json?
 }
 
 model SKU {
@@ -58,7 +58,6 @@ model SKU {
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
   active          Boolean             @default(true)
-  isDeleted       Boolean             @default(false)
   barcode         String?             @unique
   barcodeType     BarcodeType?        @default(INTERNO)
   code            String              @unique
@@ -67,6 +66,7 @@ model SKU {
   price           Decimal             @db.Decimal(10, 2)
   productId       Int
   soldQuantity    Decimal             @default(0) @db.Decimal(10, 3)
+  isDeleted       Boolean             @default(false)
   branchInventory BranchInventory[]
   cartItems       CartItem[]
   purchaseItems   PurchaseItem[]
@@ -183,15 +183,15 @@ model CartItem {
 model Notification {
   id        Int      @id @default(autoincrement())
   userId    Int
-  branchId  Int?
   type      String
   title     String
   message   String
   read      Boolean  @default(false)
   data      Json?
   createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branchId  Int?
   branch    Branch?  @relation(fields: [branchId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([read])
@@ -252,7 +252,6 @@ model Sale {
   branchId               Int
   mpPaymentId            String?
   observations           String?
-  cancelReason           String?
   pointsDiscount         Decimal              @default(0) @db.Decimal(10, 2)
   pointsUsed             Int                  @default(0)
   taxAmount              Decimal              @default(0) @db.Decimal(10, 2)
@@ -262,6 +261,7 @@ model Sale {
   totalInBaseCurrency    Decimal?             @db.Decimal(10, 2)
   paymentProofUploadedAt DateTime?
   paymentProofUrl        String?
+  cancelReason           String?
   paymentTransactions    PaymentTransaction[]
   branch                 Branch               @relation(fields: [branchId], references: [id])
   coupon                 Coupon?              @relation(fields: [couponId], references: [id])
@@ -491,11 +491,11 @@ model AuditLog {
   entityType String
   entityId   String
   adminId    Int?
-  branchId   Int?
   changes    Json?
   ip         String?
   userAgent  String?
   createdAt  DateTime @default(now())
+  branchId   Int?
   admin      User?    @relation("AdminActions", fields: [adminId], references: [id])
   branch     Branch?  @relation(fields: [branchId], references: [id])
 
@@ -548,7 +548,9 @@ model Branch {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   lastTicketNumber Int               @default(0)
+  auditLogs        AuditLog[]
   inventory        BranchInventory[]
+  notifications    Notification[]
   purchases        Purchase[]
   sales            Sale[]
   receipts         SaleReceipt[]
@@ -558,8 +560,6 @@ model Branch {
   bankTransfers    Transfer[]
   employees        User[]
   administrators   UserBranch[]
-  auditLogs        AuditLog[]
-  notifications    Notification[]
 }
 
 model SaleReceipt {

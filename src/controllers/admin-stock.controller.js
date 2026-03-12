@@ -275,7 +275,7 @@ class AdminStockController {
       const criticalThreshold = config?.criticalStockThreshold ?? 5;
 
       const skuWhere = {
-        active: true,
+        isDeleted: false,
       };
 
       if (search || brand || categoryId || supplierId) {
@@ -303,14 +303,14 @@ class AdminStockController {
         }
       }
 
-      if (stockLevel === "CRITICAL" || lowStock === "true") {
+      if (stockLevel === "CRITICAL") {
         skuWhere.branchInventory = {
             some: {
                 branchId: parsedBranchId,
                 stock: { lte: criticalThreshold }
             }
         };
-      } else if (stockLevel === "LOW") {
+      } else if (stockLevel === "LOW" || lowStock === "true") {
         skuWhere.branchInventory = {
             some: {
                 branchId: parsedBranchId,
