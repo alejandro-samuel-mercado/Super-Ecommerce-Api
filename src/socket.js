@@ -1,5 +1,6 @@
 const socketIo = require('socket.io');
 const chatService = require('./services/chat.service');
+const chatInventoryService = require('./services/chat-inventory.service');
 const jwt = require('jsonwebtoken');
 
 let io;
@@ -66,26 +67,37 @@ const initSocket = (server) => {
             createdAt: new Date()
         });
 
-        const autoReply = await chatService.getAutoResponse(text);
-        if (autoReply) {
-           await chatService.addMessage(conversation.id, 'BOT', autoReply);
+        const inventoryReply = await chatInventoryService.getInventoryResponse(text);
+        if (inventoryReply) {
+           await chatService.addMessage(conversation.id, 'BOT', inventoryReply);
            socket.emit('message_received', {
              conversationId: conversation.id,
              sender: 'BOT',
-             text: autoReply,
+             text: inventoryReply,
              createdAt: new Date()
            });
         } else {
-           const fallback = adminsOnline
-             ? "Disculpa, no tengo una respuesta para eso, pero un agente está en línea y te atenderá en breve."
-             : "Disculpa, no tengo una respuesta para eso. Te pondremos en contacto con un agente lo antes posible. Por favor, dejanos tu consulta y te responderemos a la brevedad.";
-           await chatService.addMessage(conversation.id, 'BOT', fallback);
-           socket.emit('message_received', {
-              conversationId: conversation.id,
-              sender: 'BOT',
-              text: fallback,
-              createdAt: new Date()
-           });
+           const autoReply = await chatService.getAutoResponse(text);
+           if (autoReply) {
+             await chatService.addMessage(conversation.id, 'BOT', autoReply);
+             socket.emit('message_received', {
+               conversationId: conversation.id,
+               sender: 'BOT',
+               text: autoReply,
+               createdAt: new Date()
+             });
+           } else {
+             const fallback = adminsOnline
+               ? "Disculpa, no tengo una respuesta exacta para eso, pero un agente está en línea y te atenderá en breve."
+               : "Disculpa, no tengo una respuesta para eso. Te pondremos en contacto con un agente lo antes posible. Por favor, dejanos tu consulta y te responderemos a la brevedad.";
+             await chatService.addMessage(conversation.id, 'BOT', fallback);
+             socket.emit('message_received', {
+                conversationId: conversation.id,
+                sender: 'BOT',
+                text: fallback,
+                createdAt: new Date()
+             });
+           }
         }
 
       } catch (error) {

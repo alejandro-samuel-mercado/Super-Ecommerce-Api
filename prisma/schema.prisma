@@ -262,6 +262,7 @@ model Sale {
   paymentProofUploadedAt DateTime?
   paymentProofUrl        String?
   cancelReason           String?
+  qrPaymentUrl           String?
   paymentTransactions    PaymentTransaction[]
   branch                 Branch               @relation(fields: [branchId], references: [id])
   coupon                 Coupon?              @relation(fields: [couponId], references: [id])
@@ -874,6 +875,7 @@ enum PaymentType {
   TRANSFER
   MERCADO_PAGO
   POINTS
+  QR
 }
 
 enum DeliveryType {

@@ -139,6 +139,7 @@ class SaleService {
       "TRANSFER",
       "MERCADO_PAGO",
       "POINTS",
+      "QR",
     ].includes(paymentType)
       ? paymentType
       : "MERCADO_PAGO";
@@ -207,12 +208,20 @@ class SaleService {
           FOR UPDATE
         `;
 
+          const skuRows = await tx.$queryRaw`
+          SELECT * FROM "SKU" WHERE id = ${skuIdInt} AND "isDeleted" = false
+        `;
+          const sku = skuRows[0];
+
+          if (!sku) throw new Error(`El producto o variante ya no está disponible`);
+
           let inventory = inventoryRows[0];
 
           if (!inventory) {
+            const now = new Date();
             await tx.$queryRaw`
-                INSERT INTO "BranchInventory" ("skuId", "branchId", "stock", "isActive") 
-                VALUES (${skuIdInt}, ${activeBranchId}, 0, true)
+                INSERT INTO "BranchInventory" ("skuId", "branchId", "stock", "isActive", "price", "createdAt", "updatedAt") 
+                VALUES (${skuIdInt}, ${activeBranchId}, 0, true, ${sku.price}, ${now}, ${now})
              `;
 
             const recreatedInventory = await tx.$queryRaw`
@@ -221,13 +230,6 @@ class SaleService {
              `;
             inventory = recreatedInventory[0];
           }
-
-          const skuRows = await tx.$queryRaw`
-          SELECT * FROM "SKU" WHERE id = ${skuIdInt} AND "isDeleted" = false
-        `;
-          const sku = skuRows[0];
-
-          if (!sku) throw new Error(`El producto o variante ya no está disponible`);
 
           const product = await tx.product.findUnique({
             where: { id: sku.productId },
@@ -264,7 +266,7 @@ class SaleService {
           if (effectiveAvailableStock < itemQty) {
             const errMsg = isPOS
               ? `Stock físico insuficiente para ${product.name}. Disponible: ${inventory.stock}`
-              : `Stock insuficiente para ${product.name} (Online). Disponible para web: ${effectiveAvailableStock > 0 ? effectiveAvailableStock : 0}`;
+              : `Stock insuficiente en la sucursal seleccionada para ${product.name} (Online). Disponible: ${effectiveAvailableStock > 0 ? effectiveAvailableStock : 0}. Elija otra sucursal o retire en tienda`;
             throw new Error(errMsg);
           }
 
@@ -796,7 +798,7 @@ class SaleService {
     );
 
     if (sale.paymentStatus !== "PAID") {
-      if (["CASH", "TRANSFER", "DEBIT"].includes(sale.paymentType)) {
+      if (["CASH", "TRANSFER", "DEBIT", "QR"].includes(sale.paymentType)) {
         checkoutUrl = `/checkout/pending?saleId=${sale.id}`;
       } else {
         try {
@@ -1268,11 +1270,11 @@ class SaleService {
     if (isAbandoned === 'true') {
         where.paymentStatus = 'PENDING';
         where.mpPaymentId = null;
-        where.paymentType = { notIn: ['CASH', 'TRANSFER'] };
+        where.paymentType = { notIn: ['CASH', 'TRANSFER', 'QR'] };
     } else if (isPendingPayment === 'true') {
         where.paymentStatus = 'PENDING';
         where.OR = [
-            { paymentType: { in: ['CASH', 'TRANSFER'] } },
+            { paymentType: { in: ['CASH', 'TRANSFER', 'QR'] } },
             { mpPaymentId: { not: null } }
         ];
     } else if (isCancelled === 'true') {

@@ -144,6 +144,19 @@ const updateConfig = async (req, res) => {
       },
     });
 
+    if (updateData.baseCurrency) {
+      await prisma.currency.upsert({
+        where: { code: updateData.baseCurrency.toUpperCase() },
+        update: { isActive: true, exchangeRateToBase: 1.0 },
+        create: {
+          code: updateData.baseCurrency.toUpperCase(),
+          symbol: updateData.currencySymbol || config.currencySymbol || '$',
+          exchangeRateToBase: 1.0,
+          isActive: true
+        }
+      });
+    }
+
     await AuditService.logAction({
       adminId: req.user.id,
       action: "UPDATE_CONFIG",

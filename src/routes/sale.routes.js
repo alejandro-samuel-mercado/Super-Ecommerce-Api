@@ -37,7 +37,7 @@ router.post('/checkout', checkoutLimiter, [
     body('items').isArray({ min: 1 }).withMessage('El carrito debe contener al menos un artículo'),
     body('items.*.skuId').isInt().withMessage('ID de SKU inválido'),
     body('items.*.quantity').isNumeric().withMessage('La cantidad debe ser un número mayor a 0'),
-    body('paymentType').isIn(['CASH', 'DEBIT', 'CARD', 'TRANSFER', 'MERCADO_PAGO', 'mercadopago', 'stripe', 'paypal', 'POINTS']).withMessage('Método de pago inválido'),
+    body('paymentType').isIn(['CASH', 'DEBIT', 'CARD', 'TRANSFER', 'MERCADO_PAGO', 'mercadopago', 'stripe', 'paypal', 'POINTS', 'QR']).withMessage('Método de pago inválido'),
     body('deliveryType').isIn(['PICKUP', 'DELIVERY']).withMessage('Tipo de entrega inválido'),
     validateRequest
 ], SaleController.create);
@@ -92,5 +92,19 @@ router.post('/:id/refund', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), Sal
  */
 router.post('/:id/payment-proof', upload.single('image'), SaleController.uploadPaymentProof);
 router.delete('/:id/payment-proof', SaleController.deletePaymentProof);
+
+/**
+ * @route POST /api/sales/:id/qr-image
+ * @desc Subir imagen QR de pago (Admin/Employee)
+ * @access Admin/Employee
+ */
+router.post('/:id/qr-image', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), upload.single('image'), SaleController.uploadQrImage);
+
+/**
+ * @route DELETE /api/sales/:id/qr-image
+ * @desc Eliminar imagen QR de pago (Admin/Employee)
+ * @access Admin/Employee
+ */
+router.delete('/:id/qr-image', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), SaleController.deleteQrImage);
 
 module.exports = router;

@@ -325,6 +325,133 @@ class SaleController {
       next(error);
     }
   }
+
+  /**
+   * Admin/Employee sube imagen QR de pago para una venta.
+   * Solo permitido si paymentStatus !== 'PAID'.
+   */
+  async uploadQrImage(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No se proporcionó una imagen' });
+      }
+
+      const sale = await prisma.sale.findUnique({
+        where: { id: parseInt(id) },
+        include: { user: { select: { email: true, name: true } } }
+      });
+
+      if (!sale) {
+        return res.status(404).json({ success: false, message: 'Venta no encontrada' });
+      }
+
+      if (sale.paymentStatus === 'PAID') {
+        return res.status(400).json({ success: false, message: 'No se puede modificar el QR de una venta ya pagada' });
+      }
+
+      const url = await UploadService.uploadImage(req.file.buffer, 'qr-pagos');
+
+      await prisma.sale.update({
+        where: { id: parseInt(id) },
+        data: { qrPaymentUrl: url }
+      });
+
+      // Enviar email al cliente notificando que el QR está listo
+      if (sale.user?.email) {
+        setImmediate(async () => {
+          try {
+            const NotificationService = require('../services/notification.service');
+            const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+            const storeName = config?.storeName || 'Tienda Online';
+            const clientUrl = process.env.CLIENT_URL || 'http://localhost:3001';
+
+            const emailHtml = `
+              <div style="font-family: sans-serif; color: #374151; max-width: 600px; margin: 0 auto;">
+                <h1 style="color: #1f2937;">¡Tu QR de pago está listo!</h1>
+                <p>Hola <strong>${sale.user.name || 'Cliente'}</strong>,</p>
+                <p>El código QR para tu pedido <strong>#${sale.id}</strong> ya está disponible.</p>
+                <div style="margin: 20px 0; padding: 20px; background-color: #f0fdf4; border-radius: 12px; border: 2px solid #86efac; text-align: center;">
+                  <p style="margin: 0 0 15px 0; font-weight: bold; color: #166534;">Escanea este código con tu app bancaria:</p>
+                  <img src="${url}" alt="QR de Pago" style="max-width: 300px; width: 100%; border-radius: 8px; border: 1px solid #d1d5db;" />
+                </div>
+                <p>También puedes ver tu pedido y el QR desde tu perfil:</p>
+                <a href="${clientUrl}/checkout/pending?saleId=${sale.id}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">Ver mi Pedido</a>
+                <p style="margin-top: 20px; font-size: 12px; color: #9ca3af;">Una vez que realices el pago, nuestro equipo lo verificará y procesará tu pedido.</p>
+                <p style="font-size: 12px; color: #9ca3af;">— ${storeName}</p>
+              </div>
+            `;
+
+            await NotificationService.sendEmail(
+              sale.user.email,
+              `QR de Pago Disponible - Pedido #${sale.id}`,
+              emailHtml
+            );
+          } catch (err) {
+            console.error('[SaleController] Error sending QR notification email:', err);
+          }
+        });
+      }
+
+      // Notificar in-app a admins
+      InAppNotificationService.emitAdminNotification(
+        'QR_UPLOADED',
+        'QR de Pago Subido',
+        `Se ha subido el QR de pago para la orden #${id}.`,
+        { saleId: id, action: 'view_details' }
+      ).catch(err => console.error('Error emitting QR notification:', err));
+
+      // Notificar in-app al cliente
+      InAppNotificationService.createNotification(
+        sale.userId,
+        'QR_READY',
+        '¡Tu QR de pago está listo!',
+        `El código QR para tu pedido #${id} ya está disponible. Escanéalo con tu app bancaria para pagar.`,
+        { saleId: id, url: `/checkout/pending?saleId=${id}` }
+      ).catch(err => console.error('Error creating client QR notification:', err));
+
+      res.status(200).json({
+        success: true,
+        message: 'Imagen QR subida con éxito',
+        data: { url }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Admin/Employee elimina imagen QR de una venta.
+   * Solo permitido si paymentStatus !== 'PAID'.
+   */
+  async deleteQrImage(req, res, next) {
+    try {
+      const { id } = req.params;
+
+      const sale = await prisma.sale.findUnique({
+        where: { id: parseInt(id) }
+      });
+
+      if (!sale) {
+        return res.status(404).json({ success: false, message: 'Venta no encontrada' });
+      }
+
+      if (sale.paymentStatus === 'PAID') {
+        return res.status(400).json({ success: false, message: 'No se puede eliminar el QR de una venta ya pagada' });
+      }
+
+      await prisma.sale.update({
+        where: { id: parseInt(id) },
+        data: { qrPaymentUrl: null }
+      });
+
+      res.json({ success: true, message: 'Imagen QR eliminada con éxito' });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new SaleController();
+
