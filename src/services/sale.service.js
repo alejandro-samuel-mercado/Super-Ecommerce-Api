@@ -522,7 +522,7 @@ class SaleService {
 
         // Conversión a moneda base para consolidación contable
         const totalInBaseCurrency = parseFloat(
-          (finalTotal / exchangeRateAtPurchase).toFixed(2),
+          (finalTotal * exchangeRateAtPurchase).toFixed(2),
         );
 
         if (finalTotal < 0)
