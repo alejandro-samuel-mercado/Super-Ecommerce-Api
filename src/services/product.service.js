@@ -593,6 +593,7 @@ async createProduct(data) {
          product.currencyCode = currencyCode;
 
          const basePrice = parseFloat(product.basePrice.toString());
+         // ratio = Target/Base. If we multiply Base * ratio we get Target.
          const scalingRatio = basePrice > 0 ? (priceData / basePrice) : 1.0;
 
          product.skus = product.skus.map(sku => ({

@@ -47,7 +47,7 @@ class PriceService {
     }
 
     const exchangeRate = parseFloat(currency.exchangeRateToBase.toString());
-    return parseFloat(product.basePrice.toString()) / exchangeRate;
+    return parseFloat(product.basePrice.toString()) * exchangeRate;
   }
 
   /**
@@ -99,7 +99,7 @@ class PriceService {
       }
     }
 
-    return parseFloat(sku.price.toString()) / scalingRatio;
+    return parseFloat(sku.price.toString()) * scalingRatio;
   }
 
   /**
@@ -150,7 +150,7 @@ class PriceService {
            scalingRatio = exchangeRatio;
        }
        
-       pricesMap[sku.id] = parseFloat(sku.price.toString()) / scalingRatio;
+       pricesMap[sku.id] = parseFloat(sku.price.toString()) * scalingRatio;
     });
 
     return pricesMap;
@@ -196,7 +196,7 @@ class PriceService {
        }
        return {
          productId: p.id,
-         price: parseFloat(p.basePrice.toString()) / exchangeRatio,
+         price: parseFloat(p.basePrice.toString()) * exchangeRatio,
          ratio: exchangeRatio
        };
      });
