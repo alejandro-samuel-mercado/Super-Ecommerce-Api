@@ -127,12 +127,21 @@ class PaymentController {
    */
   async updateCurrencySupport(req, res) {
       try {
-          const { currencyCode, gatewayId } = req.body;
+          const { currencyCode, gatewayId, isPrimary, isSecondary } = req.body;
 
-          await prisma.gatewayCurrencySupport.updateMany({
-              where: { currencyCode },
-              data: { isPrimary: false }
-          });
+          if (isPrimary) {
+              await prisma.gatewayCurrencySupport.updateMany({
+                  where: { currencyCode },
+                  data: { isPrimary: false }
+              });
+          }
+
+          if (isSecondary) {
+              await prisma.gatewayCurrencySupport.updateMany({
+                  where: { currencyCode },
+                  data: { isSecondary: false }
+              });
+          }
 
           const support = await prisma.gatewayCurrencySupport.upsert({
               where: {
@@ -141,11 +150,15 @@ class PaymentController {
                       currencyCode
                   }
               },
-              update: { isPrimary: true },
+              update: { 
+                  ...(isPrimary !== undefined && { isPrimary }),
+                  ...(isSecondary !== undefined && { isSecondary })
+              },
               create: {
                   gatewayId: parseInt(gatewayId),
                   currencyCode,
-                  isPrimary: true
+                  isPrimary: isPrimary === true,
+                  isSecondary: isSecondary === true
               }
           });
 

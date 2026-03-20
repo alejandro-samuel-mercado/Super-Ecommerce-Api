@@ -106,21 +106,15 @@ class CurrencyService {
       const normalizedClientCountry = countryCode.toUpperCase();
       const normalizedBusinessCountry = businessCountry.toUpperCase();
 
-      // Normalización básica para Argentina (caso común en este proyecto)
-      const isArgentina = (c) => c === "AR" || c === "ARGENTINA";
-
-      const isOriginCountry =
-        normalizedClientCountry === normalizedBusinessCountry ||
-        (isArgentina(normalizedClientCountry) &&
-          isArgentina(normalizedBusinessCountry));
+      const isOriginCountry = normalizedClientCountry === normalizedBusinessCountry;
 
       if (isOriginCountry) {
         return baseCurrency;
       }
 
-      // Si no es el país de origen, intentamos usar USD como estándar internacional
-      const usdExists = await this.getCurrencyByCode("USD");
-      if (usdExists && usdExists.isActive) return "USD";
+      const secondaryCurrency = config.defaultCurrency || "USD";
+      const usdExists = await this.getCurrencyByCode(secondaryCurrency);
+      if (usdExists && usdExists.isActive) return secondaryCurrency;
     }
 
     // Prioridad 4: Fallback a x-currency header (seguridad ante fallas de resolución por país)
@@ -139,13 +133,8 @@ class CurrencyService {
   async isLocalCountry(countryCode) {
     if (!countryCode) return true;
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const businessCountry = (config?.country || "AR").toUpperCase().trim();
+    const businessCountry = (config?.country || "").toUpperCase().trim();
     const clientCountry = countryCode.toUpperCase().trim();
-
-    // Normalización básica para Argentina 
-    const isArgentina = (c) => c === "AR" || c === "ARGENTINA";
-
-    if (isArgentina(businessCountry) && isArgentina(clientCountry)) return true;
 
     return clientCountry === businessCountry;
   }

@@ -432,6 +432,8 @@ model StoreConfig {
   bannerImage            Json?
   secondaryAds           Json?
   country                String   @default("Argentina")
+  enablePersistentQr     Boolean  @default(false)
+  persistentQrUrl        String?
 }
 
 model Currency {
@@ -480,6 +482,7 @@ model GatewayCurrencySupport {
   gatewayId    Int
   currencyCode String
   isPrimary    Boolean        @default(false)
+  isSecondary  Boolean        @default(false)
   currency     Currency       @relation(fields: [currencyCode], references: [code])
   gateway      PaymentGateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
 

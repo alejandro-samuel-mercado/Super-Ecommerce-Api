@@ -105,6 +105,9 @@ const updateConfig = async (req, res) => {
       "enableAutoBackup",
       "backupFrequency",
       "country",
+      "enablePersistentQr",
+      "persistentQrUrl",
+      "defaultCurrency",
     ];
 
     fields.forEach((f) => {
@@ -157,6 +160,19 @@ const updateConfig = async (req, res) => {
       });
     }
 
+    if (updateData.defaultCurrency) {
+      await prisma.currency.upsert({
+        where: { code: updateData.defaultCurrency.toUpperCase() },
+        update: { isActive: true },
+        create: {
+          code: updateData.defaultCurrency.toUpperCase(),
+          symbol: '$',
+          exchangeRateToBase: 1.0,
+          isActive: true
+        }
+      });
+    }
+
     await AuditService.logAction({
       adminId: req.user.id,
       action: "UPDATE_CONFIG",
@@ -201,6 +217,10 @@ const getPublicConfig = async (req, res) => {
         baseCurrency: true,
         pointsPerCurrency: true,
         webSafetyStock: true,
+        enablePersistentQr: true,
+        persistentQrUrl: true,
+        country: true,
+        defaultCurrency: true,
       },
     });
 

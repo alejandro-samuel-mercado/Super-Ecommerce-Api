@@ -13,7 +13,7 @@ class ReportService {
     const end = new Date(endDate);
 
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = config?.baseCurrency || "ARS";
+    const baseCurrency = config?.baseCurrency;
 
     // Tasas de cambio actuales para fallbacks
     const currencies = await prisma.currency.findMany({
@@ -192,7 +192,7 @@ class ReportService {
    */
   async getInventoryValueReport(branchId) {
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = config?.baseCurrency || "ARS";
+    const baseCurrency = config?.baseCurrency;
 
     const currencies = await prisma.currency.findMany({
       where: { isActive: true },
@@ -273,7 +273,7 @@ class ReportService {
   async getStockValuation(params = {}) {
     const { branchId } = params;
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const baseCurrency = config?.baseCurrency || "ARS";
+    const baseCurrency = config?.baseCurrency;
 
     const where = {
       isActive: true,
