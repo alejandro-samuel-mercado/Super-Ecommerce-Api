@@ -81,12 +81,8 @@ class CurrencyService {
    */
   async getCurrencyByContext(req) {
     const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-    const businessCountry = config?.country?.toUpperCase().trim();
-    if (!businessCountry)
-      throw new Error("Store country configuration is missing.");
-    const baseCurrency = config?.baseCurrency;
-    if (!baseCurrency)
-      throw new Error("Base currency not configured in StoreConfig.");
+    const businessCountry = (config?.country || "Argentina").toUpperCase().trim();
+    const baseCurrency = config?.baseCurrency || "ARS";
 
     const countryCode = this.getCountryByContext(req);
 

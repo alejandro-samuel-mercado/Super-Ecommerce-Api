@@ -22,6 +22,9 @@ const getConfig = async (req, res) => {
           enableStockControl: true,
           lowStockThreshold: 5,
           criticalStockThreshold: 2,
+          country: "Argentina",
+          baseCurrency: "ARS",
+          defaultCurrency: "ARS",
         },
       });
     }
@@ -230,8 +233,14 @@ const getPublicConfig = async (req, res) => {
         contactPhone: "",
         enableShipping: true,
         enablePoints: true,
+        country: "Argentina",
+        baseCurrency: "ARS",
       };
     }
+
+    // Ensure country and baseCurrency are never null/empty
+    if (!config.country) config.country = "Argentina";
+    if (!config.baseCurrency) config.baseCurrency = "ARS";
 
     const activeEvent = await EventService.getActiveEvent();
 

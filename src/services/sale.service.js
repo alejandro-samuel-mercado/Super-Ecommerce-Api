@@ -558,7 +558,6 @@ class SaleService {
               deliveryAddress:
                 deliveryType === "DELIVERY" ? deliveryAddress : null,
               observations: saleData.observations || null,
-              qrPaymentUrl: (dbPaymentType === 'QR' && storeConfigCached?.enablePersistentQr && storeConfigCached?.persistentQrUrl) ? storeConfigCached.persistentQrUrl : null,
               employeeId: employeeId || null,
               currencyCode: activeCurrencyCode,
               exchangeRateAtPurchase: exchangeRateAtPurchase,
