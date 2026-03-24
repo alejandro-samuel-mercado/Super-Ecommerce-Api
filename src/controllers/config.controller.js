@@ -111,6 +111,20 @@ const updateConfig = async (req, res) => {
       "enablePersistentQr",
       "persistentQrUrl",
       "defaultCurrency",
+      "institutionalVideo",
+      "institutionalVideoTitle",
+      "whatsappProductMessage",
+      "navItemName",
+      "customPageTitle",
+      "customPageDescription",
+      "customPageImage",
+      "customPageVideo",
+      "customPageImages",
+      "customPageVideos",
+      "customPageTexts",
+      "customPageTextsSubtitle",
+      "customPageImagesSubtitle",
+      "customPageVideosSubtitle"
     ];
 
     fields.forEach((f) => {
@@ -132,6 +146,16 @@ const updateConfig = async (req, res) => {
       )
         ? data.customMeasurementUnits
         : [];
+    }
+
+    if (data.customPageImages) {
+      updateData.customPageImages = Array.isArray(data.customPageImages) ? data.customPageImages : [];
+    }
+    if (data.customPageVideos) {
+      updateData.customPageVideos = Array.isArray(data.customPageVideos) ? data.customPageVideos : [];
+    }
+    if (data.customPageTexts) {
+      updateData.customPageTexts = Array.isArray(data.customPageTexts) ? data.customPageTexts : [];
     }
     if (data.enabledPaymentMethods !== undefined) {
       updateData.enabledPaymentMethods = Array.isArray(
@@ -224,6 +248,20 @@ const getPublicConfig = async (req, res) => {
         persistentQrUrl: true,
         country: true,
         defaultCurrency: true,
+        institutionalVideo: true,
+        institutionalVideoTitle: true,
+        whatsappProductMessage: true,
+        navItemName: true,
+        customPageTitle: true,
+        customPageDescription: true,
+        customPageImage: true,
+        customPageVideo: true,
+        customPageImages: true,
+        customPageVideos: true,
+        customPageTexts: true,
+        customPageTextsSubtitle: true,
+        customPageImagesSubtitle: true,
+        customPageVideosSubtitle: true,
       },
     });
 
@@ -281,3 +319,6 @@ module.exports = {
   updateConfig,
   getPublicConfig,
 };
+// Trigger nodemon restart for Prisma Client update
+
+

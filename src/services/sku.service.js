@@ -82,7 +82,7 @@ class SkuService {
    * NO actualiza stock (usar endpoint dedicado)
    */
   async updateSku(id, data) {
-    const { price, active, attributes, stock, code, barcode, barcodeType } = data;
+    const { price, costPrice, active, attributes, stock, code, barcode, barcodeType } = data;
     
     return await prisma.$transaction(async (tx) => {
        // Validar existencia para las reglas de integridad
@@ -110,6 +110,7 @@ class SkuService {
          where: { id: parseInt(id) },
          data: { 
              price, 
+             costPrice: costPrice !== undefined ? costPrice : undefined,
              active,
              ...(stock !== undefined && { stock }),
              code: finalCode,

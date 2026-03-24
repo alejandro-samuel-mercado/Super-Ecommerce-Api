@@ -157,6 +157,9 @@ app.use('/api/suppliers', checkMaintenanceMode, supplierRoutes);
 const purchaseRoutes = require('./routes/purchase.routes');
 app.use('/api/purchases', checkMaintenanceMode, purchaseRoutes);
 
+const expenseRoutes = require('./routes/expense.route');
+app.use('/api/expenses', checkMaintenanceMode, expenseRoutes);
+
 const supplierPaymentRoutes = require('./routes/supplier-payment.routes');
 const reportRoutes = require('./routes/report.routes'); 
 

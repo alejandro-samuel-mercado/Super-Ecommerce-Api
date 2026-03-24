@@ -60,6 +60,18 @@ class ReportService {
       select: { paymentDate: true, amount: true, amountInBaseCurrency: true },
     });
 
+    // 2.5 Obtener Otros Gastos (Expenses)
+    const expenseWhere = {
+      isActive: true,
+      expenseDate: { gte: start, lte: end },
+    };
+    if (branchId && Number(branchId) > 0) expenseWhere.branchId = Number(branchId);
+    
+    const expenses = await prisma.expense.findMany({
+      where: expenseWhere,
+      select: { expenseDate: true, amount: true, amountInBase: true },
+    });
+
     let totalGrossRevenueBase = 0; // Total cobrado (incluye Tax/Envío) - Coincide con Dashboard
     let totalNetRevenueBase = 0; // Ingreso real del negocio (Excluye Tax/Envío)
     let totalCOGSBase = 0; // Costo de Mercadería Vendida
@@ -138,6 +150,8 @@ class ReportService {
 
     // 4. Procesar Salidas de Caja
     let totalCashOutflowBase = 0;
+    let totalOperatingExpensesBase = 0;
+
     payments.forEach((p) => {
       const key = getKey(p.paymentDate);
       if (!map.has(key))
@@ -145,6 +159,7 @@ class ReportService {
           grossRevenue: 0,
           netRevenue: 0,
           cogs: 0,
+          expenses: 0,
           cashOutflow: 0,
         });
       const entry = map.get(key);
@@ -154,18 +169,38 @@ class ReportService {
       entry.cashOutflow += pBase;
     });
 
+    expenses.forEach((e) => {
+      const key = getKey(e.expenseDate);
+      if (!map.has(key))
+        map.set(key, {
+          grossRevenue: 0,
+          netRevenue: 0,
+          cogs: 0,
+          expenses: 0,
+          cashOutflow: 0,
+        });
+      const entry = map.get(key);
+      const eBase = Number(e.amountInBase || e.amount);
+      totalOperatingExpensesBase += eBase;
+      totalCashOutflowBase += eBase;
+      entry.expenses = (entry.expenses || 0) + eBase;
+      entry.cashOutflow += eBase; // Se suma al flujo de caja
+    });
+
     // 5. Consolidar Estadísticas Finales (Contables)
     const grossProfitBase = totalNetRevenueBase - totalCOGSBase;
+    const netProfitBase = grossProfitBase - totalOperatingExpensesBase;
     const netMargin =
       totalNetRevenueBase > 0
-        ? (grossProfitBase / totalNetRevenueBase) * 100
+        ? (netProfitBase / totalNetRevenueBase) * 100
         : 0;
 
     const chartData = Array.from(map.entries()).map(([name, data]) => ({
       name,
       revenue: data.netRevenue,
       cogs: data.cogs,
-      profit: data.netRevenue - data.cogs,
+      operatingExpenses: data.expenses || 0,
+      profit: data.netRevenue - data.cogs - (data.expenses || 0),
       cashOutflow: data.cashOutflow,
     }));
 
@@ -176,7 +211,9 @@ class ReportService {
 
       // Métricas de Costos y Utilidad
       totalCOGS: totalCOGSBase,
+      totalOperatingExpenses: totalOperatingExpensesBase,
       grossProfit: grossProfitBase,
+      netProfit: netProfitBase,
       netMargin,
 
       // Flujo de Caja
