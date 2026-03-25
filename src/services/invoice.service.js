@@ -1,4 +1,5 @@
 const PDFDocument = require('pdfkit');
+const axios = require('axios');
 
 class InvoiceService {
   /**
@@ -8,7 +9,7 @@ class InvoiceService {
    * @returns {Promise<Buffer>}
    */
   async generateInvoicePDF(sale, config) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         const doc = new PDFDocument({ 
             
@@ -59,6 +60,18 @@ class InvoiceService {
             .rect(0, 0, 600, 120)
             .fill(brandPurple);
 
+        // Logo
+        let textX = 50;
+        if (config?.showLogoOnInvoice && config?.logoUrl) {
+            try {
+                const response = await axios.get(config.logoUrl, { responseType: 'arraybuffer' });
+                doc.image(response.data, 50, 30, { height: 60 });
+                textX = 160; // Desplazar texto si hay logo
+            } catch (error) {
+                console.error('Error loading logo for invoice:', error.message);
+            }
+        }
+
         // Parsear nombre de la tienda
         const nameParts = (config?.storeName || 'OFFICIAL STORE').split(' ');
         const firstLine = nameParts.join(' ').toUpperCase();
@@ -68,7 +81,7 @@ class InvoiceService {
             .fillColor('#FFFFFF')
             .fontSize(nameParts.length > 2 ? 15 : 20)
             .font('Helvetica-Bold')
-            .text(firstLine, 50, 45)
+            .text(firstLine, textX, 45)
  
 
         // Datos de la factura (Derecha)
@@ -95,10 +108,13 @@ class InvoiceService {
             .font('Helvetica')
             .text(`${emisorAddress.toUpperCase()}${emisorCity ? ', ' + emisorCity.toUpperCase() : ''}`, 50, 180)
             .text(`IVA RESPONSABLE INSCRIPTO`, 50, 195);
+        
+        // --- RNT / CUIT EMISOR (Opcional, si existiera en config, pero nos pidieron RNT en cliente) ---
+        // Si el cliente tiene RNT lo mostraremos abajo.
 
         // --- DATOS DEL CLIENTE ---
         doc
-            .rect(340, 160, 210, 80)
+            .rect(340, 160, 210, 100) // Aumentado para RNT
             .fill(lightGray);
 
         doc
@@ -111,12 +127,15 @@ class InvoiceService {
             .fontSize(9)
             .text(`NOMBRE: ${sale.user?.name || sale.customerName || 'CONSUMIDOR FINAL'}`, 350, 185, { width: 190 })
             .text(`EMAIL: ${sale.user?.email || sale.customerEmail || 'N/A'}`, 350, 200, { width: 190 })
-            .text(`DNI/CUIT: ${sale.user?.dni || sale.customerDni || 'N/A'}`, 350, 215)
-            .text(`TELEFONO: ${sale.user?.phone || sale.customerPhone || 'N/A'}`, 350, 230)
-            .text(`PAIS: ${sale.user?.country || sale.customerCountry || 'N/A'}`, 350, 245)
-            .text(`PROVINCIA/ESTADO: ${sale.user?.state || sale.customerState || 'N/A'}`, 350, 260)
-            .text(`CIUDAD: ${sale.user?.city || sale.customerCity || 'N/A'}`, 350, 275)
-            .text(`DIRECCIÓN: ${sale.user?.address || sale.customerAddress || 'N/A'}`, 350, 290);
+            .text(`DNI/CUIT: ${sale.user?.dni || sale.customerDni || 'N/A'}`, 350, 215);
+        
+        if (sale.user?.rnt) {
+            doc.text(`RNT: ${sale.user.rnt}`, 350, 230);
+        }
+
+        doc
+            .text(`TELEFONO: ${sale.user?.phone || sale.customerPhone || 'N/A'}`, 350, sale.user?.rnt ? 245 : 230)
+            .text(`DIRECCIÓN: ${sale.user?.address || sale.customerAddress || 'N/A'}`, 350, sale.user?.rnt ? 260 : 245, { width: 190 });
 
         doc.moveDown(4);
 
@@ -254,7 +273,7 @@ class InvoiceService {
         doc
             .fillColor('#FFFFFF')
             .font('Helvetica-Bold')
-            .text(`GRACIAS POR ELEGIR ${(config?.storeName || 'OFFICIAL STORE').toUpperCase()}`, 50, 796, { align: 'center', characterSpacing: 2 });
+            .text((config?.ticketFooter || `GRACIAS POR ELEGIR ${(config?.storeName || 'OFFICIAL STORE')}`).toUpperCase(), 50, 796, { align: 'center', characterSpacing: 2 });
 
         doc.end();
 

@@ -345,6 +345,13 @@ class AdminSaleService {
             prevStartDate.setDate(prevStartDate.getDate() - 1);
             prevEndDate = new Date(todayStart);
             break;
+        case 'yesterday':
+            startDate = new Date(todayStart);
+            startDate.setDate(startDate.getDate() - 1);
+            prevStartDate = new Date(startDate);
+            prevStartDate.setDate(prevStartDate.getDate() - 1);
+            prevEndDate = new Date(startDate);
+            break;
         case 'week':
             startDate = new Date();
             startDate.setDate(now.getDate() - 7);

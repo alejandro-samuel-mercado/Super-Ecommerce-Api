@@ -45,6 +45,8 @@ class UserService {
             zipCode: profileData.zipCode,
             country: profileData.country,
             phone: profileData.phone,
+            dni: profileData.dni,
+            rnt: profileData.rnt,
             status: profileData.status || 'ACTIVE' 
         },
         include: { role: true }
@@ -92,6 +94,7 @@ class UserService {
     if (data.state !== undefined) updateData.state = data.state;
     if (data.country !== undefined) updateData.country = data.country;
     if (data.zipCode !== undefined) updateData.zipCode = data.zipCode;
+    if (data.rnt !== undefined) updateData.rnt = data.rnt;
 
     if (data.branchId !== undefined) {
       updateData.branchId = data.branchId ? parseInt(data.branchId) : null;

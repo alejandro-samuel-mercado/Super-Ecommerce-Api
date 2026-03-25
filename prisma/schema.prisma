@@ -126,6 +126,7 @@ model User {
   password         String
   roleId           Int
   dni              String?
+  rnt              String?
   updatedAt        DateTime           @updatedAt
   activeBranchId   Int?
   address          String?
@@ -422,6 +423,9 @@ model StoreConfig {
   socialTwitter          String?
   maintenanceMode        Boolean  @default(false)
   logoUrl                String?
+  ticketFooter           String?  @default("¡Gracias por su compra!")
+  showLogoOnTicket       Boolean  @default(true)
+  showLogoOnInvoice      Boolean  @default(true)
   adImage                String?
   adText                 String?
   openingHours           Json?
