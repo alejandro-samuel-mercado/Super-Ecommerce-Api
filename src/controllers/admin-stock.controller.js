@@ -248,23 +248,6 @@ class AdminStockController {
     try {
       let parsedBranchId = req.branchId;
 
-      if (!parsedBranchId) {
-        const defaultBranch =
-          (await prisma.branch.findFirst({
-            where: { isHeadquarters: true },
-          })) || (await prisma.branch.findFirst());
-
-        if (!defaultBranch) {
-          return res
-            .status(400)
-            .json({
-              success: false,
-              message: "No hay sucursales configuradas en el sistema",
-            });
-        }
-        parsedBranchId = defaultBranch.id;
-      }
-
       const { search, categoryId, supplierId, brand, lowStock, stockLevel, page = 1, limit = 20 } = req.query;
       const p = Math.max(1, parseInt(page));
       const l = Math.max(1, parseInt(limit));
@@ -305,19 +288,13 @@ class AdminStockController {
       }
 
       if (stockLevel === "CRITICAL") {
-        skuWhere.branchInventory = {
-            some: {
-                branchId: parsedBranchId,
-                stock: { lte: criticalThreshold }
-            }
-        };
+        const stockFilter = { stock: { lte: criticalThreshold } };
+        if (parsedBranchId) stockFilter.branchId = parsedBranchId;
+        skuWhere.branchInventory = { some: stockFilter };
       } else if (stockLevel === "LOW" || lowStock === "true") {
-        skuWhere.branchInventory = {
-            some: {
-                branchId: parsedBranchId,
-                stock: { lte: lowThreshold }
-            }
-        };
+        const stockFilter = { stock: { lte: lowThreshold } };
+        if (parsedBranchId) stockFilter.branchId = parsedBranchId;
+        skuWhere.branchInventory = { some: stockFilter };
       }
 
       const [skus, total] = await Promise.all([
@@ -331,7 +308,7 @@ class AdminStockController {
               },
               variantOptions: true,
               branchInventory: {
-                where: { branchId: parsedBranchId },
+                include: { branch: { select: { id: true, name: true, isActive: true } } }
               },
             },
             orderBy: { product: { name: "asc" } },
@@ -342,12 +319,16 @@ class AdminStockController {
       ]);
 
       const data = skus.map((sku) => {
-        const inv = sku.branchInventory[0];
-        const stock = inv ? parseFloat(inv.stock.toString()) : 0;
-        const minStock = inv ? parseFloat(inv.minStock.toString()) : 0;
+        const activeInv = parsedBranchId 
+            ? sku.branchInventory.find(bi => bi.branchId === parsedBranchId)
+            : sku.branchInventory[0];
+            
+        const stock = activeInv ? parseFloat(activeInv.stock.toString()) : 0;
+        const minStock = activeInv ? parseFloat(activeInv.minStock.toString()) : 0;
+        const totalStock = sku.branchInventory.reduce((acc, bi) => acc + parseFloat(bi.stock.toString()), 0);
 
         return {
-          id: inv ? inv.id : `NEW-${sku.id}`,
+          id: activeInv ? activeInv.id : `NEW-${sku.id}`,
           skuId: sku.id,
           skuCode: sku.code,
           productName: sku.product.name,
@@ -359,10 +340,18 @@ class AdminStockController {
             .join(", "),
           stock,
           minStock,
+          totalStock,
           price: sku.price,
           measurementUnit: sku.product.measurementUnit || "UNIDAD",
           allowFractional: sku.product.allowFractional || false,
-          updatedAt: inv ? inv.updatedAt : sku.updatedAt,
+          updatedAt: activeInv ? activeInv.updatedAt : sku.updatedAt,
+          branchStocks: sku.branchInventory.map(bi => ({
+              branchId: bi.branchId,
+              branchName: bi.branch.name,
+              isActive: bi.branch.isActive,
+              stock: parseFloat(bi.stock.toString()),
+              minStock: parseFloat(bi.minStock.toString()),
+          }))
         };
       });
 

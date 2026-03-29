@@ -418,9 +418,9 @@ class ProductService {
                             },
                             include: {
                                 variantOptions: true,
-                                branchInventory: {
-                                    where: { branchId: activeBranchId }
-                                }
+                                branchInventory: (adminView === 'true' || adminView === true) && !branchId 
+                                    ? true 
+                                    : { where: { branchId: activeBranchId } }
                             }
                         },
                         _count: {
@@ -474,12 +474,13 @@ class ProductService {
 
                 products = products.map(p => {
                     const ratio = p.scalingRatio || 1.0;
+                    const isGlobal = (adminView === 'true' || adminView === true) && !branchId;
                     const mappedSkus = p.skus.map(sku => {
                         const branchInv = sku.branchInventory && sku.branchInventory[0];
 
                         return {
                             ...sku,
-                            stock: branchInv ? branchInv.stock : 0,
+                            stock: isGlobal ? sku.stock : (branchInv ? branchInv.stock : 0),
                             price: parseFloat(sku.price.toString()) * ratio,
                             costPrice: parseFloat(sku.costPrice?.toString() || 0),
                             globalStock: sku.stock,
