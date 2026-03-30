@@ -8,23 +8,32 @@ const path = require('path');
  */
 const ensureAbsoluteUrl = (url, req) => {
   if (!url) return url;
-  
+
+  // Handle arrays recursively
+  if (Array.isArray(url)) {
+    return url.map((u) => ensureAbsoluteUrl(u, req));
+  }
+
+  // Ensure url is a string
+  if (typeof url !== "string") return url;
+
   // Si ya es absoluta (http/https), devolverla
-  if (url.startsWith('http://') || url.startsWith('https://')) {
+  if (url.startsWith("http://") || url.startsWith("https://")) {
     return url;
   }
 
   // Si es un base64 o data URL, devolverla
-  if (url.startsWith('data:')) {
+  if (url.startsWith("data:")) {
     return url;
   }
 
-  const baseUrl = process.env.API_URL || (req ? `${req.protocol}://${req.get('host')}` : '');
-  
+  const baseUrl =
+    process.env.API_URL || (req ? `${req.protocol}://${req.get("host")}` : "");
+
   if (!baseUrl) return url;
 
   // Asegurar que no haya dobles slashes
-  const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+  const cleanUrl = url.startsWith("/") ? url : `/${url}`;
   return `${baseUrl}${cleanUrl}`;
 };
 

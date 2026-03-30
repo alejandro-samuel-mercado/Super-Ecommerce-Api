@@ -121,7 +121,7 @@ class SaleController {
           data: sale 
       });
     } catch (error) {
-      const knownErrors = ['Insufficient stock', 'stock', 'Coupon', 'coupon', 'Points', 'points', 'address', 'shipping', 'branch', 'transfer', 'Cart', 'cart'];
+      const knownErrors = ['Insufficient stock', 'stock', 'Coupon', 'coupon', 'Points', 'points', 'address', 'shipping', 'branch', 'transfer', 'Cart', 'cart', 'pago', 'payment', 'paypal'];
       if (knownErrors.some(msg => error.message.toLowerCase().includes(msg.toLowerCase()))) {
           return res.status(400).json({ success: false, message: error.message });
       }
