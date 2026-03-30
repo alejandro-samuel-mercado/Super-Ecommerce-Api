@@ -44,17 +44,18 @@ class SaleController {
 
   async create(req, res, next) {
     try {
-      const { id: loggedUserId, role } = req.user;
-      const roleName = role.name || role;
+      const loggedUserId = req.user ? req.user.id : null;
+      const role = req.user ? req.user.role : null;
+      const roleName = role ? (role.name || role) : 'GUEST';
 
       let targetUserId = loggedUserId;
-
       // Permitir que el personal asigne ventas a clientes específicos (Modo POS)
       if (['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'].includes(roleName) && req.body.clientId) {
           targetUserId = req.body.clientId;
       }
 
       let employeeId = null;
+
       if (['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE'].includes(roleName)) {
            employeeId = loggedUserId;
       }
@@ -370,7 +371,7 @@ class SaleController {
             const emailHtml = `
               <div style="font-family: sans-serif; color: #374151; max-width: 600px; margin: 0 auto;">
                 <h1 style="color: #1f2937;">¡Tu QR de pago está listo!</h1>
-                <p>Hola <strong>${sale.user.name || 'Cliente'}</strong>,</p>
+                <p>Hola <strong>${sale.user?.name || sale.customerName || 'Cliente'}</strong>,</p>
                 <p>El código QR para tu pedido <strong>#${sale.id}</strong> ya está disponible.</p>
                 <div style="margin: 20px 0; padding: 20px; background-color: #f0fdf4; border-radius: 12px; border: 2px solid #86efac; text-align: center;">
                   <p style="margin: 0 0 15px 0; font-weight: bold; color: #166534;">Escanea este código con tu app bancaria:</p>
@@ -384,7 +385,7 @@ class SaleController {
             `;
 
             await NotificationService.sendEmail(
-              sale.user.email,
+              sale.user?.email || sale.customerEmail,
               `QR de Pago Disponible - Pedido #${sale.id}`,
               emailHtml
             );
@@ -402,14 +403,16 @@ class SaleController {
         { saleId: id, action: 'view_details' }
       ).catch(err => console.error('Error emitting QR notification:', err));
 
-      // Notificar in-app al cliente
-      InAppNotificationService.createNotification(
-        sale.userId,
-        'QR_READY',
-        '¡Tu QR de pago está listo!',
-        `El código QR para tu pedido #${id} ya está disponible. Escanéalo con tu app bancaria para pagar.`,
-        { saleId: id, url: `/checkout/pending?saleId=${id}` }
-      ).catch(err => console.error('Error creating client QR notification:', err));
+      // Notificar in-app al cliente (Solo si está registrado)
+      if (sale.userId) {
+        InAppNotificationService.createNotification(
+          sale.userId,
+          'QR_READY',
+          '¡Tu QR de pago está listo!',
+          `El código QR para tu pedido #${id} ya está disponible. Escanéalo con tu app bancaria para pagar.`,
+          { saleId: id, url: `/checkout/pending?saleId=${id}` }
+        ).catch(err => console.error('Error creating client QR notification:', err));
+      }
 
       res.status(200).json({
         success: true,

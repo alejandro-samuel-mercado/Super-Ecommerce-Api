@@ -385,27 +385,27 @@ class SaleService {
           shippingCost = parseFloat(shippingCost.toFixed(2));
         }
 
-        // 3. Usuario y Motor de Descuentos
-        if (saleData.customer) {
-          await tx.user.update({
-            where: { id: userId },
-            data: {
-              dni: saleData.customer.dni,
-              phone: saleData.customer.phone,
-              address: saleData.customer.address,
-              city: saleData.customer.city,
-              state: saleData.customer.state,
-              country: saleData.customer.country,
-              zipCode: saleData.customer.zipCode,
-            },
-          });
-        }
-
-        const userIdInt = parseInt(userId);
-        const user = await tx.user.findUnique({ where: { id: userIdInt } });
-
-        if (!user) {
-          throw new Error(`Usuario ID ${userIdInt} no encontrado`);
+        let user = null;
+        if (userId) {
+          const userIdInt = parseInt(userId);
+          if (saleData.customer) {
+            await tx.user.update({
+              where: { id: userIdInt },
+              data: {
+                dni: saleData.customer.dni,
+                phone: saleData.customer.phone,
+                address: saleData.customer.address,
+                city: saleData.customer.city,
+                state: saleData.customer.state,
+                country: saleData.customer.country,
+                zipCode: saleData.customer.zipCode,
+              },
+            });
+          }
+          user = await tx.user.findUnique({ where: { id: userIdInt } });
+          if (!user) {
+            throw new Error(`Usuario ID ${userIdInt} no encontrado`);
+          }
         }
 
         const discountContext = {
@@ -461,9 +461,9 @@ class SaleService {
               "Canje de puntos no habilitado en la configuración",
             );
           }
-          if (!user.points || user.points < pointsToRedeem) {
+          if (!user || user.points < pointsToRedeem) {
             throw new Error(
-              `Puntos insuficientes. Disponibles: ${user.points || 0}, Solicitados: ${pointsToRedeem}`,
+              `Puntos insuficientes. Disponibles: ${user?.points || 0}, Solicitados: ${pointsToRedeem}`,
             );
           }
           const moneyPerPointBase = storeConfig.moneyPerPoint
@@ -513,12 +513,10 @@ class SaleService {
           let calculatedTax = 0;
           saleItemsData.forEach(item => {
             const itemFinalSubtotal = item.subtotal * discountRatio;
-            const itemTaxRate = Number(item.taxRate || 0);
-
-            if (itemTaxRate > 0) {
-              // IVA Incluido: (Subtotal / (1 + Rate/100)) * (Rate/100)
-              const taxAmount = (itemFinalSubtotal / (1 + (itemTaxRate / 100))) * (itemTaxRate / 100);
-              calculatedTax += taxAmount;
+            
+            if (item.taxRate && Number(item.taxRate) > 0) {
+            } else if (storeConfigCached && Number(storeConfigCached.taxRate) > 0) {
+              calculatedTax += itemFinalSubtotal * (Number(storeConfigCached.taxRate) / 100);
             }
           });
           tax = calculatedTax;
@@ -550,28 +548,26 @@ class SaleService {
               userId,
               subtotal: subtotal,
               discount: totalDiscount,
-              taxAmount: tax,
-              total: finalTotal,
-              branchId: activeBranchId,
-              shippingCost,
-              appliedDiscounts:
-                appliedDiscounts && appliedDiscounts.length > 0
-                  ? appliedDiscounts
-                  : null,
-              couponId,
+              shippingCost: shippingCost,
+              branchId: parseInt(activeBranchId),
+              paymentType: dbPaymentType,
+              deliveryType: deliveryType,
+              deliveryStatus: "PENDING_DELIVERY",
+              deliveryAddress: saleData.deliveryAddress || null,
+              appliedDiscounts: appliedDiscounts,
+              mpPaymentId: null,
+              observations: saleData.observations || null,
               pointsUsed: pointsToRedeem,
               pointsDiscount: pointsDiscount,
-              paymentType: dbPaymentType,
-              paymentStatus: paymentStatus || "PENDING",
-              deliveryType,
-              deliveryStatus: saleData.deliveryStatus || "PENDING_DELIVERY",
-              deliveryAddress:
-                deliveryType === "DELIVERY" ? deliveryAddress : null,
-              observations: saleData.observations || null,
-              employeeId: employeeId || null,
+              taxAmount: tax,
               currencyCode: activeCurrencyCode,
               exchangeRateAtPurchase: exchangeRateAtPurchase,
               totalInBaseCurrency: totalInBaseCurrency,
+              customerName: saleData.customer?.name || null,
+              customerEmail: saleData.customer?.email || null,
+              customerPhone: saleData.customer?.phone || null,
+              customerDni: saleData.customer?.dni || null,
+              customerAddress: saleData.customer?.address || null,
               items: {
                 create: saleItemsData,
               },
@@ -736,9 +732,9 @@ class SaleService {
         });
 
         // 7. Deducir puntos inmediatamente (Blindaje contra sobregasto / Doble Gasto)
-        if (pointsToRedeem > 0) {
+        if (pointsToRedeem > 0 && user) {
           const updateResult = await tx.user.updateMany({
-            where: { id: userIdInt, points: { gte: pointsToRedeem } },
+            where: { id: user.id, points: { gte: pointsToRedeem } },
             data: { points: { decrement: pointsToRedeem } },
           });
 
@@ -750,7 +746,7 @@ class SaleService {
 
           await tx.pointsHistory.create({
             data: {
-              userId: userIdInt,
+              userId: user.id,
               type: "USED",
               amount: pointsToRedeem,
               reason: `Reserva orden #${sale.id}`,
@@ -837,7 +833,7 @@ class SaleService {
               sale.paymentType,
             );
           await NotificationService.sendEmail(
-            user.email,
+            user?.email || sale.customerEmail,
             emailSubject,
             emailHtml,
           );
@@ -1041,7 +1037,7 @@ class SaleService {
     const pointsEnabled = activeEventForPoints
       ? activeEventForPoints.pointsEnabled
       : (storeConfig?.enablePoints ?? true);
-    if (pointsEnabled) {
+    if (pointsEnabled && user) {
       let spendingBaseForGeneric = 0;
       for (const ei of enrichedItems) {
         const pointsReward = ei.product?.pointsReward || 0;
@@ -1104,7 +1100,7 @@ class SaleService {
 
     let pointsDiscount = 0;
     const pointsToRedeem = parseInt(saleData.pointsToUse) || 0;
-    if (pointsToRedeem > 0 && storeConfig?.enablePointsRedemption) {
+    if (pointsToRedeem > 0 && storeConfig?.enablePointsRedemption && user) {
       const moneyPerPointBase = storeConfig.moneyPerPoint
         ? parseFloat(storeConfig.moneyPerPoint.toString())
         : 0;
@@ -1165,15 +1161,16 @@ class SaleService {
 
       let calculatedTax = 0;
       for (const ei of enrichedItems) {
-        const itemTaxRate =
-          ei.product?.taxRate !== null && ei.product?.taxRate !== undefined
+        const itemTaxRate = ei.product?.taxRate !== null && ei.product?.taxRate !== undefined
             ? parseFloat(ei.product.taxRate.toString())
-            : globalTaxRate;
+            : 0;
+
+        const itemGross = ei.unitPrice * ei.quantity;
+        const itemTaxable = itemGross * discountRatio;
 
         if (itemTaxRate > 0) {
-          const itemGross = ei.unitPrice * ei.quantity;
-          const itemTaxable = itemGross * discountRatio;
-          calculatedTax += itemTaxable * (itemTaxRate / 100);
+        } else if (globalTaxRate > 0) {
+          calculatedTax += itemTaxable * (globalTaxRate / 100);
         }
       }
       tax = calculatedTax;
@@ -1376,13 +1373,15 @@ class SaleService {
     // 3. Enviar Notificaciones y Factura
     setImmediate(async () => {
       try {
-        await InAppNotificationService.createNotification(
-          sale.userId,
-          "ORDER",
-          `¡Pedido #${sale.id} Confirmado!`,
-          `Tu pago ha sido acreditado exitosamente.`,
-          { url: `/profile` },
-        );
+        if (sale.userId) {
+          await InAppNotificationService.createNotification(
+            sale.userId,
+            "ORDER",
+            `¡Pedido #${sale.id} Confirmado!`,
+            `Tu pago ha sido acreditado exitosamente.`,
+            { url: `/profile` },
+          );
+        }
 
         // Enviar Correo con Factura PDF
         const NotificationService = require("./notification.service");
@@ -1435,7 +1434,7 @@ class SaleService {
       }
     });
 
-    if (!storeConfig?.enablePoints) return;
+    if (!storeConfig?.enablePoints || !sale.userId) return;
 
     // Verificar si el evento activo permite acumular puntos
     const activeEvent = await EventService.getActiveEvent();

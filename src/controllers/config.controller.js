@@ -221,51 +221,7 @@ const updateConfig = async (req, res) => {
 const getPublicConfig = async (req, res) => {
   try {
     let config = await prisma.storeConfig.findFirst({
-      where: { id: 1 },
-      select: {
-        storeName: true,
-        contactEmail: true,
-        contactPhone: true,
-        address: true,
-        socialInstagram: true,
-        socialFacebook: true,
-        socialTwitter: true,
-        logoUrl: true,
-        marqueeText: true,
-        bannerImage: true,
-        adImage: true,
-        adText: true,
-        secondaryAds: true,
-        openingHours: true,
-        enablePoints: true,
-        enableShipping: true,
-        enablePointsRedemption: true,
-        moneyPerPoint: true,
-        freeShippingThreshold: true,
-        enabledPaymentMethods: true,
-        baseCurrency: true,
-        pointsPerCurrency: true,
-        webSafetyStock: true,
-        enablePersistentQr: true,
-        persistentQrUrl: true,
-        country: true,
-        defaultCurrency: true,
-        enableManualStock: true,
-        institutionalVideo: true,
-        institutionalVideoTitle: true,
-        whatsappProductMessage: true,
-        navItemName: true,
-        customPageTitle: true,
-        customPageDescription: true,
-        customPageImage: true,
-        customPageVideo: true,
-        customPageImages: true,
-        customPageVideos: true,
-        customPageTexts: true,
-        customPageTextsSubtitle: true,
-        customPageImagesSubtitle: true,
-        customPageVideosSubtitle: true,
-      },
+      where: { id: 1 }
     });
 
     if (!config) {
@@ -279,13 +235,36 @@ const getPublicConfig = async (req, res) => {
       };
     }
 
+    const publicFields = [
+      "storeName", "contactEmail", "contactPhone", "address",
+      "socialInstagram", "socialFacebook", "socialTwitter",
+      "logoUrl", "marqueeText", "bannerImage", "adImage",
+      "adText", "secondaryAds", "openingHours", "enablePoints",
+      "enableShipping", "enablePointsRedemption", "moneyPerPoint",
+      "freeShippingThreshold", "enabledPaymentMethods", "baseCurrency",
+      "pointsPerCurrency", "webSafetyStock", "enablePersistentQr",
+      "persistentQrUrl", "country", "defaultCurrency", "enableManualStock",
+      "institutionalVideo", "institutionalVideoTitle", "whatsappProductMessage",
+      "navItemName", "customPageTitle", "customPageDescription",
+      "customPageImage", "customPageVideo", "customPageImages",
+      "customPageVideos", "customPageTexts", "customPageTextsSubtitle",
+      "customPageImagesSubtitle", "customPageVideosSubtitle"
+    ];
+
+    const sanitizedConfig = {};
+    publicFields.forEach(field => {
+      if (config[field] !== undefined) {
+        sanitizedConfig[field] = config[field];
+      }
+    });
+
     // Ensure country and baseCurrency are never null/empty
-    if (!config.country) config.country = "Argentina";
-    if (!config.baseCurrency) config.baseCurrency = "ARS";
+    if (!sanitizedConfig.country) sanitizedConfig.country = "Argentina";
+    if (!sanitizedConfig.baseCurrency) sanitizedConfig.baseCurrency = "ARS";
 
     const activeEvent = await EventService.getActiveEvent();
 
-    let finalConfig = { ...config };
+    let finalConfig = { ...sanitizedConfig };
 
     if (activeEvent) {
       if (activeEvent.marqueeText && activeEvent.marqueeText.length > 0) {

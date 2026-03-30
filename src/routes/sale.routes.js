@@ -7,18 +7,6 @@ const multer = require('multer');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-const router = Router();
-
-/**
- * @route POST /api/sales/preview
- * @desc Previsualización de la orden antes del pago
- * @access Público (Permite invitados)
- */
-router.post('/preview', optionalProtect, SaleController.preview);
-
-// Todas las demás rutas de ventas requieren autenticación
-router.use(protect);
-
 const rateLimit = require('express-rate-limit');
 
 // Limitador estricto para pagos para evitar abusos
@@ -28,19 +16,27 @@ const checkoutLimiter = rateLimit({
     message: { success: false, message: 'Demasiados intentos de compra. Por favor, intente de nuevo en 15 minutos.' }
 });
 
+const router = Router();
+
+// Rutas que requieren autenticación OPCIONAL (Invitados permitidos)
+router.post('/preview', optionalProtect, SaleController.preview);
+
 /**
  * @route POST /api/sales/checkout
  * @desc Procesar una venta / checkout
- * @access Privado
+ * @access Público (Permite invitados)
  */
-router.post('/checkout', checkoutLimiter, [
+router.post('/checkout', optionalProtect, checkoutLimiter, [
     body('items').isArray({ min: 1 }).withMessage('El carrito debe contener al menos un artículo'),
     body('items.*.skuId').isInt().withMessage('ID de SKU inválido'),
     body('items.*.quantity').isNumeric().withMessage('La cantidad debe ser un número mayor a 0'),
-    body('paymentType').isIn(['CASH', 'DEBIT', 'CARD', 'TRANSFER', 'MERCADO_PAGO', 'mercadopago', 'stripe', 'paypal', 'POINTS', 'QR']).withMessage('Método de pago inválido'),
+    body('paymentType').isIn(['CASH', 'DEBIT', 'CARD', 'TRANSFER', 'MERCADO_PAGO', 'mercadopago', 'stripe', 'paypal', 'POINTS', 'QR', 'POINTS']).withMessage('Método de pago inválido'),
     body('deliveryType').isIn(['PICKUP', 'DELIVERY']).withMessage('Tipo de entrega inválido'),
     validateRequest
 ], SaleController.create);
+
+// Todas las demás rutas de ventas requieren autenticación OBLIGATORIA
+router.use(protect);
 
 /**
  * @route GET /api/sales/my-purchases

@@ -10,12 +10,13 @@ class DiscountService {
   async expandCategoryTargets(discounts) {
       if (!discounts || discounts.length === 0) return discounts;
       const categories = await prisma.category.findMany();
-      const getSubs = (parentId) => {
+      const getSubs = (parentId, depth = 0) => {
+          if (depth > 5) return []; // Recursion guard
           let ids = [];
           const children = categories.filter(c => c.parentId === Number(parentId));
           for (const child of children) {
               ids.push(child.id);
-              ids.push(...getSubs(child.id));
+              ids.push(...getSubs(child.id, depth + 1));
           }
           return ids;
       };
@@ -41,6 +42,7 @@ class DiscountService {
 
   async calculateDiscounts(context) {
     const { items, user, paymentType, currencyCode } = context;
+    this.clearCache();
     const appliedDiscounts = [];
     let totalDiscountAmount = 0;
 
@@ -221,6 +223,7 @@ class DiscountService {
        return true;
     });
 
+    this.clearCache();
     const results = {};
     for (const product of products) {
       const items = [{
@@ -450,8 +453,18 @@ class DiscountService {
   }
 
   async getExchangeRate(currencyCode) {
+      if (!this._rateCache) this._rateCache = {};
+      if (this._rateCache[currencyCode]) return this._rateCache[currencyCode];
+
       const currency = await prisma.currency.findUnique({ where: { code: currencyCode } });
-      return (currency && currency.isActive) ? parseFloat(currency.exchangeRateToBase.toString()) : 1;
+      const rate = (currency && currency.isActive) ? parseFloat(currency.exchangeRateToBase.toString()) : 1;
+      
+      this._rateCache[currencyCode] = rate;
+      return rate;
+  }
+
+  clearCache() {
+      this._rateCache = {};
   }
 }
 
