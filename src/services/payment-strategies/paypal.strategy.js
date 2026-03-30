@@ -29,19 +29,26 @@ class PayPalStrategy extends PaymentStrategy {
     async createPreference(sale, user) {
         if (!this.client) throw new Error('PayPal Provider not configured');
 
-       
+        const SUPPORTED_CURRENCIES = ['USD', 'MXN', 'EUR', 'BRL', 'CAD', 'GBP', 'ILS', 'HKD', 'JPY', 'SGD', 'CHF', 'TWD', 'THB', 'PHP', 'PLN', 'NOK', 'DKK', 'SEK', 'HUF', 'CZK'];
         const baseCurrency = (this.config?.baseCurrency || process.env.BASE_CURRENCY || 'USD').toUpperCase();
-        const targetCurrency = (sale.currencyCode || baseCurrency).toUpperCase();
-        const isForeignCurrency = targetCurrency !== baseCurrency;
+        let targetCurrency = (sale.currencyCode || baseCurrency).toUpperCase();
+        
+        let shouldForceUSD = !SUPPORTED_CURRENCIES.includes(targetCurrency);
+        if (shouldForceUSD) {
+            targetCurrency = 'USD';
+        }
+
+        const isForeignCurrency = (sale.currencyCode || baseCurrency).toUpperCase() !== targetCurrency || (sale.currencyCode || baseCurrency).toUpperCase() !== baseCurrency;
         const exchangeRate = sale.exchangeRateAtPurchase ? Number(sale.exchangeRateAtPurchase) : 1;
 
         const convertToTarget = (amount) => {
-            if (!isForeignCurrency) return Number(amount);
+            if (!shouldForceUSD && !isForeignCurrency) return Number(amount);
+            // If we forced USD, and the original was ARS, we should ideally use the exchange rate or totalInBaseCurrency
             return Number(amount) / exchangeRate;
         };
 
         // Sólo usar totalInBaseCurrency si la moneda de la pasarela coincide con la moneda base
-        const targetTotal = (isForeignCurrency && sale.totalInBaseCurrency && targetCurrency === baseCurrency) 
+        const targetTotal = (sale.totalInBaseCurrency && targetCurrency === baseCurrency) 
               ? Number(sale.totalInBaseCurrency) 
               : convertToTarget(sale.total);
 
@@ -89,8 +96,20 @@ class PayPalStrategy extends PaymentStrategy {
             }
             return approvalUrl;
         } catch (err) {
-            console.error('[PayPal] Error creating order:', err);
-            throw new Error(`PayPal Error: ${err.message}`);
+            console.error('[PayPal] Error creating order:', JSON.stringify(err, null, 2));
+            
+            let detailedMsg = err.message;
+            if (err.statusCode === 400 && err._body) {
+                try {
+                    const body = JSON.parse(err._body);
+                    detailedMsg = body.message || body.name || detailedMsg;
+                    if (body.details) {
+                        detailedMsg += ` (${body.details.map(d => d.issue).join(', ')})`;
+                    }
+                } catch (e) {}
+            }
+            
+            throw new Error(`PayPal Error: ${detailedMsg}`);
         }
     }
 

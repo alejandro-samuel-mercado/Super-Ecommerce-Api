@@ -37,8 +37,8 @@ function sanitizeErrorMessage(error) {
         const orderRef = match ? match[0] : 'Venta registrada';
         
         // Temporarily include original error to debug guest checkout
-        const detailedError = message.split(':')[1] || '';
-        return `${orderRef} con éxito, pero hubo un inconveniente: ${detailedError.trim()} \nRevise su email para continuar.`;
+        const detailedError = message.substring(message.indexOf(':') + 1) || '';
+        return `${orderRef} con éxito, pero la pasarela reportó: ${detailedError.trim()}`;
     }
 
     // 3. AGGRESSIVE STRIPPING of technical jargon

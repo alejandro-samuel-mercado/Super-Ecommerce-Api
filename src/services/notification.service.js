@@ -10,13 +10,18 @@ class NotificationService {
   async init() {
     // Si hay credenciales reales, usar SMTP
     if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+      console.log(`[NotificationService] Initializing SMTP with host: ${process.env.SMTP_HOST}`);
       this.transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
-        port: process.env.SMTP_PORT || 587,
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: parseInt(process.env.SMTP_PORT) === 465, // true for 465, false for 587
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
         },
+        tls: {
+          rejectUnauthorized: false
+        }
       });
     } else {
    
