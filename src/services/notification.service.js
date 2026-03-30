@@ -52,6 +52,8 @@ class NotificationService {
       const storeName = config?.storeName || 'Tienda Online';
       const fromEmail = process.env.SMTP_USER || 'no-reply@ecommerce.com';
 
+      console.log(`[NotificationService] Sending email to: ${to} | Subject: ${subject}`);
+      
       const info = await this.transporter.sendMail({
         from: `"${storeName}" <${fromEmail}>`,
         to,
@@ -62,11 +64,11 @@ class NotificationService {
 
       // La URL de vista previa solo está disponible cuando se envía a través de Ethereal
       const previewUrl = nodemailer.getTestMessageUrl(info);
+      if (previewUrl) console.log(`[NotificationService] Preview URL: ${previewUrl}`);
       
       return info;
     } catch (error) {
-      
-   
+      console.error('[NotificationService] Error sending email:', error.message);
       return null;
     }
   }

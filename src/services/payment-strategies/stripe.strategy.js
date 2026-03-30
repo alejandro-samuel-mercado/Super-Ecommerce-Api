@@ -21,7 +21,10 @@ class StripeStrategy extends PaymentStrategy {
     async createPreference(sale, user) {
         if (!this.client) throw new Error('Stripe Provider not configured');
 
-        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+        if (baseUrl.includes('localhost') && process.env.NODE_ENV === 'production') {
+            console.warn('[StripeStrategy] FRONTEND_URL is localhost in production! This may cause invalid URLs.');
+        }
 
         const prisma = require('../../config/prisma');
         const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
@@ -92,7 +95,7 @@ class StripeStrategy extends PaymentStrategy {
             line_items: lineItems,
             mode: 'payment',
             client_reference_id: String(sale.id),
-            customer_email: user?.email || sale.customerEmail || 'guest@example.com',
+            customer_email: user?.email || sale.customerEmail || 'invitado@misitio.com',
             metadata: {
                 saleId: String(sale.id),
             },

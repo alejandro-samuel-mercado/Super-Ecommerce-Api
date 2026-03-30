@@ -46,12 +46,20 @@ class PayPalStrategy extends PaymentStrategy {
               : convertToTarget(sale.total);
 
      
-        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+        const saleReference = user ? sale.id : (sale.uuid || sale.id);
 
         const request = new paypal.orders.OrdersCreateRequest();
         request.prefer("return=representation");
         request.requestBody({
             intent: 'CAPTURE',
+            payer: {
+                name: {
+                    given_name: (user?.name || sale.customerName || 'Invitado').split(' ')[0],
+                    surname: (user?.name || sale.customerName || 'Invitado').split(' ').slice(1).join(' ') || ' '
+                },
+                email_address: user?.email || sale.customerEmail || 'invitado@misitio.com'
+            },
             purchase_units: [{
                 reference_id: String(sale.id),
                 amount: {
@@ -64,8 +72,8 @@ class PayPalStrategy extends PaymentStrategy {
                 brand_name: process.env.STORE_NAME || 'Super E-commerce',
                 landing_page: 'BILLING',
                 user_action: 'PAY_NOW',
-                return_url: `${baseUrl}/checkout/success?gateway=paypal&saleId=${user ? sale.id : (sale.uuid || sale.id)}`,
-                cancel_url: `${baseUrl}/checkout/failure?gateway=paypal&saleId=${user ? sale.id : (sale.uuid || sale.id)}`
+                return_url: `${baseUrl}/checkout/success?gateway=paypal&saleId=${saleReference}`,
+                cancel_url: `${baseUrl}/checkout/failure?gateway=paypal&saleId=${saleReference}`
             }
         });
 

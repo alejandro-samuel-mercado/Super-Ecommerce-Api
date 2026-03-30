@@ -132,6 +132,10 @@ class SaleService {
         const reservationTTL =
             parseInt(process.env.STOCK_RESERVATION_TTL_MINUTES) || 30;
 
+        if (!user && !isPOS) {
+            console.log(`[SaleService] GUEST SALE CREATION: customer email: ${customer?.email || 'MISSING'}, name: ${customer?.name || 'MISSING'}`);
+        }
+
         const gatewaySlug = paymentType;
         const dbPaymentType = [
             "CASH",
@@ -566,11 +570,11 @@ class SaleService {
                             currencyCode: activeCurrencyCode,
                             exchangeRateAtPurchase: exchangeRateAtPurchase,
                             totalInBaseCurrency: totalInBaseCurrency,
-                            customerName: saleData.customer?.name || null,
-                            customerEmail: saleData.customer?.email || null,
-                            customerPhone: saleData.customer?.phone || null,
-                            customerDni: saleData.customer?.dni || null,
-                            customerAddress: saleData.customer?.address || null,
+                            customerName: (typeof customer === 'object' ? customer?.name : null) || saleData.customerEmail || null,
+                            customerEmail: (typeof customer === 'object' ? customer?.email : null) || saleData.customerEmail || null,
+                            customerPhone: (typeof customer === 'object' ? customer?.phone : null) || saleData.customerPhone || null,
+                            customerDni: (typeof customer === 'object' ? customer?.dni : null) || saleData.customerDni || null,
+                            customerAddress: (typeof customer === 'object' ? customer?.address : null) || saleData.customerAddress || null,
                             items: {
                                 create: saleItemsData,
                             },

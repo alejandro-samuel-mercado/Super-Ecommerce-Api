@@ -58,21 +58,26 @@ class MercadoPagoStrategy extends PaymentStrategy {
             currency_id: baseCurrency
         });
 
-        const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
+        if (baseUrl.includes('localhost') && process.env.NODE_ENV === 'production') {
+            console.warn('[MercadoPagoStrategy] FRONTEND_URL is localhost in production! This may cause invalid back_urls.');
+        }
+        const saleReference = user ? sale.id : (sale.uuid || sale.id);
+
         const preferenceBody = {
             items: items,
             payer: {
-                email: user?.email || sale.customerEmail || 'guest@example.com',
-                name: user?.name || sale.customerName || 'Guest'
+                email: user?.email || sale.customerEmail || 'invitado@misitio.com',
+                name: user?.name || sale.customerName || 'Invitado'
             },
-            external_reference: String(user ? sale.id : (sale.uuid || sale.id)),
+            external_reference: String(saleReference),
             back_urls: {
-                success: `${baseUrl}/checkout/success`,
-                failure: `${baseUrl}/checkout/failure`,
-                pending: `${baseUrl}/checkout/pending`
+                success: `${baseUrl}/checkout/success?gateway=mercadopago&saleId=${saleReference}`,
+                failure: `${baseUrl}/checkout/failure?gateway=mercadopago&saleId=${saleReference}`,
+                pending: `${baseUrl}/checkout/pending?gateway=mercadopago&saleId=${saleReference}`
             },
-              auto_return: "approved",
-            statement_descriptor: storeName.substring(0, 22)
+            auto_return: "approved",
+            statement_descriptor: "Tienda Online"
         };
 
         try {
@@ -80,7 +85,9 @@ class MercadoPagoStrategy extends PaymentStrategy {
             return result.init_point;
         } catch (error) {
             console.error('MP Create Error:', error);
-            throw error;
+            // Si el error tiene una respuesta detallada de MP, mostrarla
+            const mpError = error.cause || error.message || error;
+            throw new Error(`Error de Mercado Pago: ${JSON.stringify(mpError)}`);
         }
     }
 

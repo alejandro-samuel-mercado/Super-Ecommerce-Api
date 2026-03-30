@@ -35,7 +35,10 @@ function sanitizeErrorMessage(error) {
     if (message.includes('Venta creada')) {
         const match = message.match(/Venta creada \(#.*?\)/);
         const orderRef = match ? match[0] : 'Venta registrada';
-        return `${orderRef} con éxito, pero hubo un inconveniente al cargar el pago. \nRevise su email para continuar.`;
+        
+        // Temporarily include original error to debug guest checkout
+        const detailedError = message.split(':')[1] || '';
+        return `${orderRef} con éxito, pero hubo un inconveniente: ${detailedError.trim()} \nRevise su email para continuar.`;
     }
 
     // 3. AGGRESSIVE STRIPPING of technical jargon
