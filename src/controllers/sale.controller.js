@@ -98,9 +98,11 @@ class SaleController {
       }
 
       const currencyCodeReq = req.body.currencyCode || req.headers['x-currency'];
-      const currency = currencyCodeReq 
+      const currencyObj = currencyCodeReq 
           ? await CurrencyService.getCurrencyByCode(currencyCodeReq) 
           : await CurrencyService.getCurrencyByContext(req);
+      
+      const currency = currencyObj?.code || 'USD';
 
       const customerIpCountry = (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase();
       const saleData = { ...req.body, employeeId, pointsToUse: req.body.pointsToUse || 0, branchId, currency, customerIpCountry, ip: req.ip };
