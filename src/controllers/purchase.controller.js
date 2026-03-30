@@ -1,4 +1,5 @@
 const PurchaseService = require('../services/purchase.service');
+const UploadService = require('../services/upload.service');
 
 class PurchaseController {
     
@@ -22,7 +23,16 @@ class PurchaseController {
 
     async create(req, res) {
         try {
-            const purchase = await PurchaseService.create(req.body, req.user.id);
+            const data = { ...req.body };
+            if (req.file) {
+                const invoiceUrl = await UploadService.uploadImage(req.file.buffer, 'purchases');
+                data.invoiceUrl = invoiceUrl;
+            }
+            // Parse items if they come as string (common with multipart/form-data)
+            if (typeof data.items === 'string') {
+                data.items = JSON.parse(data.items);
+            }
+            const purchase = await PurchaseService.create(data, req.user.id);
             res.status(201).json({ success: true, data: purchase });
         } catch (error) {
             res.status(400).json({ success: false, message: error.message });

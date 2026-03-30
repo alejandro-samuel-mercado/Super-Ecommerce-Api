@@ -71,6 +71,19 @@ class StockTransferController {
           next(error);
       }
   }
+
+  async downloadPdf(req, res, next) {
+      try {
+          const { id } = req.params;
+          const buffer = await StockTransferService.getPdfBuffer(id);
+          
+          res.setHeader('Content-Type', 'application/pdf');
+          res.setHeader('Content-Disposition', `attachment; filename=transferencia-${id}.pdf`);
+          res.send(buffer);
+      } catch (error) {
+          next(error);
+      }
+  }
 }
 
 module.exports = new StockTransferController();

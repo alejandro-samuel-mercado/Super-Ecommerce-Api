@@ -367,6 +367,14 @@ class AdminStockController {
    */
   async updateInventory(req, res, next) {
     try {
+      const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+      if (config && config.enableManualStock === false) {
+        return res.status(403).json({
+          success: false,
+          message: "La edición manual de stock está deshabilitada en la configuración global."
+        });
+      }
+
       const { id } = req.params;
       const { stock, minStock, price } = req.body;
       let parsedBranchId = req.branchId;

@@ -30,7 +30,8 @@ model Product {
   basePrice       Decimal        @db.Decimal(10, 2)
   brand           String
   condition       ItemCondition  @default(NEW)
-  createdAt       DateTime       @default(now())
+  createdAt       DateTime             @default(now())
+  taxRate         Decimal?             @db.Decimal(10, 2)
   description     String
   id              Int            @id @default(autoincrement())
   isNew           Boolean        @default(false)
@@ -267,6 +268,7 @@ model Sale {
   totalInBaseCurrency    Decimal?             @db.Decimal(10, 2)
   paymentProofUploadedAt DateTime?
   paymentProofUrl        String?
+  invoiceUrl             String?
   cancelReason           String?
   paymentTransactions    PaymentTransaction[]
   branch                 Branch               @relation(fields: [branchId], references: [id])
@@ -287,6 +289,7 @@ model SaleItem {
   unitPrice              Decimal          @db.Decimal(10, 2)
   quantity               Decimal          @db.Decimal(10, 3)
   subtotal               Decimal          @db.Decimal(10, 2)
+  taxRate                Decimal?         @db.Decimal(10, 2)
   skuId                  Int?
   branchInventoryId      Int?
   measurementUnit        String?          @default("UNIDAD")
@@ -416,6 +419,7 @@ model StoreConfig {
   enableTransfers        Boolean  @default(true)
   enableStockMovements   Boolean  @default(true)
   enableStockControl     Boolean  @default(true)
+  enableManualStock      Boolean  @default(true)
   enablePointsRedemption Boolean  @default(false)
   moneyPerPoint          Decimal  @default(1.0) @db.Decimal(12, 4)
   socialInstagram        String?
@@ -999,6 +1003,7 @@ model Expense {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   isActive         Boolean  @default(true)
+  invoiceUrl       String?
 
   admin            User     @relation("UserExpenses", fields: [adminId], references: [id])
   branch           Branch?  @relation("BranchExpenses", fields: [branchId], references: [id])

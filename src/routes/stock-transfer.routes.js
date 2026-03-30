@@ -49,4 +49,11 @@ router.put('/:id/receive', restrictTo(['ADMIN', 'SUPER_ADMIN']), StockTransferCo
  */
 router.put('/:id/cancel', restrictTo('ADMIN', 'SUPER_ADMIN'), StockTransferController.cancel);
 
+/**
+ * @route GET /api/stock-transfers/:id/pdf
+ * @desc Descargar PDF de transferencia
+ * @access Privado
+ */
+router.get('/:id/pdf', StockTransferController.downloadPdf);
+
 module.exports = router;

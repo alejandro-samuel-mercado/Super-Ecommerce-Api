@@ -127,6 +127,7 @@ class PurchaseService {
               currencyCode: activeCurrencyCode,
               exchangeRateAtPurchase,
               totalInBaseCurrency: estimatedTotal / exchangeRateAtPurchase,
+              invoiceUrl: data.invoiceUrl || null,
               items: {
                   create: items.map(item => ({
                       skuId: item.skuId,

@@ -297,6 +297,13 @@ class StockTransferService {
           }
       }, { maxWait: 20000, timeout: 20000 });
   }
+
+  async getPdfBuffer(id) {
+    const transfer = await this.getById(id);
+    const storeConfig = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+    const StockTransferPdfGenerator = require('../utils/stock-transfer-pdf-generator');
+    return await StockTransferPdfGenerator.generate(transfer, storeConfig);
+  }
 }
 
 module.exports = new StockTransferService();

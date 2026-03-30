@@ -24,12 +24,15 @@ router.get('/:id', PurchaseController.getById);
 // Acciones restringidas (Solo Admin/SuperAdmin)
 router.use(restrictTo('ADMIN', 'SUPER_ADMIN'));
 
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+
 /**
  * @route POST /api/purchases
  * @desc Crear una nueva orden de compra
  * @access Admin/Super Admin
  */
-router.post('/', PurchaseController.create);
+router.post('/', upload.single('invoice'), PurchaseController.create);
 
 /**
  * @route POST /api/purchases/:id/confirm

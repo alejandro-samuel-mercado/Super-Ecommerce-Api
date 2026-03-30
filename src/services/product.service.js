@@ -59,7 +59,8 @@ class ProductService {
             specifications,
             youtubeVideo,
             nutritionalInfo,
-            octagonsImage
+            octagonsImage,
+            taxRate
         } = data;
         // Normalización: alias 'skus' para 'variants'
         const finalVariants = variants || skus || [];
@@ -87,7 +88,8 @@ class ProductService {
                     specifications: specifications || [],
                     youtubeVideo: youtubeVideo || null,
                     nutritionalInfo: nutritionalInfo || null,
-                    octagonsImage: octagonsImage || null
+                    octagonsImage: octagonsImage || null,
+                    taxRate: taxRate !== undefined ? (taxRate === "" || taxRate === null || isNaN(parseFloat(taxRate)) ? null : parseFloat(taxRate)) : null
                 }
             });
 
@@ -660,8 +662,8 @@ class ProductService {
                     model: data.model,
                     description: data.description,
                     basePrice: data.basePrice,
-                    pointsValue: data.pointsValue ? parseInt(data.pointsValue) : undefined,
-                    pointsReward: data.pointsReward ? parseInt(data.pointsReward) : undefined,
+                    pointsValue: data.pointsValue !== undefined ? parseInt(data.pointsValue) : undefined,
+                    pointsReward: data.pointsReward !== undefined ? parseInt(data.pointsReward) : undefined,
                     images: data.images,
                     categoryId: data.categoryId ? parseInt(data.categoryId) : undefined,
                     isActive: data.isActive,
@@ -676,7 +678,8 @@ class ProductService {
                     specifications: data.specifications !== undefined ? data.specifications : undefined,
                     youtubeVideo: data.youtubeVideo !== undefined ? data.youtubeVideo : undefined,
                     nutritionalInfo: data.nutritionalInfo !== undefined ? data.nutritionalInfo : undefined,
-                    octagonsImage: data.octagonsImage !== undefined ? data.octagonsImage : undefined
+                    octagonsImage: data.octagonsImage !== undefined ? data.octagonsImage : undefined,
+                    taxRate: data.taxRate !== undefined ? (data.taxRate === "" || data.taxRate === null || isNaN(parseFloat(data.taxRate)) ? null : parseFloat(data.taxRate)) : undefined
                 },
                 include: { category: true }
             });

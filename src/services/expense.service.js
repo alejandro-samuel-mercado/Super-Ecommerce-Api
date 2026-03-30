@@ -29,7 +29,8 @@ class ExpenseService {
                 category: data.category,
                 notes: data.notes || null,
                 expenseDate: expenseDate,
-                isActive: true
+                isActive: true,
+                invoiceUrl: data.invoiceUrl || null
             }
         });
 

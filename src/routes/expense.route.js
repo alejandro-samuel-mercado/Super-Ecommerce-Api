@@ -14,9 +14,12 @@ const createValidators = [
 router.use(protect);
 router.use(restrictTo(['SUPER_ADMIN', 'ADMIN']));
 
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+
 router.get('/', ExpenseController.findAll);
 router.get('/:id', ExpenseController.getById);
-router.post('/', createValidators, ExpenseController.create);
+router.post('/', upload.single('invoice'), createValidators, ExpenseController.create);
 router.delete('/:id', ExpenseController.delete);
 
 module.exports = router;

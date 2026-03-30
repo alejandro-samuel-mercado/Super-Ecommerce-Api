@@ -313,6 +313,8 @@ class SaleService {
             }
           }
 
+          const itemTaxRate = product.taxRate !== null ? Number(product.taxRate) : Number(storeConfigCached.taxRate);
+
           saleItemsData.push({
             productName: product.name,
             skuCode: sku.code,
@@ -323,6 +325,7 @@ class SaleService {
             unitCostBase: unitCostBase,
             skuId: sku.id,
             measurementUnit: product.measurementUnit,
+            taxRate: itemTaxRate,
           });
 
           enrichedItems.push({
@@ -505,13 +508,20 @@ class SaleService {
           subtotal - totalDiscount - pointsDiscount,
         ).toFixed(2));
 
-        if (
-          isLocal &&
-          taxesEnabled &&
-          storeConfig &&
-          Number(storeConfig.taxRate) > 0
-        ) {
-          tax = subtotalNeto * (Number(storeConfig.taxRate) / 100);
+        if (isLocal && taxesEnabled && storeConfig) {
+          const discountRatio = subtotal > 0 ? subtotalNeto / subtotal : 0;
+          let calculatedTax = 0;
+          saleItemsData.forEach(item => {
+            const itemFinalSubtotal = item.subtotal * discountRatio;
+            const itemTaxRate = Number(item.taxRate || 0);
+
+            if (itemTaxRate > 0) {
+              // IVA Incluido: (Subtotal / (1 + Rate/100)) * (Rate/100)
+              const taxAmount = (itemFinalSubtotal / (1 + (itemTaxRate / 100))) * (itemTaxRate / 100);
+              calculatedTax += taxAmount;
+            }
+          });
+          tax = calculatedTax;
         }
 
         tax = parseFloat(tax.toFixed(2));
@@ -1148,15 +1158,25 @@ class SaleService {
       pointsDiscount = parseFloat(Math.max(0, subtotal - totalDiscount).toFixed(2));
     }
 
-    if (
-      isLocal &&
-      previewTaxesEnabled &&
-      storeConfig &&
-      Number(storeConfig.taxRate) > 0
-    ) {
-      tax =
-        (subtotal - totalDiscount - pointsDiscount) *
-        (Number(storeConfig.taxRate) / 100);
+    if (isLocal && previewTaxesEnabled && storeConfig) {
+      const taxableBase = Math.max(0, subtotal - totalDiscount - pointsDiscount);
+      const discountRatio = subtotal > 0 ? taxableBase / subtotal : 0;
+      const globalTaxRate = Number(storeConfig.taxRate) || 0;
+
+      let calculatedTax = 0;
+      for (const ei of enrichedItems) {
+        const itemTaxRate =
+          ei.product?.taxRate !== null && ei.product?.taxRate !== undefined
+            ? parseFloat(ei.product.taxRate.toString())
+            : globalTaxRate;
+
+        if (itemTaxRate > 0) {
+          const itemGross = ei.unitPrice * ei.quantity;
+          const itemTaxable = itemGross * discountRatio;
+          calculatedTax += itemTaxable * (itemTaxRate / 100);
+        }
+      }
+      tax = calculatedTax;
     }
 
     tax = parseFloat(tax.toFixed(2));

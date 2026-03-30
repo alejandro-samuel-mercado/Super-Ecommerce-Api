@@ -1,4 +1,5 @@
 const ExpenseService = require('../services/expense.service');
+const UploadService = require('../services/upload.service');
 const { validationResult } = require('express-validator');
 
 class ExpenseController {
@@ -9,9 +10,15 @@ class ExpenseController {
                 return res.status(400).json({ success: false, errors: errors.array() });
             }
 
+            const data = { ...req.body };
+            if (req.file) {
+                const invoiceUrl = await UploadService.uploadImage(req.file.buffer, 'expenses');
+                data.invoiceUrl = invoiceUrl;
+            }
+
             const adminId = req.user.id;
             const ip = req.ip || req.connection.remoteAddress;
-            const expense = await ExpenseService.create(req.body, adminId, ip);
+            const expense = await ExpenseService.create(data, adminId, ip);
             res.status(201).json({ success: true, data: expense });
         } catch (error) {
             next(error);

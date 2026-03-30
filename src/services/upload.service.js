@@ -20,7 +20,7 @@ class UploadService {
   async uploadImage(buffer, folder = 'general') {
     return new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: folder, resource_type: 'image' },
+        { folder: folder, resource_type: 'auto' },
         (error, result) => {
           if (error) return reject(error);
           resolve(result.secure_url);
