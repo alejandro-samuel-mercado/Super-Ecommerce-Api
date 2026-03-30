@@ -15,10 +15,24 @@ class PaymentWebhookService {
         return { status: 'DUPLICATE', saleId: transaction.saleId };
       }
       
-      const saleId = parseInt(webhookData.external_reference);
-      if (!saleId || isNaN(saleId)) {
-        throw new Error('Invalid external_reference in webhook data');
+      const extRef = webhookData.external_reference;
+      
+      // Intentar encontrar la venta por ID o UUID
+      let sale = await tx.sale.findFirst({
+        where: {
+          OR: [
+            { id: parseInt(extRef) || -1 },
+            { uuid: extRef }
+          ]
+        },
+        include: { items: true, user: true }
+      });
+
+      if (!sale) {
+        throw new Error(`Invalid external_reference (${extRef}) in webhook data`);
       }
+
+      const saleId = sale.id;
       
       if (!transaction) {
         transaction = await tx.paymentTransaction.create({
@@ -39,19 +53,6 @@ class PaymentWebhookService {
             webhookPayload: webhookData
           },
           include: { sale: true }
-        });
-      }
-      
-      let sale = transaction.sale;
-      if (!sale) {
-        sale = await tx.sale.findUnique({
-          where: { id: saleId },
-          include: { items: true, user: true }
-        });
-      } else {
-        sale = await tx.sale.findUnique({
-          where: { id: sale.id },
-          include: { items: true, user: true }
         });
       }
       
@@ -224,8 +225,20 @@ class PaymentWebhookService {
     return result;
   }
   
-  async handlePaymentFailure(paymentId, saleId) {
+  async handlePaymentFailure(paymentId, externalReference) {
+    const extRef = String(externalReference);
     return await prisma.$transaction(async (tx) => {
+      const sale = await tx.sale.findFirst({
+        where: {
+          OR: [
+            { id: parseInt(extRef) || -1 },
+            { uuid: extRef }
+          ]
+        }
+      });
+
+      if (!sale) throw new Error(`Sale not found for reference ${extRef}`);
+      const saleId = sale.id;
       await tx.paymentTransaction.upsert({
         where: { paymentId: String(paymentId) },
         create: {
@@ -241,7 +254,7 @@ class PaymentWebhookService {
         }
       });
 
-      const sale = await tx.sale.update({
+      const updatedSale = await tx.sale.update({
         where: { id: saleId },
         data: { 
           paymentStatus: 'REJECTED',
@@ -283,8 +296,18 @@ class PaymentWebhookService {
   }
 
   async handlePendingPayment(paymentId, webhookData) {
-    const saleId = parseInt(webhookData.external_reference);
-    if (!saleId || isNaN(saleId)) return;
+    const extRef = webhookData.external_reference;
+    const sale = await prisma.sale.findFirst({
+      where: {
+        OR: [
+          { id: parseInt(extRef) || -1 },
+          { uuid: extRef }
+        ]
+      }
+    });
+
+    if (!sale) return;
+    const saleId = sale.id;
 
     await prisma.paymentTransaction.upsert({
       where: { paymentId: String(paymentId) },

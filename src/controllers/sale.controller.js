@@ -5,6 +5,7 @@ const CurrencyService = require('../services/currency.service');
 const UploadService = require('../services/upload.service');
 const InAppNotificationService = require('../services/in-app-notification.service');
 const { ensureAbsoluteUrl } = require('../utils/url.util');
+const { sanitizeErrorMessage } = require('../utils/error-sanitizer');
 
 const mapSaleUrls = (sale, req) => {
   if (!sale) return sale;
@@ -123,10 +124,43 @@ class SaleController {
     } catch (error) {
       const knownErrors = ['Insufficient stock', 'stock', 'Coupon', 'coupon', 'Points', 'points', 'address', 'shipping', 'branch', 'transfer', 'Cart', 'cart', 'pago', 'payment', 'paypal'];
       if (knownErrors.some(msg => error.message.toLowerCase().includes(msg.toLowerCase()))) {
-          return res.status(400).json({ success: false, message: error.message });
+          return res.status(400).json({ success: false, message: sanitizeErrorMessage(error) });
       }
       next(error);
     }
+  }
+
+  async getGuestSale(req, res, next) {
+      try {
+          const { uuid } = req.params;
+          const sale = await SaleService.getSaleByUuid(uuid);
+          res.json({ success: true, data: mapSaleUrls(sale, req) });
+      } catch (error) {
+          if (error.message.includes('inválido') || error.message.includes('no existe')) 
+              return res.status(404).json({ success: false, message: error.message });
+          next(error);
+      }
+  }
+
+  async getGuestInvoice(req, res, next) {
+      try {
+          const { uuid } = req.params;
+          const sale = await SaleService.getSaleByUuid(uuid);
+          const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+          const pdfBuffer = await InvoiceService.generateInvoicePDF(sale, config);
+
+          res.set({
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `attachment; filename=invoice-${sale.uuid || sale.id}.pdf`,
+              'Content-Length': pdfBuffer.length
+          });
+          
+          res.send(pdfBuffer);
+      } catch (error) {
+          if (error.message.includes('inválido') || error.message.includes('no existe')) 
+              return res.status(404).json({ success: false, message: error.message });
+          next(error);
+      }
   }
 
   async getOne(req, res, next) {

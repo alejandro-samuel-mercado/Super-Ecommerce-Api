@@ -115,8 +115,13 @@ class ProductController {
       const branchId = req.branchId;
       const currency = req.headers['x-currency'] || req.query.currency;
       const recommendations = await ProductService.getRecommendations(id, branchId, currency);
-      const mappedRecommendations = recommendations.map(p => mapProductUrls(p, req));
-      res.status(200).json({ success: true, data: mappedRecommendations });
+      
+      const mapped = {
+        related: (recommendations.related || []).map(p => mapProductUrls(p, req)),
+        boughtTogether: (recommendations.boughtTogether || []).map(p => mapProductUrls(p, req))
+      };
+
+      res.status(200).json({ success: true, data: mapped });
     } catch (error) {
       next(error);
     }

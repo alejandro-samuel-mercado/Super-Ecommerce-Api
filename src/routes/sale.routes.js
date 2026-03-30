@@ -18,7 +18,9 @@ const checkoutLimiter = rateLimit({
 
 const router = Router();
 
-// Rutas que requieren autenticación OPCIONAL (Invitados permitidos)
+router.get('/guest/:uuid', SaleController.getGuestSale);
+router.get('/guest/:uuid/invoice', SaleController.getGuestInvoice);
+
 router.post('/preview', optionalProtect, SaleController.preview);
 
 /**

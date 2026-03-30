@@ -218,16 +218,17 @@ app.use(async (err, req, res, next) => {
  
 
   // 3. Send Sanitized Response
+  const { sanitizeErrorMessage } = require('./utils/error-sanitizer');
 
   const isOperational = err.isOperational || (statusCode >= 400 && statusCode < 500);
-  const responseMessage = isOperational ? err.message : 'Ha ocurrido un error interno. Por favor intente más tarde.';
+  const responseMessage = isOperational ? sanitizeErrorMessage(err) : 'Ha ocurrido un error interno. Por favor intente más tarde.';
 
   res.status(statusCode).json({ 
     success: false, 
     message: responseMessage,
     error_code: err.errorCode || err.code || 'INTERNAL_ERROR',
     reference_id: logId,
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    // Stack trace removed to keep responses clean
   });
 });
 

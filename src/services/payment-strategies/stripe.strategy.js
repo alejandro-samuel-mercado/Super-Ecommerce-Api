@@ -92,12 +92,12 @@ class StripeStrategy extends PaymentStrategy {
             line_items: lineItems,
             mode: 'payment',
             client_reference_id: String(sale.id),
-            customer_email: user.email,
+            customer_email: user?.email || sale.customerEmail || 'guest@example.com',
             metadata: {
                 saleId: String(sale.id),
             },
-            success_url: `${baseUrl}/checkout/success?gateway=stripe&session_id={CHECKOUT_SESSION_ID}&saleId=${sale.id}`,
-            cancel_url: `${baseUrl}/checkout/failure?gateway=stripe&saleId=${sale.id}`,
+            success_url: `${baseUrl}/checkout/success?gateway=stripe&session_id={CHECKOUT_SESSION_ID}&saleId=${user ? sale.id : (sale.uuid || sale.id)}`,
+            cancel_url: `${baseUrl}/checkout/failure?gateway=stripe&saleId=${user ? sale.id : (sale.uuid || sale.id)}`,
         });
 
         return session.url;

@@ -48,8 +48,9 @@ class SaleService {
     }
 
     async createSale(userId, saleData) {
+        let user = null;
         if (userId) {
-            const user = await prisma.user.findUnique({
+            user = await prisma.user.findUnique({
                 where: { id: parseInt(userId) },
             });
             if (
@@ -764,7 +765,10 @@ class SaleService {
             },
         );
 
-        const { sale, user, ticketNumber } = transactionResult;
+        const { sale: createdSale, ticketNumber: tn } = transactionResult;
+        let sale = createdSale;
+        let ticketNumber = tn;
+        // user ya está declarado arriba y se actualizó dentro de la transacción
         let checkoutUrl = "";
 
         // Notificar a Admins sobre nueva venta en tiempo real
@@ -807,7 +811,9 @@ class SaleService {
 
         if (sale.paymentStatus !== "PAID") {
             if (["CASH", "TRANSFER", "DEBIT", "QR"].includes(sale.paymentType)) {
-                checkoutUrl = `/checkout/pending?saleId=${sale.id}`;
+                // Si es un usuario logueado usamos ID, si es invitado usamos UUID
+                const referenceId = user ? sale.id : (sale.uuid || sale.id);
+                checkoutUrl = `/checkout/pending?saleId=${referenceId}`;
             } else {
                 try {
                     checkoutUrl = await PaymentAdapter.createPreference(
@@ -833,6 +839,7 @@ class SaleService {
                             sale.id,
                             sale.total,
                             sale.paymentType,
+                            sale.uuid,
                         );
                     await NotificationService.sendEmail(
                         user?.email || sale.customerEmail,
@@ -984,6 +991,19 @@ class SaleService {
                     available: 0,
                     requested: itemQty,
                     reason: "Not available in branch",
+                });
+                
+                const unitPrice = pricesMap[skuIdInt] || parseFloat(sku.price.toString());
+                subtotal += unitPrice * itemQty;
+                enrichedItems.push({
+                    skuId: sku.id,
+                    id: sku.id,
+                    quantity: itemQty,
+                    sku: { ...sku, product: sku.product },
+                    unitPrice,
+                    product: sku.product,
+                    availableStock: 0,
+                    currencyCode: activeCurrencyCode,
                 });
             } else {
                 const reservedQty = Number(resMap.get(skuIdInt) || 0);
@@ -1245,6 +1265,47 @@ class SaleService {
         const roleName = typeof role === "string" ? role : role?.name;
         if (roleName === "CUSTOMER" && sale.userId !== userId)
             throw new Error("No tienes permisos para visualizar esta orden.");
+    }
+
+    async getSaleByUuid(uuid) {
+        if (!uuid || typeof uuid !== 'string')
+            throw new Error("UUID de venta inválido.");
+
+        const sale = await prisma.sale.findUnique({
+            where: { uuid: uuid },
+            include: {
+                items: true,
+                coupon: true,
+                currency: true,
+                branch: true,
+                receipt: true,
+                user: {
+                    select: {
+                        name: true,
+                        email: true,
+                        dni: true,
+                        phone: true,
+                        country: true,
+                        state: true,
+                        city: true,
+                        address: true,
+                    },
+                },
+                employee: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                        phone: true,
+                        country: true,
+                        state: true,
+                        city: true,
+                        address: true,
+                    },
+                },
+            },
+        });
+        if (!sale) throw new Error("La venta solicitada no existe o el enlace es inválido.");
         return sale;
     }
 

@@ -62,10 +62,10 @@ class MercadoPagoStrategy extends PaymentStrategy {
         const preferenceBody = {
             items: items,
             payer: {
-                email: user.email,
-                name: user.name
+                email: user?.email || sale.customerEmail || 'guest@example.com',
+                name: user?.name || sale.customerName || 'Guest'
             },
-            external_reference: String(sale.id),
+            external_reference: String(user ? sale.id : (sale.uuid || sale.id)),
             back_urls: {
                 success: `${baseUrl}/checkout/success`,
                 failure: `${baseUrl}/checkout/failure`,

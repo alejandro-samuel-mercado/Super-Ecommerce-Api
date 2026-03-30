@@ -71,8 +71,10 @@ class ShippingService {
       addressString = String(addressData).toLowerCase();
     }
 
-    if (!addressString && !city && !province)
-      throw new Error("Se requiere dirección para envío a domicilio");
+    if (!addressString && !city && !province) {
+      const defaultCost = await this.getDefaultCost();
+      return defaultCost;
+    }
 
     // Obtener zonas activas
     const defaultCost = await this.getDefaultCost();

@@ -36,7 +36,7 @@ class WebhookController {
                  await PaymentWebhookService.handlePendingPayment(paymentId, raw);
             } else if (status === 'rejected' || status === 'cancelled') {
                  if (externalReference) {
-                    await PaymentWebhookService.handlePaymentFailure(paymentId, parseInt(externalReference));
+                    await PaymentWebhookService.handlePaymentFailure(paymentId, externalReference);
                  }
             }
 
