@@ -5,9 +5,9 @@ class TransferService {
   /**
    * Crea una nueva transferencia con comprobante
    */
-  async createTransfer(userId, amount, imageBuffer, branchId) {
+  async createTransfer(userId, amount, imageBuffer, branchId, baseUrl) {
     // 1. Subir imagen
-    const imageUrl = await UploadService.uploadImage(imageBuffer, 'comprobantes');
+    const imageUrl = await UploadService.uploadImage(imageBuffer, 'comprobantes', baseUrl);
 
     // 2. Crear registro
     return await prisma.transfer.create({

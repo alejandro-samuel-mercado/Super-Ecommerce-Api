@@ -1,4 +1,5 @@
 const express = require('express');
+const path = require('path');
 const cors = require('cors');
 const morgan = require('morgan');
 const helmet = require('helmet');
@@ -129,6 +130,9 @@ app.use('/api/admin', adminRoutes);
 
 const uploadRoutes = require('./routes/upload.routes');
 app.use('/api/upload', uploadRoutes);
+
+// Servir archivos estáticos de subidas locales
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 const transferRoutes = require('./routes/transfer.routes');
 app.use('/api/transfers', checkMaintenanceMode, transferRoutes);

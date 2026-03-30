@@ -264,7 +264,8 @@ class SaleController {
           return res.status(400).json({ success: false, message: 'No se puede modificar el comprobante de una venta ya pagada' });
       }
 
-      const url = await UploadService.uploadImage(req.file.buffer, 'comprobantes');
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const url = await UploadService.uploadImage(req.file.buffer, 'comprobantes', baseUrl);
 
       const updatedSale = await prisma.sale.update({
         where: { id: parseInt(id) },
@@ -352,7 +353,8 @@ class SaleController {
         return res.status(400).json({ success: false, message: 'No se puede modificar el QR de una venta ya pagada' });
       }
 
-      const url = await UploadService.uploadImage(req.file.buffer, 'qr-pagos');
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const url = await UploadService.uploadImage(req.file.buffer, 'qr-pagos', baseUrl);
 
       await prisma.sale.update({
         where: { id: parseInt(id) },

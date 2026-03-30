@@ -16,7 +16,8 @@ class TransferController {
           return res.status(400).json({ success: false, message: 'Debe ingresar el monto' });
       }
 
-      const transfer = await TransferService.createTransfer(userId, amount, req.file.buffer, branchId);
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const transfer = await TransferService.createTransfer(userId, amount, req.file.buffer, branchId, baseUrl);
 
       res.status(201).json({
         success: true,

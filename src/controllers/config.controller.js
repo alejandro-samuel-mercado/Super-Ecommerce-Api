@@ -220,9 +220,15 @@ const updateConfig = async (req, res) => {
 
 const getPublicConfig = async (req, res) => {
   try {
-    let config = await prisma.storeConfig.findFirst({
-      where: { id: 1 }
-    });
+    let config;
+    try {
+      config = await prisma.storeConfig.findFirst({
+        where: { id: 1 }
+      });
+    } catch (dbError) {
+      console.error("[ConfigController] DB Error fetching config, using defaults:", dbError.message);
+      config = null;
+    }
 
     if (!config) {
       config = {
