@@ -4,6 +4,26 @@ const InvoiceService = require('../services/invoice.service');
 const CurrencyService = require('../services/currency.service');
 const UploadService = require('../services/upload.service');
 const InAppNotificationService = require('../services/in-app-notification.service');
+const { ensureAbsoluteUrl } = require('../utils/url.util');
+
+const mapSaleUrls = (sale, req) => {
+  if (!sale) return sale;
+  const s = { ...sale };
+  if (s.paymentProofUrl) s.paymentProofUrl = ensureAbsoluteUrl(s.paymentProofUrl, req);
+  if (s.qrCodeUrl) s.qrCodeUrl = ensureAbsoluteUrl(s.qrCodeUrl, req);
+  if (s.items && Array.isArray(s.items)) {
+    s.items = s.items.map(item => {
+      if (item.sku && item.sku.product) {
+        item.sku.product = {
+          ...item.sku.product,
+          images: (item.sku.product.images || []).map(img => ensureAbsoluteUrl(img, req))
+        };
+      }
+      return item;
+    });
+  }
+  return s;
+};
 
 class SaleController {
 
@@ -116,7 +136,7 @@ class SaleController {
           const roleName = userRole.name || userRole; 
 
           const sale = await SaleService.getSaleById(id, userId, roleName);
-          res.json({ success: true, data: sale });
+          res.json({ success: true, data: mapSaleUrls(sale, req) });
       } catch (error) {
           if (error.message.includes('Permission denied')) return res.status(403).json({ success: false, message: error.message });
           if (error.message.includes('not found')) return res.status(404).json({ success: false, message: error.message });
@@ -163,7 +183,11 @@ class SaleController {
             page,
             limit
         }); 
-        res.json({ success: true, data: result });
+        const mappedResult = {
+            ...result,
+            data: result.data.map(s => mapSaleUrls(s, req))
+        };
+        res.json({ success: true, data: mappedResult });
     } catch (error) {
         next(error);
     }
@@ -173,7 +197,8 @@ class SaleController {
       try {
           const { includePending } = req.query;
           const sales = await SaleService.getUserSales(req.user.id, includePending !== 'false');
-          res.json({ success: true, data: sales });
+          const mappedSales = sales.map(s => mapSaleUrls(s, req));
+          res.json({ success: true, data: mappedSales });
       } catch (error) {
           next(error);
       }
@@ -264,7 +289,7 @@ class SaleController {
           return res.status(400).json({ success: false, message: 'No se puede modificar el comprobante de una venta ya pagada' });
       }
 
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const baseUrl = process.env.API_URL || `${req.protocol}://${req.get('host')}`;
       const url = await UploadService.uploadImage(req.file.buffer, 'comprobantes', baseUrl);
 
       const updatedSale = await prisma.sale.update({
@@ -353,7 +378,7 @@ class SaleController {
         return res.status(400).json({ success: false, message: 'No se puede modificar el QR de una venta ya pagada' });
       }
 
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const baseUrl = process.env.API_URL || `${req.protocol}://${req.get('host')}`;
       const url = await UploadService.uploadImage(req.file.buffer, 'qr-pagos', baseUrl);
 
       await prisma.sale.update({

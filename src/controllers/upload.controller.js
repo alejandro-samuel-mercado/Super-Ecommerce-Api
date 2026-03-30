@@ -8,7 +8,7 @@ class UploadController {
         return res.status(400).json({ success: false, message: 'No se envió ningún archivo' });
       }
 
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const baseUrl = process.env.API_URL || `${req.protocol}://${req.get('host')}`;
       const url = await UploadService.uploadImage(req.file.buffer, req.body.folder || 'productos', baseUrl);
 
       res.status(201).json({

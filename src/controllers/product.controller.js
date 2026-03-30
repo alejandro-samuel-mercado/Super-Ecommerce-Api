@@ -1,4 +1,17 @@
 const ProductService = require('../services/product.service');
+const { ensureAbsoluteUrl } = require('../utils/url.util');
+
+const mapProductUrls = (product, req) => {
+  if (!product) return product;
+  const p = { ...product };
+  if (p.images && Array.isArray(p.images)) {
+    p.images = p.images.map(url => ensureAbsoluteUrl(url, req));
+  }
+  if (p.octagonsImage) {
+    p.octagonsImage = ensureAbsoluteUrl(p.octagonsImage, req);
+  }
+  return p;
+};
 
 class ProductController {
 
@@ -19,7 +32,11 @@ class ProductController {
     try {
       const currency = req.headers['x-currency'] || req.query.currency;
       const products = await ProductService.getProducts({ ...req.query, currency, branchId: req.branchId });
-      res.status(200).json({ success: true, data: products });
+      const mappedProducts = { 
+        ...products, 
+        data: products.data.map(p => mapProductUrls(p, req)) 
+      };
+      res.status(200).json({ success: true, data: mappedProducts });
     } catch (error) {
       next(error); 
     }
@@ -34,7 +51,7 @@ class ProductController {
       
       if (!product) return res.status(404).json({ success: false, message: 'Producto no encontrado' });
 
-      res.status(200).json({ success: true, data: product });
+      res.status(200).json({ success: true, data: mapProductUrls(product, req) });
     } catch (error) {
       next(error);
     }
@@ -51,7 +68,11 @@ class ProductController {
       
  
       const result = await ProductService.getProducts({ search: q, currency, branchId: req.branchId, ...req.query });
-      res.status(200).json({ success: true, data: result });
+      const mappedResult = {
+        ...result,
+        data: result.data.map(p => mapProductUrls(p, req))
+      };
+      res.status(200).json({ success: true, data: mappedResult });
     } catch (error) {
       next(error);
     }
@@ -94,7 +115,8 @@ class ProductController {
       const branchId = req.branchId;
       const currency = req.headers['x-currency'] || req.query.currency;
       const recommendations = await ProductService.getRecommendations(id, branchId, currency);
-      res.status(200).json({ success: true, data: recommendations });
+      const mappedRecommendations = recommendations.map(p => mapProductUrls(p, req));
+      res.status(200).json({ success: true, data: mappedRecommendations });
     } catch (error) {
       next(error);
     }

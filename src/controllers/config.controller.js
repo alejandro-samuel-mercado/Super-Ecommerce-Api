@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const EventService = require("../services/event.service");
 const AuditService = require("../services/audit.service");
+const { ensureAbsoluteUrl } = require("../utils/url.util");
 
 const getConfig = async (req, res) => {
   try {
@@ -59,6 +60,20 @@ const getConfig = async (req, res) => {
         enablePoints: true,
         enabledPaymentMethods: (activeEvent.paymentMethods || []).length > 0,
       };
+    }
+
+    // Ensure critical URLs are absolute
+    const urlFields = ["logoUrl", "bannerImage", "adImage", "customPageImage", "persistentQrUrl"];
+    urlFields.forEach(field => {
+      if (finalConfig[field]) finalConfig[field] = ensureAbsoluteUrl(finalConfig[field], req);
+    });
+
+    if (finalConfig.secondaryAds && Array.isArray(finalConfig.secondaryAds)) {
+      finalConfig.secondaryAds = finalConfig.secondaryAds.map(url => ensureAbsoluteUrl(url, req));
+    }
+    
+    if (finalConfig.customPageImages && Array.isArray(finalConfig.customPageImages)) {
+      finalConfig.customPageImages = finalConfig.customPageImages.map(url => ensureAbsoluteUrl(url, req));
     }
 
     res.json({ ...finalConfig, activeEvent });
@@ -293,6 +308,20 @@ const getPublicConfig = async (req, res) => {
       }
     }
 
+    // Ensure critical URLs are absolute
+    const urlFields = ["logoUrl", "bannerImage", "adImage", "customPageImage", "persistentQrUrl"];
+    urlFields.forEach(field => {
+      if (finalConfig[field]) finalConfig[field] = ensureAbsoluteUrl(finalConfig[field], req);
+    });
+
+    if (finalConfig.secondaryAds && Array.isArray(finalConfig.secondaryAds)) {
+      finalConfig.secondaryAds = finalConfig.secondaryAds.map(url => ensureAbsoluteUrl(url, req));
+    }
+
+    if (finalConfig.customPageImages && Array.isArray(finalConfig.customPageImages)) {
+      finalConfig.customPageImages = finalConfig.customPageImages.map(url => ensureAbsoluteUrl(url, req));
+    }
+
     const CurrencyService = require("../services/currency.service");
     const detectedCurrency = await CurrencyService.getCurrencyByContext(req);
 
@@ -307,6 +336,3 @@ module.exports = {
   updateConfig,
   getPublicConfig,
 };
-// Trigger nodemon restart for Prisma Client update
-
-

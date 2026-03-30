@@ -1,4 +1,12 @@
 const TransferService = require('../services/transfer.service');
+const { ensureAbsoluteUrl } = require('../utils/url.util');
+
+const mapTransferUrls = (transfer, req) => {
+  if (!transfer) return transfer;
+  const t = { ...transfer };
+  if (t.proofUrl) t.proofUrl = ensureAbsoluteUrl(t.proofUrl, req);
+  return t;
+};
 
 class TransferController {
   
@@ -16,7 +24,7 @@ class TransferController {
           return res.status(400).json({ success: false, message: 'Debe ingresar el monto' });
       }
 
-      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const baseUrl = process.env.API_URL || `${req.protocol}://${req.get('host')}`;
       const transfer = await TransferService.createTransfer(userId, amount, req.file.buffer, branchId, baseUrl);
 
       res.status(201).json({
@@ -33,7 +41,11 @@ class TransferController {
       const branchId = req.branchId;
       const { page, limit } = req.query;
       const result = await TransferService.getAllTransfers({ branchId, page, limit });
-      res.status(200).json({ success: true, data: result });
+      const mappedResult = {
+        ...result,
+        data: result.data.map(t => mapTransferUrls(t, req))
+      };
+      res.status(200).json({ success: true, data: mappedResult });
     } catch (error) {
       next(error);
     }
@@ -42,7 +54,8 @@ class TransferController {
   async getMyTransfers(req, res, next) {
     try {
       const transfers = await TransferService.getUserTransfers(req.user.id);
-      res.status(200).json({ success: true, data: transfers });
+      const mappedTransfers = transfers.map(t => mapTransferUrls(t, req));
+      res.status(200).json({ success: true, data: mappedTransfers });
     } catch (error) {
       next(error);
     }
@@ -58,7 +71,7 @@ class TransferController {
       }
 
       const updated = await TransferService.updateStatus(id, status);
-      res.status(200).json({ success: true, data: updated });
+      res.status(200).json({ success: true, data: mapTransferUrls(updated, req) });
     } catch (error) {
        next(error);
     }

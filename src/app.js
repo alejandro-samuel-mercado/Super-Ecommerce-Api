@@ -10,6 +10,7 @@ const passport = require('./config/google.config');
 const { extractBranchId } = require('./middlewares/branch.middleware');
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(passport.initialize());
 

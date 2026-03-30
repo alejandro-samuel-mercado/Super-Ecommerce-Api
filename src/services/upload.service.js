@@ -5,9 +5,12 @@ const crypto = require('crypto');
 
 // Check if Cloudinary is fully configured
 const isCloudinaryConfigured = 
-  process.env.CLOUDINARY_CLOUD_NAME && 
-  process.env.CLOUDINARY_API_KEY && 
-  process.env.CLOUDINARY_API_SECRET;
+  process.env.UPLOAD_STORAGE !== 'local' &&
+  process.env.CLOUDINARY_CLOUD_NAME?.trim().length > 0 && 
+  process.env.CLOUDINARY_API_KEY?.trim().length > 0 && 
+  process.env.CLOUDINARY_API_SECRET?.trim().length > 0;
+
+console.log(`[UploadService] Modo de almacenamiento: ${isCloudinaryConfigured ? 'Cloudinary' : 'Local'}`);
 
 if (isCloudinaryConfigured) {
   cloudinary.config({
@@ -52,25 +55,38 @@ class UploadService {
   }
 
   async uploadToLocal(buffer, folder) {
-    const uploadDir = path.join(__dirname, '../../public/uploads', folder);
-    
-    // Ensure directory exists
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    try {
+      const rootDir = path.resolve(__dirname, '../../');
+      const uploadDir = path.join(rootDir, 'public/uploads', folder);
+      
+      console.log(`[UploadService] Intentando guardar localmente en: ${uploadDir}`);
 
-    // Generate unique filename
-    const hash = crypto.randomBytes(8).toString('hex');
-    const filename = `${Date.now()}-${hash}.jpg`; // Defaulting to jpg for simplicity, or we could detect mime type
-    const filePath = path.join(uploadDir, filename);
+      // Ensure directory exists
+      if (!fs.existsSync(uploadDir)) {
+        console.log(`[UploadService] Creando directorio: ${uploadDir}`);
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
 
-    return new Promise((resolve, reject) => {
-      fs.writeFile(filePath, buffer, (err) => {
-        if (err) return reject(err);
-        // Return relative path for the frontend
-        resolve(`/uploads/${folder}/${filename}`);
+      // Generate unique filename
+      const hash = crypto.randomBytes(8).toString('hex');
+      const filename = `${Date.now()}-${hash}.jpg`; 
+      const filePath = path.join(uploadDir, filename);
+
+      return new Promise((resolve, reject) => {
+        fs.writeFile(filePath, buffer, (err) => {
+          if (err) {
+            console.error(`[UploadService] Error al escribir archivo: ${err.message}`);
+            return reject(err);
+          }
+          const relativePath = `/uploads/${folder}/${filename}`;
+          console.log(`[UploadService] Archivo guardado con éxito: ${relativePath}`);
+          resolve(relativePath);
+        });
       });
-    });
+    } catch (error) {
+      console.error(`[UploadService] Error crítico en uploadToLocal: ${error.message}`);
+      throw error;
+    }
   }
 }
 
