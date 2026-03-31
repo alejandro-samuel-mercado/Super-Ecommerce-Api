@@ -196,16 +196,47 @@ class InvoiceService {
             y += rowHeight;
         });
 
-        // --- RESUMEN DE TOTALES ---
+        // --- RESUMEN DE TOTALES Y QR ---
         y += 20;
         const sumX = 350;
         const sumValX = 450;
 
-        if (y > 650) {
+        // Threshold para salto de página antes de totales
+        if (y > 680) {
             doc.addPage();
             y = 50;
         }
 
+        // 1. Generar QR Code primero para tenerlo disponible
+        let qrBuffer = null;
+        try {
+            const qrData = JSON.stringify({
+                t: ticketNum,
+                s: config?.storeName || 'Official Store',
+                d: new Date(sale.createdAt).toISOString().split('T')[0],
+                v: parseFloat(sale.total)
+            });
+
+            qrBuffer = await bwipjs.toBuffer({
+                bcid: 'qrcode',
+                text: qrData,
+                scale: 2
+            });
+        } catch (qrError) {
+            console.error('Error generating QR for invoice:', qrError.message);
+        }
+
+        // 2. Dibujar QR a la izquierda (si se generó con éxito)
+        if (qrBuffer) {
+            doc.image(qrBuffer, 50, y, { width: 55 });
+            doc
+                .fillColor(darkGray)
+                .fontSize(6)
+                .font('Helvetica-Bold')
+                .text('ESCANEE PARA VALIDAR', 50, y + 60, { width: 60, align: 'center' });
+        }
+
+        const totalsStartY = y;
         doc.fontSize(10).fillColor(darkGray);
         
         // Subtotal
@@ -246,7 +277,7 @@ class InvoiceService {
         // TOTAL FINAL
         y += 10;
         doc
-            .rect(sumX - 10, y - 5, 210, 45)
+            .rect(sumX - 10, y - 5, 210, 40)
             .fill(brandCoral);
         
         const totalStr = `${symbol}${parseFloat(sale.total).toLocaleString(numLocale)}`;
@@ -256,66 +287,29 @@ class InvoiceService {
             .fillColor('#FFFFFF')
             .font('Helvetica-Bold')
             .fontSize(14)
-            .text('TOTAL', sumX, y + 15)
+            .text('TOTAL', sumX, y + 12)
             .fontSize(totalFontSize)
-            .text(totalStr, sumValX - 25, y + (totalStr.length > 12 ? 17 : 12), { width: 110, align: 'right' });
+            .text(totalStr, sumValX - 25, y + (totalStr.length > 12 ? 14 : 10), { width: 110, align: 'right' });
 
-        // --- PIE DE PÁGINA ---
+        y += 50;
+
+        // --- PIE DE PÁGINA (Posición fija al final de la página actual) ---
+        const footerY = 780;
         doc
             .fillColor('#9CA3AF')
             .fontSize(7)
             .font('Helvetica')
-            .text('ESTE DOCUMENTO ES UNA CONSTANCIA DE COMPRA ELECTRÓNICA. NO VÁLIDO COMO FACTURA FISCAL AFIP.', 50, 780, { align: 'center', characterSpacing: 1 });
+            .text('ESTE DOCUMENTO ES UNA CONSTANCIA DE COMPRA ELECTRÓNICA. NO VÁLIDO COMO FACTURA FISCAL AFIP.', 50, footerY, { align: 'center', characterSpacing: 1 });
         
         doc
-            .rect(50, 795, 500, 10)
+            .rect(50, footerY + 15, 500, 10)
             .fill(brandPurple);
         
         doc
             .fillColor('#FFFFFF')
             .font('Helvetica-Bold')
-            .text((config?.ticketFooter || `GRACIAS POR ELEGIR ${(config?.storeName || 'OFFICIAL STORE')}`).toUpperCase(), 50, 796, { align: 'center', characterSpacing: 2 });
-
-        // --- CÓDIGO QR ---
-        try {
-            const qrData = JSON.stringify({
-                t: ticketNum,
-                s: config?.storeName || 'Official Store',
-                d: new Date(sale.createdAt).toISOString().split('T')[0],
-                v: parseFloat(sale.total)
-            });
-
-            // Promesa con timeout para evitar cuelgues
-            const generateQR = () => new Promise(async (res, rej) => {
-                const timeout = setTimeout(() => rej(new Error('QR Timeout')), 3000);
-                try {
-                    const buffer = await bwipjs.toBuffer({
-                        bcid: 'qrcode',
-                        text: qrData,
-                        scale: 2
-                    });
-                    clearTimeout(timeout);
-                    res(buffer);
-                } catch (e) {
-                    clearTimeout(timeout);
-                    rej(e);
-                }
-            });
-
-            const qrBuffer = await generateQR();
-
-            // Posicionar QR a la izquierda del disclaimer legal
-            doc.image(qrBuffer, 50, 720, { width: 45 });
-            
-            doc
-                .fillColor(darkGray)
-                .fontSize(7)
-                .font('Helvetica-Bold')
-                .text('ESCANEE PARA VALIDAR COMPROBANTE', 105, 740);
-
-        } catch (qrError) {
-            console.error('Error generating QR for invoice:', qrError.message);
-        }
+            .fontSize(7)
+            .text((config?.ticketFooter || `GRACIAS POR ELEGIR ${(config?.storeName || 'OFFICIAL STORE')}`).toUpperCase(), 50, footerY + 16, { align: 'center', characterSpacing: 2 });
 
         doc.end();
 
