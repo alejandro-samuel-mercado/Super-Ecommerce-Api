@@ -1,5 +1,6 @@
 const PDFDocument = require('pdfkit');
 const axios = require('axios');
+const bwipjs = require('bwip-js');
 
 class InvoiceService {
   /**
@@ -274,6 +275,47 @@ class InvoiceService {
             .fillColor('#FFFFFF')
             .font('Helvetica-Bold')
             .text((config?.ticketFooter || `GRACIAS POR ELEGIR ${(config?.storeName || 'OFFICIAL STORE')}`).toUpperCase(), 50, 796, { align: 'center', characterSpacing: 2 });
+
+        // --- CÓDIGO QR ---
+        try {
+            const qrData = JSON.stringify({
+                t: ticketNum,
+                s: config?.storeName || 'Official Store',
+                d: new Date(sale.createdAt).toISOString().split('T')[0],
+                v: parseFloat(sale.total)
+            });
+
+            // Promesa con timeout para evitar cuelgues
+            const generateQR = () => new Promise(async (res, rej) => {
+                const timeout = setTimeout(() => rej(new Error('QR Timeout')), 3000);
+                try {
+                    const buffer = await bwipjs.toBuffer({
+                        bcid: 'qrcode',
+                        text: qrData,
+                        scale: 2
+                    });
+                    clearTimeout(timeout);
+                    res(buffer);
+                } catch (e) {
+                    clearTimeout(timeout);
+                    rej(e);
+                }
+            });
+
+            const qrBuffer = await generateQR();
+
+            // Posicionar QR a la izquierda del disclaimer legal
+            doc.image(qrBuffer, 50, 720, { width: 45 });
+            
+            doc
+                .fillColor(darkGray)
+                .fontSize(7)
+                .font('Helvetica-Bold')
+                .text('ESCANEE PARA VALIDAR COMPROBANTE', 105, 740);
+
+        } catch (qrError) {
+            console.error('Error generating QR for invoice:', qrError.message);
+        }
 
         doc.end();
 
