@@ -1269,6 +1269,8 @@ class SaleService {
         const roleName = typeof role === "string" ? role : role?.name;
         if (roleName === "CUSTOMER" && sale.userId !== userId)
             throw new Error("No tienes permisos para visualizar esta orden.");
+
+        return sale;
     }
 
     async getSaleByUuid(uuid) {
