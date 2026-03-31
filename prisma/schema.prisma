@@ -513,6 +513,7 @@ model GatewayCurrencySupport {
   gatewayId    Int
   currencyCode String
   isPrimary    Boolean        @default(false)
+  isSecondary  Boolean        @default(false)
   currency     Currency       @relation(fields: [currencyCode], references: [code])
   gateway      PaymentGateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
 
@@ -734,6 +735,7 @@ model Purchase {
   currencyCode           String?          @default("ARS")
   exchangeRateAtPurchase Decimal?         @default(1.0) @db.Decimal(18, 8)
   totalInBaseCurrency    Decimal?         @db.Decimal(10, 2)
+  invoiceUrl             String?
   branch                 Branch           @relation(fields: [branchId], references: [id])
   currency               Currency?        @relation(fields: [currencyCode], references: [code])
   supplier               Supplier         @relation(fields: [supplierId], references: [id])
