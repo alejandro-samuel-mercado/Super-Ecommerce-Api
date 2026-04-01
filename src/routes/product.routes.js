@@ -44,6 +44,13 @@ router.use(protect);
 router.post('/export-codes', restrictTo('ADMIN', 'SUPER_ADMIN'), CodeExportController.generateCodesPDF);
 
 /**
+ * @route POST /api/products/bulk
+ * @desc Importación masiva de productos
+ * @access Admin/Super Admin
+ */
+router.post('/bulk', restrictTo('ADMIN', 'SUPER_ADMIN'), ProductController.bulkCreate);
+
+/**
  * @route POST /api/products
  * @desc Crear un nuevo producto
  * @access Admin/Super Admin

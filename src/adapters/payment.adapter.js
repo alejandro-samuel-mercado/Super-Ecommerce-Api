@@ -31,6 +31,22 @@ class PaymentAdapter {
   }
 
   /**
+   * Procesa un pago directo (síncrono) sin redirección (Ej. Card Tokenization)
+   */
+  async processPayment(sale, user, gatewaySlug, paymentData) {
+      try {
+          const strategy = await PaymentGatewayFactory.getGatewayBySlug(gatewaySlug);
+          if (typeof strategy.processPayment !== 'function') {
+              throw new Error(`Strategy for ${gatewaySlug} does not support synchronous processPayment`);
+          }
+          return await strategy.processPayment(sale, user, paymentData);
+      } catch (error) {
+          console.error('[PaymentAdapter] Process Payment Error:', error);
+          throw error;
+      }
+  }
+
+  /**
    * Reembolsa un pago.
    * @param {string} paymentId 
    * @param {number} [amount] 

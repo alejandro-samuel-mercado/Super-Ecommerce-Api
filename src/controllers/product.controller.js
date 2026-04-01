@@ -147,6 +147,31 @@ class ProductController {
       next(error);
     }
   }
+
+  async bulkCreate(req, res, next) {
+    try {
+      const { products } = req.body;
+      const branchId = req.branchId;
+      
+      if (!products || !Array.isArray(products)) {
+        return res.status(400).json({ success: false, message: 'Se requiere un array de productos.' });
+      }
+
+      const result = await ProductService.bulkCreateProducts(products, {
+        adminId: req.user.id,
+        ip: req.ip,
+        branchId
+      });
+
+      res.status(201).json({ 
+        success: true, 
+        message: `Importación finalizada: ${result.created} creados, ${result.errors.length} errores.`,
+        data: result 
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new ProductController();

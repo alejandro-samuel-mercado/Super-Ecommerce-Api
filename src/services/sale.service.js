@@ -137,7 +137,7 @@ class SaleService {
         }
 
         const gatewaySlug = paymentType;
-        const dbPaymentType = [
+        let dbPaymentType = [
             "CASH",
             "DEBIT",
             "CARD",
@@ -148,6 +148,11 @@ class SaleService {
         ].includes(paymentType)
             ? paymentType
             : "MERCADO_PAGO";
+
+        if (gatewaySlug === "mercadopago_custom") {
+            const isDebit = saleData.customPaymentData?.payment_method_id?.toLowerCase().includes("deb");
+            dbPaymentType = isDebit ? "DEBIT" : "CARD";
+        }
 
         const transactionResult = await prisma.$transaction(
             async (tx) => {
@@ -814,17 +819,60 @@ class SaleService {
         );
 
         if (sale.paymentStatus !== "PAID") {
-            if (["CASH", "TRANSFER", "DEBIT", "QR"].includes(sale.paymentType)) {
-                // Si es un usuario logueado usamos ID, si es invitado usamos UUID
+            // Los tipos CASH, TRANSFER y QR son offline. DEBIT/CARD son offline si NO vienen de una pasarela automática.
+            if (["CASH", "TRANSFER", "QR"].includes(sale.paymentType) || 
+                (["CASH", "TRANSFER", "DEBIT", "QR"].includes(sale.paymentType) && gatewaySlug !== 'mercadopago_custom')) {
+
                 const referenceId = user ? sale.id : (sale.uuid || sale.id);
                 checkoutUrl = `/checkout/pending?saleId=${referenceId}`;
             } else {
                 try {
-                    checkoutUrl = await PaymentAdapter.createPreference(
-                        sale,
-                        user,
-                        gatewaySlug,
-                    );
+                    if (gatewaySlug === 'mercadopago_custom') {
+                        const paymentResult = await PaymentAdapter.processPayment(
+                            sale,
+                            user,
+                            gatewaySlug,
+                            saleData.customPaymentData
+                        );
+
+                        if (paymentResult.success) {
+                            console.log(`[SaleService] Payment SUCCESS for #${sale.id}. Updating status to PAID.`);
+                            await prisma.sale.update({
+                                where: { id: sale.id },
+                                data: {
+                                    paymentStatus: "PAID",
+                                    mpPaymentId: paymentResult.paymentId
+                                }
+                            });
+
+                            setImmediate(async () => {
+                                try {
+                                    await this.processPostPaymentActions(sale.id);
+                                } catch (error) {
+                                    console.error("[SaleService] Error in post-payment actions:", error);
+                                }
+                            });
+                            checkoutUrl = `/checkout/success?saleId=${sale.id}`;
+                        } else if (paymentResult.status === 'rejected') {
+                            // Persistir el motivo del rechazo en observaciones para que el Admin lo vea
+                            await prisma.sale.update({
+                                where: { id: sale.id },
+                                data: {
+                                    observations: `Pago rechazado por Mercado Pago: ${paymentResult.statusDetail || 'Motivo desconocido'}`
+                                }
+                            });
+                            checkoutUrl = `/checkout/failure?saleId=${sale.id}&status=${paymentResult.status}&detail=${paymentResult.statusDetail || ''}`;
+                        } else {
+                            const referenceId = user ? sale.id : (sale.uuid || sale.id);
+                            checkoutUrl = `/checkout/pending?saleId=${referenceId}`;
+                        }
+                    } else {
+                        checkoutUrl = await PaymentAdapter.createPreference(
+                            sale,
+                            user,
+                            gatewaySlug,
+                        );
+                    }
                 } catch (error) {
                     console.error("[SaleService] Error creating checkout preference:", error);
                     throw new Error(
@@ -996,7 +1044,7 @@ class SaleService {
                     requested: itemQty,
                     reason: "Not available in branch",
                 });
-                
+
                 const unitPrice = pricesMap[skuIdInt] || parseFloat(sku.price.toString());
                 subtotal += unitPrice * itemQty;
                 enrichedItems.push({

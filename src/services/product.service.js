@@ -989,6 +989,142 @@ class ProductService {
             where: { productId: parseInt(productId) }
         });
     }
+
+    /**
+     * IMPORTACIÓN MASIVA DE PRODUCTOS
+     * Procesa un array de productos desde Excel/CSV
+     */
+    async bulkCreateProducts(productsData, context = {}) {
+        const results = {
+            created: 0,
+            updated: 0,
+            errors: []
+        };
+
+        const branches = await prisma.branch.findMany({ where: { isActive: true }, select: { id: true } });
+
+        for (const item of productsData) {
+            try {
+                // 1. Normalizar y buscar Categoría
+                const catName = item.Categoria || item.Category || 'General';
+                const catSlug = catName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
+                
+                let category = await prisma.category.findUnique({ where: { slug: catSlug } });
+                if (!category) {
+                    category = await prisma.category.create({
+                        data: { name: catName, slug: catSlug }
+                    });
+                }
+
+                // 2. Transacción por producto para evitar fallos catastróficos en el lote
+                await prisma.$transaction(async (tx) => {
+                    // Buscar si existe el SKU
+                    const skuCode = String(item.Codigo_SKU || item.SKU || `${item.Nombre}-DEF`).trim();
+                    const existingSku = await tx.sKU.findUnique({ where: { code: skuCode } });
+
+                    if (existingSku) {
+                        // ACTUALIZAR SI YA EXISTE (UPSERT)
+                        // Obtener datos actuales para fusionar
+                        const existingProduct = await tx.product.findUnique({ where: { id: existingSku.productId } });
+                        
+                        const sku = await tx.sKU.update({
+                            where: { id: existingSku.id },
+                            data: {
+                                price: item.Precio_SKU ? parseFloat(item.Precio_SKU) : (item.Precio_Base ? parseFloat(item.Precio_Base) : existingSku.price),
+                                barcode: item.Codigo_Barras ? String(item.Codigo_Barras) : existingSku.barcode,
+                                product: {
+                                    update: {
+                                        basePrice: item.Precio_Base ? parseFloat(item.Precio_Base) : (item.Precio ? parseFloat(item.Precio) : existingProduct.basePrice),
+                                        description: item.Descripcion ? String(item.Descripcion) : existingProduct.description,
+                                        brand: item.Marca ? String(item.Marca) : existingProduct.brand,
+                                        measurementUnit: item.Unidad_Medida ? String(item.Unidad_Medida) : existingProduct.measurementUnit
+                                    }
+                                }
+                            }
+                        });
+
+                        // Actualizar inventario en la sucursal activa si se provee context.branchId
+                        if (context.branchId && item.Stock_Inicial !== undefined) {
+                            await tx.branchInventory.upsert({
+                                where: {
+                                    skuId_branchId: {
+                                        skuId: sku.id,
+                                        branchId: context.branchId
+                                    }
+                                },
+                                update: { stock: parseFloat(item.Stock_Inicial) },
+                                create: {
+                                    skuId: sku.id,
+                                    branchId: context.branchId,
+                                    stock: parseFloat(item.Stock_Inicial),
+                                    price: sku.price
+                                }
+                            });
+                        }
+                        
+                        results.updated++;
+                        return; // Salir de la transacción para este item (ya procesado como update)
+                    }
+
+                    // Crear Producto si no existe el SKU
+                    const product = await tx.product.create({
+                        data: {
+                            name: String(item.Nombre || 'Sin Nombre'),
+                            brand: String(item.Marca || 'Genérico'),
+                            description: String(item.Descripcion || ''),
+                            basePrice: parseFloat(item.Precio_Base || item.Precio || 0),
+                            type: String(item.Tipo || 'SIMPLE'),
+                            categoryId: category.id,
+                            measurementUnit: String(item.Unidad_Medida || 'UNIDAD'),
+                            isActive: true,
+                        }
+                    });
+
+                    // Crear SKU
+                    const sku = await tx.sKU.create({
+                        data: {
+                            productId: product.id,
+                            code: skuCode,
+                            price: parseFloat(item.Precio_SKU || item.Precio_Base || 0),
+                            stock: parseFloat(item.Stock_Inicial || 0),
+                            barcode: item.Codigo_Barras ? String(item.Codigo_Barras) : null,
+                        }
+                    });
+
+                    // Inicializar Inventario en sucursales
+                    const inventoryData = branches.map(b => ({
+                        skuId: sku.id,
+                        branchId: b.id,
+                        stock: b.id === context.branchId ? parseFloat(item.Stock_Inicial || 0) : 0,
+                        price: sku.price,
+                    }));
+
+                    await tx.branchInventory.createMany({ data: inventoryData });
+
+                    if (context.adminId) {
+                        await AuditService.logAction({
+                            adminId: context.adminId,
+                            action: 'BULK_IMPORT_PRODUCT',
+                            entityType: 'PRODUCT',
+                            entityId: product.id,
+                            branchId: context.branchId || null,
+                            changes: { item },
+                            ip: context.ip
+                        });
+                    }
+                });
+
+                results.created++;
+            } catch (err) {
+                results.errors.push({
+                    item: item.Nombre || 'Desconocido',
+                    error: err.message
+                });
+            }
+        }
+
+        return results;
+    }
 }
 
 module.exports = new ProductService();

@@ -1,5 +1,6 @@
 const prisma = require('../config/prisma');
 const MercadoPagoStrategy = require('./payment-strategies/mercadopago.strategy');
+const MercadoPagoCustomStrategy = require('./payment-strategies/mercadopago-custom.strategy');
 const StripeStrategy = require('./payment-strategies/stripe.strategy');
 const PayPalStrategy = require('./payment-strategies/paypal.strategy');
 
@@ -7,6 +8,7 @@ class PaymentGatewayFactory {
   constructor() {
     this.strategies = {
       mercadopago: MercadoPagoStrategy,
+      mercadopago_custom: MercadoPagoCustomStrategy,
       stripe: StripeStrategy,
       paypal: PayPalStrategy
     };
@@ -67,9 +69,18 @@ class PaymentGatewayFactory {
    * @returns {Promise<PaymentStrategy>}
    */
   async getGatewayBySlug(slug) {
-    const gateway = await prisma.paymentGateway.findFirst({
+    let gateway = await prisma.paymentGateway.findFirst({
       where: { slug, isActive: true }
     });
+
+    if (!gateway && slug === 'mercadopago_custom') {
+      // Pasarela virtual para Mercado Pago Custom si no existe en DB
+      gateway = {
+        slug: 'mercadopago_custom',
+        isActive: true,
+        config: {}
+      };
+    }
 
     if (!gateway) {
       throw new Error(`Gateway '${slug}' not found or inactive.`);
@@ -95,13 +106,14 @@ class PaymentGatewayFactory {
           const support = gw.supportedCurrencies ? gw.supportedCurrencies.find(s => s.currencyCode === currencyCode) : null;
           const isPayPal = gw.slug === 'paypal';
           const isStripe = gw.slug === 'stripe';
+          const isMPCustom = gw.slug === 'mercadopago_custom';
           
-          if (!support && !isPayPal && !isStripe) return;
+          if (!support && !isPayPal && !isStripe && !isMPCustom) return;
 
           const isPrimary = support ? support.isPrimary : false;
 
           if (isLocal) {
-              if (isPrimary || isPayPal) {
+              if (isPrimary || isPayPal || isMPCustom) {
                   options.push({
                       id: gw.id,
                       name: gw.name,
@@ -111,7 +123,7 @@ class PaymentGatewayFactory {
                   });
               }
           } else {
-              if (isPayPal || isStripe) {
+              if (isPayPal || isStripe || isMPCustom) {
                   options.push({
                       id: gw.id,
                       name: gw.name,
@@ -122,6 +134,17 @@ class PaymentGatewayFactory {
               }
           }
       });
+      
+      const hasMPCustom = options.some(o => o.slug === 'mercadopago_custom');
+      if (!hasMPCustom) {
+          options.push({
+              id: 999,
+              name: 'Tarjeta de Crédito / Débito',
+              slug: 'mercadopago_custom',
+              type: 'INTERNATIONAL',
+              isFallback: false
+          });
+      }
 
       return options;
   }

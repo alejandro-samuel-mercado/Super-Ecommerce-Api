@@ -32,7 +32,7 @@ router.post('/checkout', optionalProtect, checkoutLimiter, [
     body('items').isArray({ min: 1 }).withMessage('El carrito debe contener al menos un artículo'),
     body('items.*.skuId').isInt().withMessage('ID de SKU inválido'),
     body('items.*.quantity').isNumeric().withMessage('La cantidad debe ser un número mayor a 0'),
-    body('paymentType').isIn(['CASH', 'DEBIT', 'CARD', 'TRANSFER', 'MERCADO_PAGO', 'mercadopago', 'stripe', 'paypal', 'POINTS', 'QR', 'POINTS']).withMessage('Método de pago inválido'),
+    body('paymentType').isIn(['CASH', 'DEBIT', 'CARD', 'TRANSFER', 'MERCADO_PAGO', 'mercadopago', 'stripe', 'paypal', 'POINTS', 'QR', 'POINTS', 'mercadopago_custom']).withMessage('Método de pago inválido'),
     body('deliveryType').isIn(['PICKUP', 'DELIVERY']).withMessage('Tipo de entrega inválido'),
     validateRequest
 ], SaleController.create);

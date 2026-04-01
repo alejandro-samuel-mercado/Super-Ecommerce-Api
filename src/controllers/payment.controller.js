@@ -20,6 +20,7 @@ class PaymentController {
       }
 
       const options = await PaymentGatewayFactory.getAvailableGateways(currency, country);
+      console.log('--- DEBUG PAYMENT OPTIONS ---', options);
       
       return res.json({
         success: true,
