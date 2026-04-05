@@ -465,6 +465,9 @@ model StoreConfig {
   showLogoOnTicket         Boolean  @default(true)
   ticketFooter             String?  @default("¡Gracias por su compra!")
   enableManualStock        Boolean  @default(true)
+  bankAccounts             Json?    @default("[]")
+  themeColors              Json?    @default("{}")
+  rolePermissions          Json?    @default("{}")
 }
 
 model Currency {

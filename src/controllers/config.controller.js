@@ -141,7 +141,10 @@ const updateConfig = async (req, res) => {
       "customPageTexts",
       "customPageTextsSubtitle",
       "customPageImagesSubtitle",
-      "customPageVideosSubtitle"
+      "customPageVideosSubtitle",
+      "bankAccounts",
+      "themeColors",
+      "rolePermissions"
     ];
 
     fields.forEach((f) => {
@@ -180,6 +183,18 @@ const updateConfig = async (req, res) => {
       )
         ? data.enabledPaymentMethods
         : null;
+    }
+
+    if (data.bankAccounts !== undefined) {
+      updateData.bankAccounts = Array.isArray(data.bankAccounts) ? data.bankAccounts : [];
+    }
+
+    if (data.themeColors !== undefined) {
+      updateData.themeColors = typeof data.themeColors === 'object' && data.themeColors !== null ? data.themeColors : {};
+    }
+
+    if (data.rolePermissions !== undefined) {
+      updateData.rolePermissions = typeof data.rolePermissions === 'object' && data.rolePermissions !== null ? data.rolePermissions : {};
     }
 
     const config = await prisma.storeConfig.upsert({
@@ -269,7 +284,7 @@ const getPublicConfig = async (req, res) => {
       "navItemName", "customPageTitle", "customPageDescription",
       "customPageImage", "customPageVideo", "customPageImages",
       "customPageVideos", "customPageTexts", "customPageTextsSubtitle",
-      "customPageImagesSubtitle", "customPageVideosSubtitle"
+      "customPageImagesSubtitle", "customPageVideosSubtitle", "bankAccounts", "themeColors", "rolePermissions"
     ];
 
     const sanitizedConfig = {};

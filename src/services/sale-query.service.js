@@ -102,6 +102,7 @@ class SaleQueryService {
             paymentType,
             deliveryStatus,
             search,
+            employeeId,
             page = 1,
             limit = 20
         } = filters;
@@ -148,6 +149,7 @@ class SaleQueryService {
         if (deliveryType) where.deliveryType = deliveryType;
         if (paymentType) where.paymentType = paymentType;
         if (deliveryStatus) where.deliveryStatus = deliveryStatus;
+        if (employeeId) where.employeeId = parseInt(employeeId);
 
         const sales = await prisma.sale.findMany({
             where,

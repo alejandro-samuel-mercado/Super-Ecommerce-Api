@@ -209,10 +209,20 @@ class SaleController {
         }
 
         const { paymentStatus, isAbandoned, isPendingPayment, isCancelled, deliveryType, paymentType, deliveryStatus, page, limit } = req.query;
+        let employeeId = null;
+
+        // Check RBAC for onlyOwnSales
+        if (roleName !== 'SUPER_ADMIN') {
+            const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+            if (config?.rolePermissions?.[roleName]?.onlyOwnSales === true) {
+                employeeId = req.user.id;
+            }
+        }
         
         const result = await SaleService.getAllSales({ 
             branchId,
             branchIds,
+            employeeId, // Added
             paymentStatus, 
             isAbandoned,
             isPendingPayment,
