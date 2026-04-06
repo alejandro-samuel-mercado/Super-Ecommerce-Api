@@ -420,8 +420,8 @@ class ProductService {
                             },
                             include: {
                                 variantOptions: true,
-                                branchInventory: (adminView === 'true' || adminView === true) && !branchId 
-                                    ? true 
+                                branchInventory: (adminView === 'true' || adminView === true) && !branchId
+                                    ? true
                                     : { where: { branchId: activeBranchId } }
                             }
                         },
@@ -1008,7 +1008,7 @@ class ProductService {
                 // 1. Normalizar y buscar Categoría
                 const catName = item.Categoria || item.Category || 'General';
                 const catSlug = catName.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
-                
+
                 let category = await prisma.category.findUnique({ where: { slug: catSlug } });
                 if (!category) {
                     category = await prisma.category.create({
@@ -1026,7 +1026,7 @@ class ProductService {
                         // ACTUALIZAR SI YA EXISTE (UPSERT)
                         // Obtener datos actuales para fusionar
                         const existingProduct = await tx.product.findUnique({ where: { id: existingSku.productId } });
-                        
+
                         const sku = await tx.sKU.update({
                             where: { id: existingSku.id },
                             data: {
@@ -1061,7 +1061,7 @@ class ProductService {
                                 }
                             });
                         }
-                        
+
                         results.updated++;
                         return; // Salir de la transacción para este item (ya procesado como update)
                     }

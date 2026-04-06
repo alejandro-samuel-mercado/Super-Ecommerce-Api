@@ -7,501 +7,501 @@ const AuditService = require("../services/audit.service");
  * Provee endpoints de monitoreo para reservas de stock e inconsistencias
  */
 class AdminStockController {
-  /**
-   * Obtener estadísticas de reservas de stock
-   * GET /api/admin/stock/reservations/stats
-   */
-  async getReservationStats(req, res, next) {
-    try {
-      const stats = await StockCleanupService.getReservationStats();
+    /**
+     * Obtener estadísticas de reservas de stock
+     * GET /api/admin/stock/reservations/stats
+     */
+    async getReservationStats(req, res, next) {
+        try {
+            const stats = await StockCleanupService.getReservationStats();
 
-      res.json({
-        success: true,
-        data: stats,
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Obtener reservas de stock activas
-   * GET /api/admin/stock/reservations
-   */
-  async getActiveReservations(req, res, next) {
-    try {
-      const reservations = await prisma.stockReservation.findMany({
-        where: { released: false },
-        include: {
-          sku: {
-            include: { product: true },
-          },
-          sale: {
-            include: {
-              user: { select: { id: true, name: true, email: true } },
-            },
-          },
-        },
-        orderBy: { expiresAt: "asc" },
-      });
-
-      const now = new Date();
-      const enriched = reservations.map((r) => ({
-        ...r,
-        isExpired: r.expiresAt < now,
-        timeRemaining: Math.max(0, (r.expiresAt - now) / 1000 / 60),
-      }));
-
-      res.json({
-        success: true,
-        data: {
-          total: enriched.length,
-          expired: enriched.filter((r) => r.isExpired).length,
-          active: enriched.filter((r) => !r.isExpired).length,
-          reservations: enriched,
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Obtener inconsistencias potenciales de stock
-   * GET /api/admin/stock/inconsistencies
-   */
-  async getStockInconsistencies(req, res, next) {
-    try {
-      const skus = await prisma.sKU.findMany({
-        where: { isDeleted: false, product: { isDeleted: false } },
-        include: {
-          branchInventory: {
-            include: { branch: { select: { name: true } } }
-          },
-          reservations: {
-            where: { released: false, expiresAt: { gt: new Date() } },
-          },
-        },
-      });
-
-      const issues = [];
-      const now = new Date();
-
-      for (const sku of skus) {
-        const totalReserved = sku.reservations.reduce(
-          (sum, r) => sum + Number(r.quantity),
-          0,
-        );
-
-        if (Number(sku.stock) < 0) {
-          issues.push({
-            type: "NEGATIVE_GLOBAL_STOCK",
-            severity: "CRITICAL",
-            skuId: sku.id,
-            skuCode: sku.code,
-            productName: sku.product.name,
-            stock: sku.stock,
-            message: `SKU tiene stock global negativo: ${sku.stock}`,
-          });
-        }
-
-        for (const inv of sku.branchInventory) {
-          const branchStock = Number(inv.stock);
-          
-          if (branchStock < 0) {
-            issues.push({
-              type: "NEGATIVE_BRANCH_STOCK",
-              severity: "HIGH",
-              skuId: sku.id,
-              skuCode: sku.code,
-              productName: sku.product.name,
-              branchId: inv.branchId,
-              branchName: inv.branch.name,
-              stock: inv.stock,
-              message: `Stock negativo en sucursal "${inv.branch.name}": ${inv.stock}`,
+            res.json({
+                success: true,
+                data: stats,
             });
-          }
+        } catch (error) {
+            next(error);
         }
-
-        const availableStock = Number(sku.stock) - totalReserved;
-        if (availableStock < 0) {
-          issues.push({
-            type: "OVER_RESERVED",
-            severity: "HIGH",
-            skuId: sku.id,
-            skuCode: sku.code,
-            productName: sku.product.name,
-            stock: sku.stock,
-            totalReserved: totalReserved,
-            availableStock: availableStock,
-            message: `Stock sobre-reservado globalmente. Stock: ${sku.stock}, Reservado: ${totalReserved}, Disponible: ${availableStock}`,
-          });
-        }
-      }
-
-      res.json({
-        success: true,
-        data: {
-          totalIssues: issues.length,
-          critical: issues.filter((i) => i.severity === "CRITICAL").length,
-          high: issues.filter((i) => i.severity === "HIGH").length,
-          medium: issues.filter((i) => i.severity === "MEDIUM").length,
-          issues: issues.sort((a, b) => {
-            const severityOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
-            return severityOrder[a.severity] - severityOrder[b.severity];
-          }),
-        },
-      });
-    } catch (error) {
-      next(error);
     }
-  }
 
-  /**
-   * Forzar limpieza de reservas expiradas (trigger manual)
-   * POST /api/admin/stock/cleanup
-   */
-  async forceCleanup(req, res, next) {
-    try {
-      const cleaned = await StockCleanupService.cleanupExpiredReservations();
-
-      res.json({
-        success: true,
-        message: `Se limpiaron ${cleaned} reservas expiradas`,
-        data: { cleanedCount: cleaned },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Obtener historial de transacciones de pago (para depurar webhooks)
-   * GET /api/admin/stock/payment-transactions
-   */
-  async getPaymentTransactions(req, res, next) {
-    try {
-      const { status, saleId } = req.query;
-
-      const where = {};
-      if (status) where.status = status;
-      if (saleId) where.saleId = parseInt(saleId);
-
-      const transactions = await prisma.paymentTransaction.findMany({
-        where,
-        include: {
-          sale: {
-            include: {
-              user: { select: { id: true, name: true, email: true } },
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 50,
-      });
-
-      res.json({
-        success: true,
-        data: {
-          total: transactions.length,
-          transactions: transactions.map((t) => ({
-            ...t,
-            duplicateAttempts: t.attempts > 1,
-            processingTime: t.processedAt
-              ? (new Date(t.processedAt) - new Date(t.createdAt)) / 1000
-              : null,
-          })),
-        },
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Forzar liberación de una reserva específica (admin override)
-   * POST /api/admin/stock/reservations/:id/release
-   */
-  async releaseReservation(req, res, next) {
-    try {
-      const { id } = req.params;
-
-      const result = await StockCleanupService.forceReleaseReservation(id);
-
-      res.json({
-        success: true,
-        message: result.message,
-        data: result.reservation,
-      });
-    } catch (error) {
-      if (error.message.includes("not found")) {
-        return res.status(404).json({ success: false, message: error.message });
-      }
-      next(error);
-    }
-  }
-  /**
-   * Obtener Inventario para una sucursal específica
-   * GET /api/admin/stock/inventory
-   */
-  async getInventory(req, res, next) {
-    try {
-      let parsedBranchId = req.branchId;
-
-      const { search, categoryId, supplierId, brand, lowStock, stockLevel, page = 1, limit = 20 } = req.query;
-      const p = Math.max(1, parseInt(page));
-      const l = Math.max(1, parseInt(limit));
-      const skip = (p - 1) * l;
-
-      const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-      const lowThreshold = config?.lowStockThreshold ?? 10;
-      const criticalThreshold = config?.criticalStockThreshold ?? 5;
-
-      const skuWhere = {
-        isDeleted: false,
-        product: { isDeleted: false }
-      };
-
-      if (search || brand || categoryId || supplierId) {
-        if (search) {
-          skuWhere.OR = [
-            { code: { contains: search, mode: 'insensitive' } },
-            { barcode: { contains: search, mode: 'insensitive' } },
-            { product: { name: { contains: search, mode: 'insensitive' } } },
-            { product: { brand: { contains: search, mode: 'insensitive' } } },
-            { product: { model: { contains: search, mode: 'insensitive' } } },
-          ];
-        }
-
-        if (brand || categoryId) {
-          skuWhere.product = skuWhere.product || {};
-          if (brand)
-            skuWhere.product.brand = { contains: brand, mode: 'insensitive' };
-          if (categoryId) skuWhere.product.categoryId = parseInt(categoryId);
-        }
-
-        if (supplierId) {
-          skuWhere.supplierSkus = {
-            some: { supplierId: parseInt(supplierId) },
-          };
-        }
-      }
-
-      if (stockLevel === "CRITICAL") {
-        const stockFilter = { stock: { lte: criticalThreshold } };
-        if (parsedBranchId) stockFilter.branchId = parsedBranchId;
-        skuWhere.branchInventory = { some: stockFilter };
-      } else if (stockLevel === "LOW" || lowStock === "true") {
-        const stockFilter = { stock: { lte: lowThreshold } };
-        if (parsedBranchId) stockFilter.branchId = parsedBranchId;
-        skuWhere.branchInventory = { some: stockFilter };
-      }
-
-      const [skus, total] = await Promise.all([
-          prisma.sKU.findMany({
-            where: skuWhere,
-            include: {
-              product: {
+    /**
+     * Obtener reservas de stock activas
+     * GET /api/admin/stock/reservations
+     */
+    async getActiveReservations(req, res, next) {
+        try {
+            const reservations = await prisma.stockReservation.findMany({
+                where: { released: false },
                 include: {
-                  category: { select: { name: true } },
+                    sku: {
+                        include: { product: true },
+                    },
+                    sale: {
+                        include: {
+                            user: { select: { id: true, name: true, email: true } },
+                        },
+                    },
                 },
-              },
-              variantOptions: true,
-              branchInventory: {
-                include: { branch: { select: { id: true, name: true, isActive: true } } }
-              },
-            },
-            orderBy: { product: { name: "asc" } },
-            skip,
-            take: l
-          }),
-          prisma.sKU.count({ where: skuWhere })
-      ]);
+                orderBy: { expiresAt: "asc" },
+            });
 
-      const data = skus.map((sku) => {
-        const activeInv = parsedBranchId 
-            ? sku.branchInventory.find(bi => bi.branchId === parsedBranchId)
-            : sku.branchInventory[0];
-            
-        const stock = activeInv ? parseFloat(activeInv.stock.toString()) : 0;
-        const minStock = activeInv ? parseFloat(activeInv.minStock.toString()) : 0;
-        const totalStock = sku.branchInventory.reduce((acc, bi) => acc + parseFloat(bi.stock.toString()), 0);
+            const now = new Date();
+            const enriched = reservations.map((r) => ({
+                ...r,
+                isExpired: r.expiresAt < now,
+                timeRemaining: Math.max(0, (r.expiresAt - now) / 1000 / 60),
+            }));
 
-        return {
-          id: activeInv ? activeInv.id : `NEW-${sku.id}`,
-          skuId: sku.id,
-          skuCode: sku.code,
-          productName: sku.product.name,
-          brand: sku.product.brand || null,
-          categoryName: sku.product.category.name,
-          image: sku.product.images[0] || null,
-          variant: sku.variantOptions
-            .map((v) => `${v.name}: ${v.value}`)
-            .join(", "),
-          stock,
-          minStock,
-          totalStock,
-          price: sku.price,
-          measurementUnit: sku.product.measurementUnit || "UNIDAD",
-          allowFractional: sku.product.allowFractional || false,
-          updatedAt: activeInv ? activeInv.updatedAt : sku.updatedAt,
-          branchStocks: sku.branchInventory.map(bi => ({
-              branchId: bi.branchId,
-              branchName: bi.branch.name,
-              isActive: bi.branch.isActive,
-              stock: parseFloat(bi.stock.toString()),
-              minStock: parseFloat(bi.minStock.toString()),
-          }))
-        };
-      });
-
-      res.json({ success: true, data: { data, total, page: p, limit: l, totalPages: Math.ceil(total / l) } });
-    } catch (error) {
-      next(error);
+            res.json({
+                success: true,
+                data: {
+                    total: enriched.length,
+                    expired: enriched.filter((r) => r.isExpired).length,
+                    active: enriched.filter((r) => !r.isExpired).length,
+                    reservations: enriched,
+                },
+            });
+        } catch (error) {
+            next(error);
+        }
     }
-  }
 
-  /**
-   * Actualizar Stock de Inventario
-   * PUT /api/admin/stock/inventory/:id
-   */
-  async updateInventory(req, res, next) {
-    try {
-      const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
-      if (config && config.enableManualStock === false) {
-        return res.status(403).json({
-          success: false,
-          message: "La edición manual de stock está deshabilitada en la configuración global."
-        });
-      }
+    /**
+     * Obtener inconsistencias potenciales de stock
+     * GET /api/admin/stock/inconsistencies
+     */
+    async getStockInconsistencies(req, res, next) {
+        try {
+            const skus = await prisma.sKU.findMany({
+                where: { isDeleted: false, product: { isDeleted: false } },
+                include: {
+                    branchInventory: {
+                        include: { branch: { select: { name: true } } }
+                    },
+                    reservations: {
+                        where: { released: false, expiresAt: { gt: new Date() } },
+                    },
+                },
+            });
 
-      const { id } = req.params;
-      const { stock, minStock, price } = req.body;
-      let parsedBranchId = req.branchId;
+            const issues = [];
+            const now = new Date();
 
-      if (!parsedBranchId) {
-        const defaultBranch =
-          (await prisma.branch.findFirst({
-            where: { isHeadquarters: true },
-          })) || (await prisma.branch.findFirst());
+            for (const sku of skus) {
+                const totalReserved = sku.reservations.reduce(
+                    (sum, r) => sum + Number(r.quantity),
+                    0,
+                );
 
-        if (!defaultBranch) {
-          return res.status(400).json({
-            success: false,
-            message: "No hay sucursales configuradas en el sistema",
-          });
+                if (Number(sku.stock) < 0) {
+                    issues.push({
+                        type: "NEGATIVE_GLOBAL_STOCK",
+                        severity: "CRITICAL",
+                        skuId: sku.id,
+                        skuCode: sku.code,
+                        productName: sku.product.name,
+                        stock: sku.stock,
+                        message: `SKU tiene stock global negativo: ${sku.stock}`,
+                    });
+                }
+
+                for (const inv of sku.branchInventory) {
+                    const branchStock = Number(inv.stock);
+
+                    if (branchStock < 0) {
+                        issues.push({
+                            type: "NEGATIVE_BRANCH_STOCK",
+                            severity: "HIGH",
+                            skuId: sku.id,
+                            skuCode: sku.code,
+                            productName: sku.product.name,
+                            branchId: inv.branchId,
+                            branchName: inv.branch.name,
+                            stock: inv.stock,
+                            message: `Stock negativo en sucursal "${inv.branch.name}": ${inv.stock}`,
+                        });
+                    }
+                }
+
+                const availableStock = Number(sku.stock) - totalReserved;
+                if (availableStock < 0) {
+                    issues.push({
+                        type: "OVER_RESERVED",
+                        severity: "HIGH",
+                        skuId: sku.id,
+                        skuCode: sku.code,
+                        productName: sku.product.name,
+                        stock: sku.stock,
+                        totalReserved: totalReserved,
+                        availableStock: availableStock,
+                        message: `Stock sobre-reservado globalmente. Stock: ${sku.stock}, Reservado: ${totalReserved}, Disponible: ${availableStock}`,
+                    });
+                }
+            }
+
+            res.json({
+                success: true,
+                data: {
+                    totalIssues: issues.length,
+                    critical: issues.filter((i) => i.severity === "CRITICAL").length,
+                    high: issues.filter((i) => i.severity === "HIGH").length,
+                    medium: issues.filter((i) => i.severity === "MEDIUM").length,
+                    issues: issues.sort((a, b) => {
+                        const severityOrder = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+                        return severityOrder[a.severity] - severityOrder[b.severity];
+                    }),
+                },
+            });
+        } catch (error) {
+            next(error);
         }
-        parsedBranchId = defaultBranch.id;
-      }
-
-      const data = {};
-      if (stock !== undefined) data.stock = parseFloat(stock);
-      if (minStock !== undefined) data.minStock = parseFloat(minStock);
-      if (price !== undefined) data.price = parseFloat(price);
-
-      const updated = await prisma.$transaction(async (tx) => {
-        let existing;
-        let targetSkuId;
-        let targetBranchId;
-
-        if (isNaN(parseInt(id))) {
-          // Si el ID no es numérico (ej: "NEW-7"), indica que no existe el registro de inventario
-          targetSkuId = parseInt(id.replace("NEW-", ""));
-          targetBranchId = parsedBranchId;
-
-          existing = await tx.branchInventory.findFirst({
-            where: { skuId: targetSkuId, branchId: targetBranchId },
-          });
-        } else {
-          existing = await tx.branchInventory.findUnique({
-            where: { id: parseInt(id) },
-          });
-          if (existing) {
-            targetSkuId = existing.skuId;
-            targetBranchId = existing.branchId;
-          }
-        }
-
-        let updatedInventory;
-        const currentStock = existing
-          ? parseFloat(existing.stock.toString())
-          : 0;
-
-        if (!existing) {
-          if (targetSkuId === undefined)
-            throw new Error("Información de SKU inválida");
-
-          const sku = await tx.sKU.findUnique({ where: { id: targetSkuId } });
-          if (!sku) throw new Error("SKU no encontrado");
-
-          updatedInventory = await tx.branchInventory.create({
-            data: {
-              skuId: targetSkuId,
-              branchId: targetBranchId,
-              stock: stock !== undefined ? parseFloat(stock) : 0,
-              minStock: minStock !== undefined ? parseFloat(minStock) : 0,
-              price: price !== undefined ? parseFloat(price) : sku.price,
-              costPrice: sku.price,
-            },
-            include: {
-              sku: { include: { product: true } },
-              branch: true,
-            },
-          });
-        } else {
-          updatedInventory = await tx.branchInventory.update({
-            where: { id: existing.id },
-            data,
-            include: {
-              sku: { include: { product: true } },
-              branch: true,
-            },
-          });
-        }
-
-        if (stock !== undefined && parseFloat(stock) !== currentStock) {
-          const diff = parseFloat(stock) - currentStock;
-          await tx.stockMovement.create({
-            data: {
-              skuId: targetSkuId,
-              branchId: targetBranchId,
-              type: "MANUAL_ADJUSTMENT",
-              quantity: diff,
-              resultingStock: parseFloat(stock),
-              referenceId: `MANUAL-${Date.now()}`,
-              userId: req.user.id,
-              notes: `Ajuste manual de stock: ${currentStock} -> ${stock}`,
-            },
-          });
-
-          await tx.sKU.update({
-            where: { id: targetSkuId },
-            data: { stock: { increment: diff } },
-          });
-
-          await AuditService.logAction({
-            adminId: req.user.id,
-            action: "UPDATE_INVENTORY",
-            entityType: "STOCK",
-            entityId: updatedInventory.id.toString(),
-            branchId: targetBranchId,
-            changes: { prevStock: currentStock, newStock: stock, diff },
-            ip: req.ip,
-          });
-        }
-
-        return updatedInventory;
-      });
-
-      res.json({
-        success: true,
-        data: updated,
-        message: "Inventario actualizado correctamente",
-      });
-    } catch (error) {
-      return res.status(400).json({ success: false, message: error.message });
     }
-  }
+
+    /**
+     * Forzar limpieza de reservas expiradas (trigger manual)
+     * POST /api/admin/stock/cleanup
+     */
+    async forceCleanup(req, res, next) {
+        try {
+            const cleaned = await StockCleanupService.cleanupExpiredReservations();
+
+            res.json({
+                success: true,
+                message: `Se limpiaron ${cleaned} reservas expiradas`,
+                data: { cleanedCount: cleaned },
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Obtener historial de transacciones de pago (para depurar webhooks)
+     * GET /api/admin/stock/payment-transactions
+     */
+    async getPaymentTransactions(req, res, next) {
+        try {
+            const { status, saleId } = req.query;
+
+            const where = {};
+            if (status) where.status = status;
+            if (saleId) where.saleId = parseInt(saleId);
+
+            const transactions = await prisma.paymentTransaction.findMany({
+                where,
+                include: {
+                    sale: {
+                        include: {
+                            user: { select: { id: true, name: true, email: true } },
+                        },
+                    },
+                },
+                orderBy: { createdAt: "desc" },
+                take: 50,
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    total: transactions.length,
+                    transactions: transactions.map((t) => ({
+                        ...t,
+                        duplicateAttempts: t.attempts > 1,
+                        processingTime: t.processedAt
+                            ? (new Date(t.processedAt) - new Date(t.createdAt)) / 1000
+                            : null,
+                    })),
+                },
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Forzar liberación de una reserva específica (admin override)
+     * POST /api/admin/stock/reservations/:id/release
+     */
+    async releaseReservation(req, res, next) {
+        try {
+            const { id } = req.params;
+
+            const result = await StockCleanupService.forceReleaseReservation(id);
+
+            res.json({
+                success: true,
+                message: result.message,
+                data: result.reservation,
+            });
+        } catch (error) {
+            if (error.message.includes("not found")) {
+                return res.status(404).json({ success: false, message: error.message });
+            }
+            next(error);
+        }
+    }
+    /**
+     * Obtener Inventario para una sucursal específica
+     * GET /api/admin/stock/inventory
+     */
+    async getInventory(req, res, next) {
+        try {
+            let parsedBranchId = req.branchId;
+
+            const { search, categoryId, supplierId, brand, lowStock, stockLevel, page = 1, limit = 20 } = req.query;
+            const p = Math.max(1, parseInt(page));
+            const l = Math.max(1, parseInt(limit));
+            const skip = (p - 1) * l;
+
+            const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+            const lowThreshold = config?.lowStockThreshold ?? 10;
+            const criticalThreshold = config?.criticalStockThreshold ?? 5;
+
+            const skuWhere = {
+                isDeleted: false,
+                product: { isDeleted: false }
+            };
+
+            if (search || brand || categoryId || supplierId) {
+                if (search) {
+                    skuWhere.OR = [
+                        { code: { contains: search, mode: 'insensitive' } },
+                        { barcode: { contains: search, mode: 'insensitive' } },
+                        { product: { name: { contains: search, mode: 'insensitive' } } },
+                        { product: { brand: { contains: search, mode: 'insensitive' } } },
+                        { product: { model: { contains: search, mode: 'insensitive' } } },
+                    ];
+                }
+
+                if (brand || categoryId) {
+                    skuWhere.product = skuWhere.product || {};
+                    if (brand)
+                        skuWhere.product.brand = { contains: brand, mode: 'insensitive' };
+                    if (categoryId) skuWhere.product.categoryId = parseInt(categoryId);
+                }
+
+                if (supplierId) {
+                    skuWhere.supplierSkus = {
+                        some: { supplierId: parseInt(supplierId) },
+                    };
+                }
+            }
+
+            if (stockLevel === "CRITICAL") {
+                const stockFilter = { stock: { lte: criticalThreshold } };
+                if (parsedBranchId) stockFilter.branchId = parsedBranchId;
+                skuWhere.branchInventory = { some: stockFilter };
+            } else if (stockLevel === "LOW" || lowStock === "true") {
+                const stockFilter = { stock: { lte: lowThreshold } };
+                if (parsedBranchId) stockFilter.branchId = parsedBranchId;
+                skuWhere.branchInventory = { some: stockFilter };
+            }
+
+            const [skus, total] = await Promise.all([
+                prisma.sKU.findMany({
+                    where: skuWhere,
+                    include: {
+                        product: {
+                            include: {
+                                category: { select: { name: true } },
+                            },
+                        },
+                        variantOptions: true,
+                        branchInventory: {
+                            include: { branch: { select: { id: true, name: true, isActive: true } } }
+                        },
+                    },
+                    orderBy: { product: { name: "asc" } },
+                    skip,
+                    take: l
+                }),
+                prisma.sKU.count({ where: skuWhere })
+            ]);
+
+            const data = skus.map((sku) => {
+                const activeInv = parsedBranchId
+                    ? sku.branchInventory.find(bi => bi.branchId === parsedBranchId)
+                    : sku.branchInventory[0];
+
+                const stock = activeInv ? parseFloat(activeInv.stock.toString()) : 0;
+                const minStock = activeInv ? parseFloat(activeInv.minStock.toString()) : 0;
+                const totalStock = sku.branchInventory.reduce((acc, bi) => acc + parseFloat(bi.stock.toString()), 0);
+
+                return {
+                    id: activeInv ? activeInv.id : `NEW-${sku.id}`,
+                    skuId: sku.id,
+                    skuCode: sku.code,
+                    productName: sku.product.name,
+                    brand: sku.product.brand || null,
+                    categoryName: sku.product.category.name,
+                    image: sku.product.images[0] || null,
+                    variant: sku.variantOptions
+                        .map((v) => `${v.name}: ${v.value}`)
+                        .join(", "),
+                    stock,
+                    minStock,
+                    totalStock,
+                    price: sku.price,
+                    measurementUnit: sku.product.measurementUnit || "UNIDAD",
+                    allowFractional: sku.product.allowFractional || false,
+                    updatedAt: activeInv ? activeInv.updatedAt : sku.updatedAt,
+                    branchStocks: sku.branchInventory.map(bi => ({
+                        branchId: bi.branchId,
+                        branchName: bi.branch.name,
+                        isActive: bi.branch.isActive,
+                        stock: parseFloat(bi.stock.toString()),
+                        minStock: parseFloat(bi.minStock.toString()),
+                    }))
+                };
+            });
+
+            res.json({ success: true, data: { data, total, page: p, limit: l, totalPages: Math.ceil(total / l) } });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Actualizar Stock de Inventario
+     * PUT /api/admin/stock/inventory/:id
+     */
+    async updateInventory(req, res, next) {
+        try {
+            const config = await prisma.storeConfig.findFirst({ where: { id: 1 } });
+            if (config && config.enableManualStock === false) {
+                return res.status(403).json({
+                    success: false,
+                    message: "La edición manual de stock está deshabilitada en la configuración global."
+                });
+            }
+
+            const { id } = req.params;
+            const { stock, minStock, price } = req.body;
+            let parsedBranchId = req.branchId;
+
+            if (!parsedBranchId) {
+                const defaultBranch =
+                    (await prisma.branch.findFirst({
+                        where: { isHeadquarters: true },
+                    })) || (await prisma.branch.findFirst());
+
+                if (!defaultBranch) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "No hay sucursales configuradas en el sistema",
+                    });
+                }
+                parsedBranchId = defaultBranch.id;
+            }
+
+            const data = {};
+            if (stock !== undefined) data.stock = parseFloat(stock);
+            if (minStock !== undefined) data.minStock = parseFloat(minStock);
+            if (price !== undefined) data.price = parseFloat(price);
+
+            const updated = await prisma.$transaction(async (tx) => {
+                let existing;
+                let targetSkuId;
+                let targetBranchId;
+
+                if (isNaN(parseInt(id))) {
+                    // Si el ID no es numérico (ej: "NEW-7"), indica que no existe el registro de inventario
+                    targetSkuId = parseInt(id.replace("NEW-", ""));
+                    targetBranchId = parsedBranchId;
+
+                    existing = await tx.branchInventory.findFirst({
+                        where: { skuId: targetSkuId, branchId: targetBranchId },
+                    });
+                } else {
+                    existing = await tx.branchInventory.findUnique({
+                        where: { id: parseInt(id) },
+                    });
+                    if (existing) {
+                        targetSkuId = existing.skuId;
+                        targetBranchId = existing.branchId;
+                    }
+                }
+
+                let updatedInventory;
+                const currentStock = existing
+                    ? parseFloat(existing.stock.toString())
+                    : 0;
+
+                if (!existing) {
+                    if (targetSkuId === undefined)
+                        throw new Error("Información de SKU inválida");
+
+                    const sku = await tx.sKU.findUnique({ where: { id: targetSkuId } });
+                    if (!sku) throw new Error("SKU no encontrado");
+
+                    updatedInventory = await tx.branchInventory.create({
+                        data: {
+                            skuId: targetSkuId,
+                            branchId: targetBranchId,
+                            stock: stock !== undefined ? parseFloat(stock) : 0,
+                            minStock: minStock !== undefined ? parseFloat(minStock) : 0,
+                            price: price !== undefined ? parseFloat(price) : sku.price,
+                            costPrice: sku.price,
+                        },
+                        include: {
+                            sku: { include: { product: true } },
+                            branch: true,
+                        },
+                    });
+                } else {
+                    updatedInventory = await tx.branchInventory.update({
+                        where: { id: existing.id },
+                        data,
+                        include: {
+                            sku: { include: { product: true } },
+                            branch: true,
+                        },
+                    });
+                }
+
+                if (stock !== undefined && parseFloat(stock) !== currentStock) {
+                    const diff = parseFloat(stock) - currentStock;
+                    await tx.stockMovement.create({
+                        data: {
+                            skuId: targetSkuId,
+                            branchId: targetBranchId,
+                            type: "MANUAL_ADJUSTMENT",
+                            quantity: diff,
+                            resultingStock: parseFloat(stock),
+                            referenceId: `MANUAL-${Date.now()}`,
+                            userId: req.user.id,
+                            notes: `Ajuste manual de stock: ${currentStock} -> ${stock}`,
+                        },
+                    });
+
+                    await tx.sKU.update({
+                        where: { id: targetSkuId },
+                        data: { stock: { increment: diff } },
+                    });
+
+                    await AuditService.logAction({
+                        adminId: req.user.id,
+                        action: "UPDATE_INVENTORY",
+                        entityType: "STOCK",
+                        entityId: updatedInventory.id.toString(),
+                        branchId: targetBranchId,
+                        changes: { prevStock: currentStock, newStock: stock, diff },
+                        ip: req.ip,
+                    });
+                }
+
+                return updatedInventory;
+            });
+
+            res.json({
+                success: true,
+                data: updated,
+                message: "Inventario actualizado correctamente",
+            });
+        } catch (error) {
+            return res.status(400).json({ success: false, message: error.message });
+        }
+    }
 }
 
 module.exports = new AdminStockController();
