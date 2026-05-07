@@ -231,7 +231,9 @@ class SalePreviewService {
         }
 
         let shipping = 0;
-        if (
+        if (saleData.shippingCost !== undefined && saleData.shippingCost !== null) {
+            shipping = parseFloat(saleData.shippingCost);
+        } else if (
             storeConfig?.enableShipping &&
             deliveryMethod === "shipping"
         ) {

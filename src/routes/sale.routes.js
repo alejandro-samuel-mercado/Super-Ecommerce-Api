@@ -37,6 +37,14 @@ router.post('/checkout', optionalProtect, checkoutLimiter, [
     validateRequest
 ], SaleController.create);
 
+/**
+ * @route POST /api/sales/:id/payment-proof
+ * @desc Subir comprobante de pago
+ * @access Público (Permite invitados / Dueño de la venta)
+ */
+router.post('/:id/payment-proof', optionalProtect, upload.single('image'), SaleController.uploadPaymentProof);
+router.delete('/:id/payment-proof', optionalProtect, SaleController.deletePaymentProof);
+
 // Todas las demás rutas de ventas requieren autenticación OBLIGATORIA
 router.use(protect);
 
@@ -83,13 +91,7 @@ router.put('/:id', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), SaleControl
  */
 router.post('/:id/refund', restrictTo(['ADMIN', 'SUPER_ADMIN', 'EMPLOYEE']), SaleController.refund);
 
-/**
- * @route POST /api/sales/:id/payment-proof
- * @desc Subir comprobante de pago
- * @access Privado (Dueño de la venta)
- */
-router.post('/:id/payment-proof', upload.single('image'), SaleController.uploadPaymentProof);
-router.delete('/:id/payment-proof', SaleController.deletePaymentProof);
+
 
 /**
  * @route POST /api/sales/:id/qr-image

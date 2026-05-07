@@ -31,7 +31,7 @@ class SaleController {
   async preview(req, res, next){
     try {
       // Calcular totales sin crear la venta
-      const { items, couponCode, deliveryMethod, pointsToUse, paymentType, manualDiscount, address } = req.body;
+      const { items, couponCode, deliveryMethod, pointsToUse, paymentType, manualDiscount, address, shippingCost } = req.body;
       
      
       if (!items || items.length === 0) {
@@ -53,6 +53,7 @@ class SaleController {
           manualDiscount,
           currency,
           address,
+          shippingCost,
           customerIpCountry: (req.headers['x-vercel-ip-country'] || req.headers['cf-ipcountry'] || '').toUpperCase()
       }, userId);
 
@@ -316,23 +317,37 @@ class SaleController {
   async uploadPaymentProof(req, res, next) {
     try {
       const { id } = req.params;
-      const { id: userId } = req.user;
+      const user = req.user;
 
       if (!req.file) {
         return res.status(400).json({ success: false, message: 'No se envió ningún archivo' });
       }
 
-      const sale = await prisma.sale.findUnique({
-        where: { id: parseInt(id) },
-        include: { user: true }
-      });
+      let sale;
+      if (!isNaN(id)) {
+        sale = await prisma.sale.findUnique({
+          where: { id: parseInt(id) },
+          include: { user: true }
+        });
+      } else {
+        sale = await prisma.sale.findFirst({
+          where: { uuid: id },
+          include: { user: true }
+        });
+      }
 
       if (!sale) {
         return res.status(404).json({ success: false, message: 'Venta no encontrada' });
       }
 
-      if (sale.userId !== userId) {
-        return res.status(403).json({ success: false, message: 'No tienes permiso para subir el comprobante de esta venta' });
+      if (user) {
+        if (sale.userId !== user.id) {
+          return res.status(403).json({ success: false, message: 'No tienes permiso para subir el comprobante de esta venta' });
+        }
+      } else {
+        if (sale.userId !== null && sale.userId !== undefined) {
+          return res.status(403).json({ success: false, message: 'No tienes permiso para subir el comprobante de esta venta' });
+        }
       }
 
       if (sale.paymentStatus === 'PAID') {
@@ -343,7 +358,7 @@ class SaleController {
       const url = await UploadService.uploadImage(req.file.buffer, 'comprobantes', baseUrl);
 
       const updatedSale = await prisma.sale.update({
-        where: { id: parseInt(id) },
+        where: { id: sale.id },
         data: {
           paymentProofUrl: url,
           paymentProofUploadedAt: new Date()
@@ -371,18 +386,31 @@ class SaleController {
   async deletePaymentProof(req, res, next) {
     try {
       const { id } = req.params;
-      const { id: userId } = req.user;
+      const user = req.user;
 
-      const sale = await prisma.sale.findUnique({
-        where: { id: parseInt(id) }
-      });
+      let sale;
+      if (!isNaN(id)) {
+        sale = await prisma.sale.findUnique({
+          where: { id: parseInt(id) }
+        });
+      } else {
+        sale = await prisma.sale.findFirst({
+          where: { uuid: id }
+        });
+      }
 
       if (!sale) {
         return res.status(404).json({ success: false, message: 'Venta no encontrada' });
       }
 
-      if (sale.userId !== userId) {
-        return res.status(403).json({ success: false, message: 'No tienes permiso para modificar esta venta' });
+      if (user) {
+        if (sale.userId !== user.id) {
+          return res.status(403).json({ success: false, message: 'No tienes permiso para modificar esta venta' });
+        }
+      } else {
+        if (sale.userId !== null && sale.userId !== undefined) {
+          return res.status(403).json({ success: false, message: 'No tienes permiso para modificar esta venta' });
+        }
       }
 
       if (sale.paymentStatus === 'PAID') {
@@ -390,7 +418,7 @@ class SaleController {
       }
 
       await prisma.sale.update({
-        where: { id: parseInt(id) },
+        where: { id: sale.id },
         data: {
           paymentProofUrl: null,
           paymentProofUploadedAt: null
